@@ -1,0 +1,27 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+.build
+
+# OpenAPI Generator
+.openapi-generator-ignore
+.openapi-generator
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+*.terraform.lock.hcl
+.terraform/
+
+# Custom
+env/development/auth0.env
+**/*/env/production/**/*.env
+**/*/env/staging/**/*.env
+libs/shared/testing/openapi
+.generated
+test.http
+ignore
