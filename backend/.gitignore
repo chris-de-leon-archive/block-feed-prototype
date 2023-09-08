@@ -18,10 +18,11 @@ jspm_packages
 .terraform/
 
 # Custom
-env/development/auth0.env
+libs/shared/testing/openapi
 **/*/env/production/**/*.env
 **/*/env/staging/**/*.env
-libs/shared/testing/openapi
+env/development/auth0.env
+env/development/aws.env
 .generated
 test.http
 ignore

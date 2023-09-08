@@ -4,6 +4,7 @@ export const OPERATIONS = {
   CREATE: (() => {
     const name = "Create" as const
     return {
+      ID: `${NAMESPACE}${name}`,
       METHOD: "POST",
       NAME: name,
       PATH: `/${NAMESPACE}.${name}`,
@@ -12,6 +13,7 @@ export const OPERATIONS = {
   FIND_MANY: (() => {
     const name = "FindMany" as const
     return {
+      ID: `${NAMESPACE}${name}`,
       METHOD: "GET",
       NAME: name,
       PATH: `/${NAMESPACE}.${name}`,
@@ -20,6 +22,7 @@ export const OPERATIONS = {
   FIND_ONE: (() => {
     const name = "FindOne" as const
     return {
+      ID: `${NAMESPACE}${name}`,
       METHOD: "GET",
       NAME: name,
       PATH: `/${NAMESPACE}.${name}`,
@@ -28,6 +31,7 @@ export const OPERATIONS = {
   UPDATE: (() => {
     const name = "Update" as const
     return {
+      ID: `${NAMESPACE}${name}`,
       METHOD: "POST",
       NAME: name,
       PATH: `/${NAMESPACE}.${name}`,
@@ -36,6 +40,7 @@ export const OPERATIONS = {
   REMOVE: (() => {
     const name = "Remove" as const
     return {
+      ID: `${NAMESPACE}${name}`,
       METHOD: "POST",
       NAME: name,
       PATH: `/${NAMESPACE}.${name}`,

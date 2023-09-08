@@ -1,11 +1,15 @@
 import { funcsAPI } from "../../../../libs/api"
 import { AWS } from "@serverless/typescript"
 import { sharedConfig } from "../config"
+import * as path from "path"
 
 export const funcsFindManyConfig: AWS["functions"] = {
-  [funcsAPI.OPERATIONS.FIND_MANY.NAME]: {
+  [funcsAPI.OPERATIONS.FIND_MANY.ID]: {
     ...sharedConfig,
-    handler: "./apps/api/funcs/find-many/handler.handler",
+    handler: path.join(
+      path.dirname(path.relative(process.cwd(), __filename)),
+      "handler.handler"
+    ),
     events: [
       {
         http: {

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "NODE_ENV=development APP_ENV=development npx serverless offline",
-    "clean": "rm -rf .build",
+    "start": "NODE_ENV=development APP_ENV=development serverless deploy",
+    "build": "NODE_ENV=development APP_ENV=development serverless webpack --out=.build",
     "test": "bash ./tools/api/test.sh",
+    "logs": "bash ./tools/api/logs.sh",
+    "clean": "rm -rf .build",
     "db:migrate": "bash ./tools/db/migrate.sh",
     "auth0:token": "bash ./tools/auth0/get-token.sh",
     "terraform:start:dev": "bash ./tools/terraform/development/start.sh",
@@ -36,10 +38,13 @@
     "dotenv": "16.3.1",
     "drizzle-kit": "0.19.13",
     "serverless": "3.34.0",
+    "serverless-localstack": "1.1.1",
     "serverless-offline": "12.0.4",
-    "serverless-plugin-typescript": "2.1.5",
+    "serverless-webpack": "5.13.0",
+    "ts-loader": "9.4.4",
     "ts-node": "10.9.1",
     "tsx": "3.12.8",
-    "typescript": "5.2.2"
+    "typescript": "5.2.2",
+    "webpack-node-externals": "3.0.0"
   }
 }

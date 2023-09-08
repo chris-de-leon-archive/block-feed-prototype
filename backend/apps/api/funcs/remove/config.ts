@@ -1,11 +1,15 @@
 import { funcsAPI } from "../../../../libs/api"
 import { AWS } from "@serverless/typescript"
 import { sharedConfig } from "../config"
+import * as path from "path"
 
 export const funcsRemoveConfig: AWS["functions"] = {
-  [funcsAPI.OPERATIONS.REMOVE.NAME]: {
+  [funcsAPI.OPERATIONS.REMOVE.ID]: {
     ...sharedConfig,
-    handler: "./apps/api/funcs/remove/handler.handler",
+    handler: path.join(
+      path.dirname(path.relative(process.cwd(), __filename)),
+      "handler.handler"
+    ),
     events: [
       {
         http: {

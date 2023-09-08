@@ -1,11 +1,15 @@
 import { funcsAPI } from "../../../../libs/api"
 import { AWS } from "@serverless/typescript"
 import { sharedConfig } from "../config"
+import * as path from "path"
 
 export const funcsCreateConfig: AWS["functions"] = {
-  [funcsAPI.OPERATIONS.CREATE.NAME]: {
+  [funcsAPI.OPERATIONS.CREATE.ID]: {
     ...sharedConfig,
-    handler: "./apps/api/funcs/create/handler.handler",
+    handler: path.join(
+      path.dirname(path.relative(process.cwd(), __filename)),
+      "handler.handler"
+    ),
     events: [
       {
         http: {
