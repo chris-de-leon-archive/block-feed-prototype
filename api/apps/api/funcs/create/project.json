@@ -1,0 +1,50 @@
+{
+  "name": "api-funcs-create",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/funcs/create/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/funcs/create",
+        "main": "apps/api/funcs/create/src/main.ts",
+        "tsConfig": "apps/api/funcs/create/tsconfig.app.json",
+        "assets": ["apps/api/funcs/create/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/funcs/create/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-funcs-create:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-funcs-create:build:development"
+        },
+        "production": {
+          "buildTarget": "api-funcs-create:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/funcs/create/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

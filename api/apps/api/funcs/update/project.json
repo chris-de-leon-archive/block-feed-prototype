@@ -1,0 +1,50 @@
+{
+  "name": "api-funcs-update",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/funcs/update/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/funcs/update",
+        "main": "apps/api/funcs/update/src/main.ts",
+        "tsConfig": "apps/api/funcs/update/tsconfig.app.json",
+        "assets": ["apps/api/funcs/update/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/funcs/update/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-funcs-update:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-funcs-update:build:development"
+        },
+        "production": {
+          "buildTarget": "api-funcs-update:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/funcs/update/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}
