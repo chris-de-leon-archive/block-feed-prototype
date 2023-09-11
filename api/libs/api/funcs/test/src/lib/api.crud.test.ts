@@ -6,9 +6,9 @@ import { randomUUID } from "node:crypto"
 import assert from "node:assert"
 
 describe("Funcs CRUD Test", () => {
-  const auth0Client = auth0.createClient()
-  const db = database.createClient()
   const api = testutils.getApi()
+  const db = database.createClient()
+  const a0 = auth0.createClient()
 
   let headers = {}
   let auth0User: Awaited<
@@ -18,7 +18,7 @@ describe("Funcs CRUD Test", () => {
   before(async () => {
     await testutils.wipeDB(db, database.schema.blockFeed.schemaName)
 
-    const user = await testutils.createAuth0User(auth0Client)
+    const user = await testutils.createAuth0User(a0)
     const grnt = await user.getGrant()
 
     auth0User = user

@@ -1,8 +1,8 @@
 export const getEnvVars = () => {
-  const url = process.env["TEST_BASE_PATH"]
+  const url = process.env["TEST_LOCALSTACK_URL"]
 
   if (url == null) {
-    throw new Error(`environment variable "TEST_BASE_PATH" is not defined`)
+    throw new Error(`environment variable "TEST_LOCALSTACK_URL" is not defined`)
   }
 
   return {
