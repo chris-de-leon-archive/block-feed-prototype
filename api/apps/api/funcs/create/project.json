@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "target": "node",
@@ -14,7 +16,9 @@
         "outputPath": "dist/apps/api/funcs/create",
         "main": "apps/api/funcs/create/src/main.ts",
         "tsConfig": "apps/api/funcs/create/tsconfig.app.json",
-        "assets": ["apps/api/funcs/create/src/assets"],
+        "assets": [
+          "apps/api/funcs/create/src/assets"
+        ],
         "isolatedConfig": true,
         "webpackConfig": "apps/api/funcs/create/webpack.config.js"
       },
@@ -40,9 +44,13 @@
     },
     "lint": {
       "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["apps/api/funcs/create/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/api/funcs/create/**/*.ts"
+        ]
       }
     }
   },

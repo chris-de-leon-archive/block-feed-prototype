@@ -1,10 +1,7 @@
-export const getEnvVars = () => {
-  const dbUrl = process.env["DB_URL"]
-  if (dbUrl == null) {
-    throw new Error(`environment variable "DB_URL" is not defined`)
-  }
+import { utils } from "@api/shared/utils"
 
+export const getEnvVars = () => {
   return {
-    url: dbUrl,
+    url: utils.getRequiredEnvVar("DB_URL"),
   }
 }

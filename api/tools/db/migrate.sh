@@ -6,6 +6,7 @@ if [ -z $1 ] || [ "$1" == "development" ]; then
   export_env_files "./env/$1"
   echo ""
 
+  ts-node ./drizzle/pre-migrate.ts
   drizzle-kit push:pg
   exit 0
 fi

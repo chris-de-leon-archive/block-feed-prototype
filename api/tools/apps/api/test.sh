@@ -9,4 +9,4 @@ if [ ! -z $1 ]; then
   npm run openapi:gen:client
 fi
 
-find ./libs -name '*.test.ts' | tr '\n' ' ' | xargs node --require ts-node/register --test --test-reporter spec
+find ./libs/api -name '*.test.ts' | tr '\n' ' ' | xargs node --require ts-node/register --test --test-reporter spec

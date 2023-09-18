@@ -1,3 +1,4 @@
+import { getRequiredEnvVar } from "./get-required-env-var"
 import { AppEnv } from "./enums/app-env.enum"
 
 const isAppEnv = (s: string): s is AppEnv => {
@@ -5,10 +6,7 @@ const isAppEnv = (s: string): s is AppEnv => {
 }
 
 export const getAppEnv = () => {
-  const appEnv = process.env["APP_ENV"]
-  if (appEnv == null) {
-    throw new Error('environment variable "APP_ENV" is not defined')
-  }
+  const appEnv = getRequiredEnvVar("APP_ENV")
 
   if (!isAppEnv(appEnv)) {
     throw new Error(`"APP_ENV" must be one of ${Object.values(AppEnv)}`)

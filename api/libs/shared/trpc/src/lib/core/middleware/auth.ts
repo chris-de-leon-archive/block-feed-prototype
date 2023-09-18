@@ -1,9 +1,12 @@
+import { Auth0Ctx, DatabaseCtx } from "../types"
 import { database } from "@api/shared/database"
 import { createTRPC } from "../create-trpc"
 import { TRPCError } from "@trpc/server"
 import { sql } from "drizzle-orm"
 
-export const requireAuth = (t: ReturnType<typeof createTRPC>) => {
+export const requireAuth = (
+  t: ReturnType<typeof createTRPC<Auth0Ctx & DatabaseCtx>>
+) => {
   return t.middleware(async (opts) => {
     // Gets the authorization header value
     const authorization =
@@ -40,20 +43,20 @@ export const requireAuth = (t: ReturnType<typeof createTRPC>) => {
     const accessToken = tokens[tokens.length - 1]
 
     // Uses the auth token to get the user profile info
-    const profile: { readonly sub: string } =
-      await opts.ctx.auth0.authentication
-        .getProfile(accessToken)
-        .catch((err) => {
-          if (process.env["NODE_ENV"] !== "production") {
-            console.log(err)
-          }
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "invalid access token",
-          })
+    const profile = await opts.ctx.auth0.userInfo
+      .getUserInfo(accessToken)
+      .then(({ data }) => data)
+      .catch((err) => {
+        if (process.env["NODE_ENV"] !== "production") {
+          console.log(err)
+        }
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "invalid access token",
         })
+      })
 
-    // Adds the user ID to the database for relational mappings
+    // Prepare insert parameters
     const inputs = {
       placeholders: {
         id: sql.placeholder(database.schema.users.id.name),
@@ -63,13 +66,15 @@ export const requireAuth = (t: ReturnType<typeof createTRPC>) => {
       },
     }
 
+    // Prepare insert query
     const query = opts.ctx.database
       .insert(database.schema.users)
       .values({ id: inputs.placeholders.id })
       .onConflictDoNothing()
 
+    // Execute the query
     await query
-      .prepare(database.getPreparedStmtName(query.toSQL().sql))
+      .prepare(database.core.getPreparedStmtName(query.toSQL().sql))
       .execute(inputs.values)
 
     // Adds the profile info to the context

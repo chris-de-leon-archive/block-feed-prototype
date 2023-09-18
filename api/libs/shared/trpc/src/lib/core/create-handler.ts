@@ -1,15 +1,14 @@
-import { ContextServices } from "./interfaces/context-services.interface"
 import { createOpenApiAwsLambdaHandler } from "trpc-openapi"
 import { createContext } from "./create-context"
 import { createTRPC } from "./create-trpc"
 import { AnyRouter } from "@trpc/server"
 
-export const createHandler = (
-  services: ContextServices,
-  cb: (t: ReturnType<typeof createTRPC>) => AnyRouter
+export const createHandler = <T extends object>(
+  services: T,
+  cb: (t: ReturnType<typeof createTRPC<T>>) => AnyRouter
 ) => {
   return createOpenApiAwsLambdaHandler({
-    createContext: createContext(services),
-    router: cb(createTRPC()),
+    createContext: createContext<T>(services),
+    router: cb(createTRPC<T>()),
   })
 }

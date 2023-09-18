@@ -73,8 +73,8 @@ resource "docker_container" "flow_emulator" {
     name = docker_network.block_feed_net.name
   }
   ports {
-    internal = 3569
-    external = 3569
+    internal = 8888
+    external = 8888
   }
 }
 

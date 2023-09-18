@@ -1,18 +1,21 @@
+import { CONSTANTS, FuncsCtx, OPERATIONS } from "./constants"
 import { database } from "@api/shared/database"
-import { OPERATIONS } from "./constants"
 import { trpc } from "@api/shared/trpc"
-import { sql } from "drizzle-orm"
 import { z } from "zod"
 
 export const CreateInput = z.object({
-  name: z.string().min(1),
+  name: z.string().min(CONSTANTS.NAME.MIN_LEN).max(CONSTANTS.NAME.MAX_LEN),
+  cursorId: z
+    .string()
+    .min(CONSTANTS.CURSOR_ID.MIN_LEN)
+    .max(CONSTANTS.CURSOR_ID.MAX_LEN),
 })
 
 export const CreateOutput = z.object({
   count: z.number(),
 })
 
-export const create = (t: ReturnType<(typeof trpc)["createTRPC"]>) => {
+export const create = (t: ReturnType<typeof trpc.createTRPC<FuncsCtx>>) => {
   return {
     [OPERATIONS.CREATE.NAME]: t.procedure
       .meta({
@@ -25,28 +28,14 @@ export const create = (t: ReturnType<(typeof trpc)["createTRPC"]>) => {
       .output(CreateOutput)
       .use(trpc.middleware.requireAuth(t))
       .mutation(async (params) => {
-        const inputs = {
-          placeholders: {
-            name: sql.placeholder(database.schema.funcs.name.name),
-            userId: sql.placeholder(database.schema.funcs.userId.name),
-          },
-          values: {
-            [database.schema.funcs.name.name]: params.input.name,
-            [database.schema.funcs.userId.name]: params.ctx.user.sub,
-          },
-        }
-
-        const query = params.ctx.database.insert(database.schema.funcs).values({
-          name: inputs.placeholders.name,
-          userId: inputs.placeholders.userId,
-        })
-
-        const { rowCount } = await query
-          .prepare(database.getPreparedStmtName(query.toSQL().sql))
-          .execute(inputs.values)
+        return await database.queries.funcs
+          .create(params.ctx.database, {
+            cursorId: params.input.cursorId,
+            userId: params.ctx.user.sub,
+            name: params.input.name,
+          })
+          .then(({ rowCount }) => ({ count: rowCount }))
           .catch(trpc.handleError)
-
-        return { count: rowCount }
       }),
   }
 }

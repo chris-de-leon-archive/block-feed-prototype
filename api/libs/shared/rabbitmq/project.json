@@ -1,0 +1,16 @@
+{
+  "name": "shared-rabbitmq",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/rabbitmq/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/shared/rabbitmq/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

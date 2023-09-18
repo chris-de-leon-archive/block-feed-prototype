@@ -6,7 +6,7 @@ const input = createInterface({
   output: process.stdout,
 })
 
-async function main() {
+const main = async () => {
   const client = auth0.createClient()
 
   const email = await new Promise<string>((res, rej) => {
@@ -22,7 +22,7 @@ async function main() {
   })
 
   console.log("\nPassword Grant:")
-  const grant = await client.authentication
+  const grant = await client.oauth
     .passwordGrant({
       username: email,
       password: password,
@@ -33,7 +33,7 @@ async function main() {
     })
 
   console.log("\nProfile:")
-  await client.authentication.getProfile(grant.access_token).then((result) => {
+  await client.userInfo.getUserInfo(grant.data.access_token).then((result) => {
     console.log(JSON.stringify(result, null, 2))
   })
 }

@@ -31,11 +31,11 @@ const createUserInfo = () => {
 }
 
 export const createAuth0User = async (
-  client: ReturnType<(typeof auth0)["createClient"]>
+  client: ReturnType<typeof auth0.createClient>
 ) => {
   const info = createUserInfo()
 
-  const user = await client.management.createUser({
+  const payload = await client.management.users.create({
     connection: "Username-Password-Authentication",
     username: info.username,
     email: info.email,
@@ -44,18 +44,20 @@ export const createAuth0User = async (
 
   return {
     getInfo() {
-      return user
+      return payload.data
     },
     async getGrant() {
-      return await client.authentication.passwordGrant({
-        username: info.username,
-        password: info.password,
-      })
+      return await client.oauth
+        .passwordGrant({
+          username: info.username,
+          password: info.password,
+        })
+        .then(({ data }) => data)
     },
     async cleanUp() {
-      const id = user.user_id
+      const id = payload.data.user_id
       if (id != null) {
-        await client.management.deleteUser({ id })
+        await client.management.users.delete({ id })
       }
     },
   }

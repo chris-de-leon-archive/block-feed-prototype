@@ -1,6 +1,28 @@
+import { trpc } from "@api/shared/trpc"
+
 export const NAMESPACE = "funcs"
 
+export type FuncsCtx = trpc.types.DatabaseCtx & trpc.types.Auth0Ctx
+
 export const ENV_FILES = ["auth0.env", "db.env"]
+
+export const CONSTANTS = {
+  CURSOR_ID: {
+    MAX_LEN: Math.pow(2, 8),
+    MIN_LEN: 1,
+  },
+  NAME: {
+    MAX_LEN: Math.pow(2, 8),
+    MIN_LEN: 1,
+  },
+  LIMIT: {
+    MIN: 0,
+    MAX: 25,
+  },
+  OFFSET: {
+    MIN: 0,
+  },
+}
 
 export const OPERATIONS = {
   CREATE: (() => {

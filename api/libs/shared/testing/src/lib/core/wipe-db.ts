@@ -1,8 +1,9 @@
+import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
 import { sql } from "drizzle-orm"
 
 export const wipeDB = async (
-  db: ReturnType<(typeof database)["createClient"]>,
+  db: NodePgDatabase<typeof database.schema>,
   schema: string
 ) => {
   return await db.execute(

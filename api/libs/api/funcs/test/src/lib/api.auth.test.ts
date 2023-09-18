@@ -1,13 +1,14 @@
 import { AxiosError, AxiosRequestConfig } from "axios"
+import { randomBytes, randomUUID } from "node:crypto"
 import { before, describe, it } from "node:test"
 import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
-import { randomUUID } from "node:crypto"
+import { funcsAPI } from "@api/api/funcs/api"
 import assert from "node:assert"
 
 describe("Funcs Auth Tests", () => {
   const api = testutils.getApi()
-  const db = database.createClient()
+  const db = database.core.createClient()
 
   before(async () => {
     await testutils.wipeDB(db, database.schema.blockFeed.schemaName)
@@ -38,7 +39,7 @@ describe("Funcs Auth Tests", () => {
     {
       name: "find many",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.funcsFindMany(config),
+        await api.funcsFindMany(undefined, undefined, config),
     },
     {
       name: "find one",
@@ -48,7 +49,15 @@ describe("Funcs Auth Tests", () => {
     {
       name: "create",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.funcsCreate({ name: randomUUID() }, config),
+        await api.funcsCreate(
+          {
+            name: randomUUID(),
+            cursorId: randomBytes(funcsAPI.CONSTANTS.CURSOR_ID.MAX_LEN / 2)
+              .toString("hex")
+              .slice(0, funcsAPI.CONSTANTS.CURSOR_ID.MAX_LEN),
+          },
+          config
+        ),
     },
     {
       name: "remove",

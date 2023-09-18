@@ -3,16 +3,21 @@ import { drizzle } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
 import { Client } from "pg"
 
-const { url } = database.getEnvVars()
+const env = database.core.getEnvVars()
 
 const client = new Client({
-  connectionString: url,
+  connectionString: env.url,
 })
 
-async function main() {
+const main = async () => {
   await client.connect()
 
-  await migrate(drizzle(client), {
+  const db = drizzle(client, {
+    logger: true,
+    schema: database.schema,
+  })
+
+  await migrate(db, {
     migrationsFolder: "./drizzle/migrations",
   })
 }

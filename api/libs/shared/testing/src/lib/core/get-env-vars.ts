@@ -1,11 +1,7 @@
+import { utils } from "@api/shared/utils"
+
 export const getEnvVars = () => {
-  const url = process.env["TEST_LOCALSTACK_URL"]
-
-  if (url == null) {
-    throw new Error(`environment variable "TEST_LOCALSTACK_URL" is not defined`)
-  }
-
   return {
-    url,
+    url: utils.getRequiredEnvVar("TEST_LOCALSTACK_URL"),
   }
 }

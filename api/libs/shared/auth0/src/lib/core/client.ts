@@ -2,10 +2,12 @@ import { getEnvVars } from "./get-env-vars"
 import * as auth0 from "auth0"
 
 export const createClient = () => {
-  const credentials = getEnvVars()
+  const env = getEnvVars()
 
   return {
-    authentication: new auth0.AuthenticationClient(credentials),
-    management: new auth0.ManagementClient(credentials),
+    management: new auth0.ManagementClient(env),
+    userInfo: new auth0.UserInfoClient(env),
+    oauth: new auth0.OAuth(env),
+    env,
   }
 }
