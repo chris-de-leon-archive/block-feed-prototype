@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events"
 
 export abstract class BlockGatewayService {
-  protected readonly aborter: AbortController
-  protected readonly emitter: EventEmitter
+  private readonly aborter: AbortController
+  private readonly emitter: EventEmitter
   private hasBeenStarted = false
 
   constructor() {
