@@ -2,9 +2,9 @@ version: '3'
 
 # TODO:
 services:
-  flow-block-producer:
-    container_name: flow-block-producer
-    image: dockerhub_username/flow-block-producer:${}
+  block-fetcher-flow:
+    container_name: block-fetcher-flow
+    image: caffeineaddict333/block-feed-block-gateway-fetcher-flow:${}
     deploy:
       replicas: 1
     logging:
@@ -12,9 +12,29 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  flow-block-consumer:
-    container_name: flow-block-consumer
-    image: dockerhub_username/flow-block-consumer:${}
+  block-divider:
+    container_name: block-divider
+    image: caffeineaddict333/block-feed-block-gateway-divider:${}
+    deploy:
+      replicas: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  block-consumer:
+    container_name: block-consumer
+    image: caffeineaddict333/block-feed-block-gateway-consumer:${}
+    deploy:
+      replicas: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  block-logger:
+    container_name: block-logger
+    image: caffeineaddict333/block-feed-block-gateway-logger:${}
     deploy:
       replicas: 1
     logging:

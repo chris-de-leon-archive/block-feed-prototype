@@ -1,6 +1,8 @@
 # TODO:
 
 provider "aws" {
+  access_key = "test"
+  secret_key = "test"
   region = "us-west-2"
 }
 

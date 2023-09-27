@@ -1,0 +1,27 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push-code-to-dockerhub:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Navigate to API directory
+        run: cd api
+      - name: Install dependencies
+        run: npm install
+      - name: Export current commit hash
+        run: echo "GIT_COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+      - name: Login to dockerhub
+        env:
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        run: echo "$DOCKERHUB_PASSWORD" | docker login --username caffeineaddict333 --password-stdin
+      - name: Build code with docker
+        run: docker build -f block-gateway-service.Dockerfile -t caffeineaddict333/block-feed-block-gateway-logger:$GIT_COMMIT_HASH --build-arg PROJECT_NAME=block-gateway/logger .
+      - name: Push docker image to dockerhub
+        run: docker push caffeineaddict333/block-feed-block-gateway-logger:$GIT_COMMIT_HASH
