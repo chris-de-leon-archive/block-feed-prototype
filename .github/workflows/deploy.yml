@@ -2,26 +2,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push-code-to-dockerhub:
+  build-and-push-block-gateway-to-dockerhub:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Export current commit hash
-        run: echo "GIT_COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+
+      # https://stackoverflow.com/a/58886352/22520608
+      # https://stackoverflow.com/a/57969570/22520608
+      - name: Export branch and commit hash
+        run: |
+          echo "GIT_COMMIT_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          echo "GIT_COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: cd api && npm install
+
       - name: Build code
-        run: cd api && npm run block:build:dev
-      - name: Login to dockerhub
+        run: cd api && npm run block:build -- production
+
+      - name: Push docker images to dockerhub
         env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-        run: echo "$DOCKERHUB_PASSWORD" | docker login --username caffeineaddict333 --password-stdin
-      - name: Build code with docker
-        run: cd api && docker build -f block-gateway-service.Dockerfile -t caffeineaddict333/block-feed-block-gateway-logger:$GIT_COMMIT_HASH --build-arg PROJECT_NAME=block-gateway/logger .
-      - name: Push docker image to dockerhub
-        run: cd api && docker push caffeineaddict333/block-feed-block-gateway-logger:$GIT_COMMIT_HASH
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+          cd api && npm run block:push -- -u "$DOCKERHUB_USERNAME" -t "$GIT_COMMIT_BRANCH.$GIT_COMMIT_HASH"

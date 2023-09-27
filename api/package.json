@@ -7,6 +7,7 @@
     "node": "20.6.0"
   },
   "scripts": {
+    "build": "bash ./tools/apps/build.sh",
     "clean": "rm -rf .build",
     "setup": "npm run terraform:start:dev && npm run db:migrate",
     "app:build:dev": "bash ./tools/apps/build.sh",
@@ -16,7 +17,8 @@
     "api:test": "bash ./tools/apps/api/test.sh",
     "api:id": "bash ./tools/apps/api/api-id.sh",
     "block:start:dev": "bash ./tools/apps/block-gateway/start.sh",
-    "block:build:dev": "bash ./tools/apps/block-gateway/build.sh",
+    "block:build": "bash ./tools/apps/block-gateway/build.sh",
+    "block:push": "bash ./tools/apps/block-gateway/push.sh",
     "block:test": "bash ./tools/apps/block-gateway/test.sh",
     "nx:app:create": "nx g @nx/node:application --directory apps --e2eTestRunner none --unitTestRunner none --framework none --bundler webpack",
     "nx:lib:create": "nx g @nx/node:lib --directory libs --buildable false --publishable false --strict true --testEnvironment node --unitTestRunner none",

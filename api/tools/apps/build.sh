@@ -1,13 +1,10 @@
 set -e
 
-. ./tools/utils/utils.sh
+# $1 = development or production
+ENV="${1:-development}"
 
-export NODE_ENV=development
-export APP_ENV=development
-
-export_env_files "./env/development"
-echo ""
+export NODE_ENV="$ENV"
 
 nx run-many \
-  --configuration development \
+  --configuration "$ENV" \
   --targets build
