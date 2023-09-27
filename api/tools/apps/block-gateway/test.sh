@@ -5,4 +5,4 @@ set -e
 export_env_files ./env/development
 echo ""
 
-find ./libs/block-gateway -name '*.test.ts' | tr '\n' ' ' | xargs node --require ts-node/register --test --test-reporter spec
+find ./libs/block-gateway -name '*.tests.ts' | tr '\n' ' ' | xargs node --require ts-node/register --test --test-reporter spec

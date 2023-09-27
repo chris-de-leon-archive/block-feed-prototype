@@ -3,7 +3,7 @@ import { funcsAPI } from "@api/api/funcs/api"
 import { trpc } from "@api/shared/trpc"
 import * as fs from "node:fs/promises"
 
-const t = trpc.createTRPC()
+const t = trpc.createTRPC<funcsAPI.FuncsCtx>()
 
 const appRouter = t.router({
   [funcsAPI.NAMESPACE]: t.router({
@@ -21,9 +21,10 @@ const openApiDocument = generateOpenApiDocument(appRouter, {
   baseUrl: "https://block-feed.io",
 })
 
+const filename = process.argv.at(2)
 process.stdout.write("Generating docs... ")
 fs.writeFile(
-  process.argv[2] != null ? `${process.argv[2]}.json` : "docs.json",
+  filename != null ? `${filename}.json` : "docs.json",
   JSON.stringify(openApiDocument, null, 2)
 ).then(() => {
   console.log("done!")

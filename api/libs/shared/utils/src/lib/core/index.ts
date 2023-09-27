@@ -1,4 +1,5 @@
 export * from "./get-required-env-var"
+export * from "./get-optional-env-var"
 export * from "./resolve-env-vars"
 export * as enums from "./enums"
 export * from "./get-env-vars"

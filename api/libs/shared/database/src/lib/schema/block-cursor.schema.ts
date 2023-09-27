@@ -1,4 +1,4 @@
-import { timestamp, text, bigint, uniqueIndex } from "drizzle-orm/pg-core"
+import { timestamp, text, uniqueIndex } from "drizzle-orm/pg-core"
 import { blockchainEnum } from "./enums/blockchain.enum"
 import { blockFeed } from "./block-feed.schema"
 import { relations } from "drizzle-orm"
@@ -16,7 +16,6 @@ export const blockCursor = blockFeed.table(
       .notNull(),
     blockchain: blockchainEnum("blockchain").notNull(),
     networkURL: text("network_url").notNull(),
-    height: bigint("height", { mode: "number" }).notNull(),
   },
   (table) => {
     return {

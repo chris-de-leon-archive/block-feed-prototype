@@ -1,4 +1,5 @@
 export * from "./enums/blockchain.enum"
+export * from "./invocation-log.schema"
 export * from "./block-cursor.schema"
 export * from "./block-feed.schema"
 export * from "./funcs.schema"

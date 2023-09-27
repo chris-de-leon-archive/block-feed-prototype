@@ -12,10 +12,9 @@ const createPassword = (length = 10) => {
   const allChars = lowerCase + upperCase + digits + specialChars
 
   // Generate a password
-  const password: string[] = []
-  for (let i = 0; i < length; i++) {
-    password.push(allChars[crypto.randomInt(allChars.length)])
-  }
+  const password = Array({ length }).map(
+    () => allChars[crypto.randomInt(allChars.length)]
+  )
 
   // Return the password
   return password.join()

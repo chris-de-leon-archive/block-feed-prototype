@@ -1,15 +1,20 @@
-import { blockgateway } from "@api/block-gateway"
+import { blockconsumer } from "@api/block-gateway/core/block-consumer"
 import { database } from "@api/shared/database"
-import { rabbitmq } from "@api/shared/rabbitmq"
+import { utils } from "@api/shared/utils"
 import { aws } from "@api/shared/aws"
 
 const main = async () => {
-  await new blockgateway.consumer.BlockConsumer(
-    blockgateway.utils.resolveChainFromEnv(),
-    await rabbitmq.createClient(),
+  const service = new blockconsumer.BlockConsumer(
+    blockconsumer.getEnvVars(),
     database.core.createClient(),
     aws.lambda.createClient()
-  ).run()
+  )
+
+  await service.start()
+
+  utils.onShutdown(async () => {
+    await service.stop()
+  })
 }
 
 main()

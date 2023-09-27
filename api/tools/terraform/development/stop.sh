@@ -2,4 +2,4 @@ set -e
 
 . ./tools/utils/tools.sh
 cd ./tools/terraform/development
-terraform destroy
+terraform destroy -auto-approve

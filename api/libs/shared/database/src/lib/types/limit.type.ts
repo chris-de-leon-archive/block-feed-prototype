@@ -1,1 +1,1 @@
-export type RowLimit = Readonly<{ limit: number }>
+export type TRowLimit = Readonly<{ limit: number }>

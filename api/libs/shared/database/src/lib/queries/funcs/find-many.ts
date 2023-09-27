@@ -1,11 +1,11 @@
 import { CONSTANTS, createClient, getPreparedStmtName } from "../../core"
 import { type InferSelectModel } from "drizzle-orm"
-import { RowLimit, RowOffset } from "../../types"
+import { TRowLimit, TRowOffset } from "../../types"
 import { funcs } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type FindManyInput = Readonly<
-  Pick<InferSelectModel<typeof funcs>, "userId"> & RowLimit & RowOffset
+  Pick<InferSelectModel<typeof funcs>, "userId"> & TRowLimit & TRowOffset
 >
 
 export const findMany = async (

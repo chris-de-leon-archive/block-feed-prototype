@@ -4,10 +4,7 @@ import { blockCursor } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type CreateInput = Readonly<
-  Pick<
-    InferInsertModel<typeof blockCursor>,
-    "id" | "height" | "blockchain" | "networkURL"
-  >
+  Pick<InferInsertModel<typeof blockCursor>, "id" | "blockchain" | "networkURL">
 >
 
 export const create = async (
@@ -18,13 +15,11 @@ export const create = async (
     placeholders: {
       blockchain: sql.placeholder(blockCursor.blockchain.name),
       networkURL: sql.placeholder(blockCursor.networkURL.name),
-      height: sql.placeholder(blockCursor.height.name),
       id: sql.placeholder(blockCursor.id.name),
     },
     values: {
       [blockCursor.blockchain.name]: args.blockchain,
       [blockCursor.networkURL.name]: args.networkURL,
-      [blockCursor.height.name]: args.height,
       [blockCursor.id.name]: args.id,
     },
   }
@@ -35,7 +30,6 @@ export const create = async (
       id: inputs.placeholders.id,
       blockchain: inputs.placeholders.blockchain,
       networkURL: inputs.placeholders.networkURL,
-      height: inputs.placeholders.height,
     })
     .returning()
 

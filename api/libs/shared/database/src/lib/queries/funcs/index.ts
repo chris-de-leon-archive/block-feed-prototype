@@ -1,4 +1,5 @@
 export * from "./find-many-by-cursor-id"
+export * from "./count-by-cursor"
 export * from "./find-many"
 export * from "./find-one"
 export * from "./remove"

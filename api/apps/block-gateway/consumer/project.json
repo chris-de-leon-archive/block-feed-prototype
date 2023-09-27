@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "target": "node",
@@ -14,7 +16,9 @@
         "outputPath": "dist/apps/block-gateway/consumer",
         "main": "apps/block-gateway/consumer/src/main.ts",
         "tsConfig": "apps/block-gateway/consumer/tsconfig.app.json",
-        "assets": ["apps/block-gateway/consumer/src/assets"],
+        "assets": [
+          "apps/block-gateway/consumer/src/assets"
+        ],
         "isolatedConfig": true,
         "webpackConfig": "apps/block-gateway/consumer/webpack.config.js",
         "generatePackageJson": true
@@ -41,9 +45,13 @@
     },
     "lint": {
       "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["apps/block-gateway/consumer/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/block-gateway/consumer/**/*.ts"
+        ]
       }
     }
   },

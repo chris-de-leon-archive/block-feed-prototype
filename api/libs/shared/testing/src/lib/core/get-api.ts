@@ -2,11 +2,11 @@ import { Configuration, DefaultApi } from "./openapi"
 import { getEnvVars } from "./get-env-vars"
 
 export const getApi = () => {
-  const { url } = getEnvVars()
+  const env = getEnvVars()
 
   return new DefaultApi(
     new Configuration({
-      basePath: url,
+      basePath: env.TEST_LOCALSTACK_URL,
     })
   )
 }

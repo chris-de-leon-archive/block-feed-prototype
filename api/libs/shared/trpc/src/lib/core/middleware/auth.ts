@@ -1,11 +1,11 @@
-import { Auth0Ctx, DatabaseCtx } from "../types"
+import { TAuth0Ctx, TDatabaseCtx } from "../types"
 import { database } from "@api/shared/database"
 import { createTRPC } from "../create-trpc"
 import { TRPCError } from "@trpc/server"
 import { sql } from "drizzle-orm"
 
 export const requireAuth = (
-  t: ReturnType<typeof createTRPC<Auth0Ctx & DatabaseCtx>>
+  t: ReturnType<typeof createTRPC<TAuth0Ctx & TDatabaseCtx>>
 ) => {
   return t.middleware(async (opts) => {
     // Gets the authorization header value

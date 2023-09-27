@@ -11,4 +11,4 @@ echo ""
 nx run-many \
   --configuration development \
   --targets build \
-  --projects block-gateway-producer,block-gateway-consumer
+  --projects block-gateway-consumer,block-gateway-divider,block-gateway-fetcher-flow,block-gateway-logger

@@ -5,7 +5,7 @@ export const createClient = () => {
   const env = getEnvVars()
 
   fcl.config({
-    "accessNode.api": env.url,
+    "accessNode.api": env.ONFLOW_ACCESS_API_URL,
   })
 
   return {

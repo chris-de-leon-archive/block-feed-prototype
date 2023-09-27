@@ -1,1 +1,1 @@
-export type RowOffset = Readonly<{ offset: number }>
+export type TRowOffset = Readonly<{ offset: number }>

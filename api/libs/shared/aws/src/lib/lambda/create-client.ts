@@ -5,10 +5,11 @@ export const createClient = () => {
   const env = getEnvVars()
 
   return new LambdaClient({
+    endpoint: env.AWS_ENDPOINT,
     credentials: {
-      accessKeyId: env.accessKeyId,
-      secretAccessKey: env.secretAccessKey,
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
     },
-    region: env.region,
+    region: env.AWS_REGION,
   })
 }

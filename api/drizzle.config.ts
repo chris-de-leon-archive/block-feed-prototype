@@ -13,6 +13,6 @@ export default {
   verbose: true,
   driver: "pg",
   dbCredentials: {
-    connectionString: env.url,
+    connectionString: env.DB_URL,
   },
 } satisfies Config

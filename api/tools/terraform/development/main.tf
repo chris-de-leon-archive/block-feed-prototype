@@ -78,19 +78,45 @@ resource "docker_container" "flow_emulator" {
   }
 }
 
-resource "docker_image" "rabbitmq" {
-  name = "rabbitmq:3.12.4-alpine"  
+# resource "docker_image" "rabbitmq" {
+#   name = "rabbitmq:3.12.4-alpine"  
+#   keep_locally = false
+# }
+
+# resource "docker_container" "rabbitmq" {
+#   image = docker_image.rabbitmq.image_id
+#   name  = "rabbitmq"
+#   networks_advanced {
+#     name = docker_network.block_feed_net.name
+#   }
+#   ports {
+#     internal = 5672
+#     external = 5672
+#   }
+# }
+
+resource "docker_image" "redis" {
+  name = "redis:7.2.1-alpine3.18"  
   keep_locally = false
 }
 
-resource "docker_container" "rabbitmq" {
-  image = docker_image.rabbitmq.image_id
-  name  = "rabbitmq"
+resource "docker_container" "redis" {
+  image = docker_image.redis.image_id
+  name  = "redis"
+
+  # https://docs.bullmq.io/guide/going-to-production#max-memory-policy
+  command = [
+    "redis-server", 
+    "--port", "6379", 
+    "--loglevel", "debug", 
+    "--maxmemory-policy", "noeviction"
+  ]
+
   networks_advanced {
     name = docker_network.block_feed_net.name
   }
   ports {
-    internal = 5672
-    external = 5672
+    internal = 6379
+    external = 6379
   }
 }

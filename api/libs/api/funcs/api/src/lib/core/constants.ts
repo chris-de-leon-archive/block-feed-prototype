@@ -2,7 +2,7 @@ import { trpc } from "@api/shared/trpc"
 
 export const NAMESPACE = "funcs"
 
-export type FuncsCtx = trpc.types.DatabaseCtx & trpc.types.Auth0Ctx
+export type FuncsCtx = trpc.types.TDatabaseCtx & trpc.types.TAuth0Ctx
 
 export const ENV_FILES = ["auth0.env", "db.env"]
 

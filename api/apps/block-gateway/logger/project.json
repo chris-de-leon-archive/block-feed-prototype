@@ -1,0 +1,59 @@
+{
+  "name": "block-gateway-logger",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/block-gateway/logger/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/block-gateway/logger",
+        "main": "apps/block-gateway/logger/src/main.ts",
+        "tsConfig": "apps/block-gateway/logger/tsconfig.app.json",
+        "assets": [
+          "apps/block-gateway/logger/src/assets"
+        ],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/block-gateway/logger/webpack.config.js",
+        "generatePackageJson": true
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "block-gateway-logger:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "block-gateway-logger:build:development"
+        },
+        "production": {
+          "buildTarget": "block-gateway-logger:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": [
+        "{options.outputFile}"
+      ],
+      "options": {
+        "lintFilePatterns": [
+          "apps/block-gateway/logger/**/*.ts"
+        ]
+      }
+    }
+  },
+  "tags": []
+}
