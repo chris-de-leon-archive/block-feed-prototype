@@ -64,21 +64,12 @@ export class BlockFetcher extends BlockGatewayService {
           return
         }
 
-        // If the block height is ahead, requeue the job with an added delay
+        // If the block height is ahead, re-attempt the job
         const latestBlockHeight = await this.blockchain.getLatestBlockHeight()
         if (job.data > latestBlockHeight) {
-          await flow.add({
-            queueName: QueueNames.BLOCK_FETCHER,
-            name: JobNames.FETCH_BLOCK,
-            data: job.data,
-            opts: {
-              ...getDefaultJobOptions(),
-              jobId: this.createJobId(job.data),
-              delay: this.envvars.BLOCK_FETCHER_BLOCK_DELAY_MS,
-              lifo: true,
-            },
-          })
-          return
+          throw new Error(
+            `requested block height "${job.data}" is larger than current block height "${latestBlockHeight}" (${chainInfo.name}, ${chainInfo.networkURL})`
+          )
         }
 
         // Fetches the current block data and send it to the other queues
@@ -90,6 +81,8 @@ export class BlockFetcher extends BlockGatewayService {
             data: job.data + 1,
             opts: {
               ...getDefaultJobOptions(),
+              attempts: Number.MAX_SAFE_INTEGER,
+              delay: this.envvars.BLOCK_FETCHER_BLOCK_DELAY_MS,
               jobId: this.createJobId(job.data + 1),
             },
           },

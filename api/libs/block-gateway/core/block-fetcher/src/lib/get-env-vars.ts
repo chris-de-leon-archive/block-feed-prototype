@@ -9,7 +9,7 @@ export const getEnvVars = () => {
 
   return {
     [ENV_KEYS.BLOCK_FETCHER_BLOCK_DELAY_MS]: parseInt(
-      utils.getOptionalEnvVar(ENV_KEYS.BLOCK_FETCHER_BLOCK_DELAY_MS) ?? "5000",
+      utils.getOptionalEnvVar(ENV_KEYS.BLOCK_FETCHER_BLOCK_DELAY_MS) ?? "500",
       10
     ),
     [ENV_KEYS.BLOCK_FETCHER_REDIS_URL]: new URL(

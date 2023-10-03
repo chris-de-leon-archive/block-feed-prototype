@@ -28,6 +28,8 @@
     "nx:proj:move": "nx g @nx/workspace:move",
     "openapi:gen:client": "bash ./tools/openapi/generate-code.sh ./libs/shared/testing/src/lib/core/openapi",
     "openapi:gen:docs": "ts-node ./tools/openapi/generate-docs.ts",
+    "flow": "docker exec flow-emulator /root/.local/bin/flow",
+    "redis-cli": "docker exec redis redis-cli",
     "db:migrate": "bash ./tools/db/migrate.sh",
     "db:info": "bash ./tools/db/info.sh",
     "auth0:token": "bash ./tools/auth0/get-token.sh"
