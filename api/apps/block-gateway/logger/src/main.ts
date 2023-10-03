@@ -3,9 +3,11 @@ import { database } from "@api/shared/database"
 import { utils } from "@api/shared/utils"
 
 const main = async () => {
+  const env = blocklogger.getEnvVars()
+
   const service = new blocklogger.BlockLogger(
-    blocklogger.getEnvVars(),
-    database.core.createClient()
+    env,
+    database.core.createClient(env.BLOCK_LOGGER_DB_URL)
   )
 
   await service.start()

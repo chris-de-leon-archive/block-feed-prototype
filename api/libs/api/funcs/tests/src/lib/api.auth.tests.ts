@@ -7,11 +7,11 @@ import { funcsAPI } from "@api/api/funcs/api"
 import assert from "node:assert"
 
 describe("Funcs Auth Tests", () => {
+  const dbAdmin = database.core.createClient(database.core.getEnvVars().DB_URL)
   const api = testutils.getApi()
-  const db = database.core.createClient()
 
   before(async () => {
-    await testutils.wipeDB(db, database.schema.blockFeed.schemaName)
+    await testutils.wipeDB(dbAdmin, database.schema.blockFeed.schemaName)
   })
 
   const args = [

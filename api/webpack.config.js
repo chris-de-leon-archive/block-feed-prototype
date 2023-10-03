@@ -10,7 +10,7 @@ const path = require("path")
  * @type {import('webpack').Configuration}
  */
 const config = {
-  mode: slsw.lib.webpack.isLocal ? "development" : "production",
+  mode: process.env["NODE_ENV"] === "production" ? "production" : "development",
   devtool: "inline-source-map",
   externals: [nodeExternals()],
   target: "node",

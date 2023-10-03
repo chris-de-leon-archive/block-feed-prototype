@@ -18,5 +18,7 @@ export const createFlow = (url: URL) => {
       port: Number(url.port),
       offlineQueue: false,
     },
-  }).on("error", console.error)
+  }).on("error", (err) => {
+    console.error(`error: ${err}`)
+  })
 }

@@ -1,9 +1,19 @@
+# NOTE: host environment variables may not be
+# copied into the container. Here's a trick you
+# can use to copy host env variables with a
+# certain prefix into the container:
+#
+# https://stackoverflow.com/a/40230624/22520608
+#
+
 terraform() {
   # https://hub.docker.com/r/hashicorp/terraform/tags
   docker run \
     --rm \
     -ti \
-    -v ~/.aws:/root/.aws \
+    --env-file <(env | grep TF_) \
+    -v ~/.terraform.d:/root/.terraform.d \
+    -v ~/.ssh:/root/.ssh \
     -v $(pwd):/workspace \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --workdir /workspace \

@@ -4,36 +4,60 @@ import { blockfetcher } from "@api/block-gateway/core/block-fetcher"
 import { blockdivider } from "@api/block-gateway/core/block-divider"
 import { blocklogger } from "@api/block-gateway/core/block-logger"
 import { after, before, describe, it } from "node:test"
+import { LambdaClient } from "@aws-sdk/client-lambda"
 import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
+import { IAMClient } from "@aws-sdk/client-iam"
 import { randomUUID } from "node:crypto"
 import { flow } from "@api/shared/flow"
 import { aws } from "@api/shared/aws"
 import assert from "node:assert"
 
 describe("Block Gateway Tests", () => {
+  const env = {
+    blockconsumer: blockconsumer.getEnvVars(),
+    blockdivider: blockdivider.getEnvVars(),
+    blockfetcher: blockfetcher.getEnvVars(),
+    blocklogger: blocklogger.getEnvVars(),
+    db: database.core.getEnvVars(),
+    aws: (() => {
+      const env = aws.core.getEnvVars()
+      return {
+        endpoint: env.AWS_ENDPOINT,
+        credentials: {
+          accessKeyId: env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+        },
+        region: env.AWS_REGION,
+      }
+    })(),
+  }
+
+  const dbAdmin = database.core.createClient(env.db.DB_URL)
   const blockchain = new FlowBlockchain(flow.createClient())
-  const lambda = aws.lambda.createClient()
-  const db = database.core.createClient()
-  const iam = aws.iam.createClient()
+  const lambda = new LambdaClient(env.aws)
+  const iam = new IAMClient(env.aws)
   const services = {
-    blockDivider: new blockdivider.BlockDivider(blockdivider.getEnvVars(), db),
-    blockLogger: new blocklogger.BlockLogger(blocklogger.getEnvVars(), db),
-    blockConsumer: new blockconsumer.BlockConsumer(
-      blockconsumer.getEnvVars(),
-      db,
-      lambda
+    blockFetcher: new blockfetcher.BlockFetcher(env.blockfetcher, blockchain),
+    blockDivider: new blockdivider.BlockDivider(
+      env.blockdivider,
+      database.core.createClient(env.blockdivider.BLOCK_DIVIDER_DB_URL)
     ),
-    blockFetcher: new blockfetcher.BlockFetcher(
-      blockfetcher.getEnvVars(),
-      blockchain
+    blockLogger: new blocklogger.BlockLogger(
+      env.blocklogger,
+      database.core.createClient(env.blocklogger.BLOCK_LOGGER_DB_URL)
+    ),
+    blockConsumer: new blockconsumer.BlockConsumer(
+      env.blockconsumer,
+      database.core.createClient(env.blockconsumer.BLOCK_CONSUMER_DB_URL),
+      lambda
     ),
   }
 
   before(async () => {
     // Wipes the database data
     process.stdout.write("Wiping database... ")
-    await testutils.wipeDB(db, database.schema.blockFeed.schemaName)
+    await testutils.wipeDB(dbAdmin, database.schema.blockFeed.schemaName)
     console.log("done!")
 
     // Wipes the redis data
@@ -66,7 +90,7 @@ describe("Block Gateway Tests", () => {
     process.stdout.write("Creating test data in database... ")
     const chainInfo = blockchain.getInfo()
     const userId = randomUUID()
-    await db.transaction(async (tx) => {
+    await dbAdmin.transaction(async (tx) => {
       await database.queries.blockCursor.create(tx, {
         id: chainInfo.id,
         blockchain: chainInfo.name,
@@ -99,25 +123,22 @@ describe("Block Gateway Tests", () => {
       await services.blockFetcher.start()
       console.log("done!")
 
-      // Waits for the block fetcher to create jobs
-      process.stdout.write("Adding jobs... ")
-      await testutils.sleep(5000)
-      console.log("done!")
+      // Create and process jobs
+      console.log("Waiting for data to be processed:\n")
+      await testutils.sleep(6000)
+      console.log()
 
       // Stops the block fetcher from creating new jobs
-      process.stdout.write("Stopping block fetcher... ")
+      // and waits for any remaining jobs to be processed
       await services.blockFetcher.stop()
-      console.log("done!")
-
-      // Waits for jobs to be processed
-      process.stdout.write("Waiting for jobs to be processed... ")
-      await testutils.sleep(5000)
-      console.log("done!")
+      await testutils.sleep(6000)
     })
   })
 
   it("Processes messages", async () => {
-    const invocations = await db.select().from(database.schema.invocationLog)
+    const invocations = await dbAdmin
+      .select()
+      .from(database.schema.invocationLog)
 
     const first = invocations.at(0)
     if (first == null) {

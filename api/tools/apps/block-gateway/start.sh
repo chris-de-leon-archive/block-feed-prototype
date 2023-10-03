@@ -2,13 +2,10 @@ set -e
 
 . ./tools/utils/utils.sh
 
-export NODE_ENV="development"
-export APP_ENV="development"
-
-export_env_files "./env/development"
+export_env_files "./env/dev"
 echo ""
 
-nx run-many \
+DB_ENABLE_LOGGING=true nx run-many \
   --configuration development \
   --targets serve \
-  --projects block-gateway-consumer,block-gateway-cursor,block-gateway-divider,block-gateway-fetcher
+  --projects block-gateway-consumer,block-gateway-divider,block-gateway-fetcher-flow,block-gateway-logger

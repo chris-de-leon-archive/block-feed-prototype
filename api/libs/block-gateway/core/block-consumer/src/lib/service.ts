@@ -98,6 +98,11 @@ export class BlockConsumer extends BlockGatewayService {
       }
     )
 
+    // Log a message when a job is completed
+    worker.on("completed", async (job) => {
+      console.log(`completed job with ID ${job.id}`)
+    })
+
     // Returns a cleanup function
     return async () => {
       await worker.close()

@@ -1,60 +1,59 @@
 set -e
 
-# Default values for options
+# Set default concurrency for xargs
 concurrency="4"
-image_tag=""
-username=""
 
-# Flags to check if -t and -u flags are provided
-is_flag_t_present=0
-is_flag_u_present=0
+# Define an array of required options and their associated environment variable names
+declare -A required_options=(
+  ["--dockerhub-uname"]="dockerhub_uname"
+  ["--dockerhub-pword"]="dockerhub_pword"
+  ["--image-tag"]="image_tag"
+)
 
 # Parse command-line options
-while getopts ":t:c:u:" opt; do
-  case $opt in
-  t)
-    is_flag_t_present=1
-    image_tag="$OPTARG"
-    ;;
-  c)
-    concurrency="$OPTARG"
-    ;;
-  u)
-    is_flag_u_present=1
-    username="$OPTARG"
-    ;;
-  \?)
-    echo "Invalid option: -$OPTARG" >&2
+while [ $# -gt 0 ]; do
+  var_name="${required_options[$1]}"
+  if [ -z "$var_name" ]; then
+    echo "unknown option: $1"
     exit 1
-    ;;
-  :)
-    echo "Option -$OPTARG requires an argument." >&2
-    exit 1
-    ;;
-  esac
+  fi
+
+  eval "$var_name=\"$2\""
+  shift 2
 done
 
-# Check if -t flag was provided
-if [ $is_flag_t_present -eq 0 ]; then
-  echo "error: -t (image tag) flag is required"
-  exit 1
-fi
+# Check for required options
+for flag in "${!required_options[@]}"; do
+  var_name="${required_options[$flag]}"
+  var_val="${!var_name}"
+  if [ -z "$var_val" ]; then
+    echo "error: $flag is required"
+    exit 1
+  fi
+done
 
-# Check if -u flag was provided
-if [ $is_flag_u_present -eq 0 ]; then
-  echo "error: -u (username) flag is required"
-  exit 1
-fi
+# Defines an array of base images
+# NOTE: since we're running multiple docker build commands in parallel, the same
+# base images will be pulled multiple times. Adding this line prevents this from
+# happening. If the dockerfile base image versions change, this should also be
+# updated.
+base_images=(
+  "node:20.7.0-alpine3.17"
+  "alpine:3.17"
+)
 
-# Shift the options so that $1 now refers to the first non-option argument (if any)
-shift "$((OPTIND - 1))"
+# Use xargs to run docker pull in parallel
+printf "%s\n" "${base_images[@]}" | xargs -P $concurrency -I {} docker pull {}
+
+# Log into Dockerhub
+echo "$dockerhub_pword" | docker login --username "$dockerhub_uname" --password-stdin
 
 # Define an array of Docker build args
 docker_build_args=(
-  "-t $username/block-feed-block-gateway-fetcher-flow:$image_tag --build-arg PROJECT_NAME=block-gateway/fetcher/flow"
-  "-t $username/block-feed-block-gateway-consumer:$image_tag --build-arg PROJECT_NAME=block-gateway/consumer"
-  "-t $username/block-feed-block-gateway-divider:$image_tag --build-arg PROJECT_NAME=block-gateway/divider"
-  "-t $username/block-feed-block-gateway-logger:$image_tag --build-arg PROJECT_NAME=block-gateway/logger"
+  "-t $dockerhub_uname/block-feed-block-gateway-fetcher-flow:$image_tag --build-arg PROJECT_NAME=block-gateway/fetcher/flow"
+  "-t $dockerhub_uname/block-feed-block-gateway-consumer:$image_tag --build-arg PROJECT_NAME=block-gateway/consumer"
+  "-t $dockerhub_uname/block-feed-block-gateway-divider:$image_tag --build-arg PROJECT_NAME=block-gateway/divider"
+  "-t $dockerhub_uname/block-feed-block-gateway-logger:$image_tag --build-arg PROJECT_NAME=block-gateway/logger"
 )
 
 # Use xargs to run docker build in parallel
@@ -62,10 +61,10 @@ printf "%s\n" "${docker_build_args[@]}" | xargs -P $concurrency -I {} sh -c 'doc
 
 # Define an array of Docker image names
 image_names=(
-  "$username/block-feed-block-gateway-fetcher-flow:$image_tag"
-  "$username/block-feed-block-gateway-consumer:$image_tag"
-  "$username/block-feed-block-gateway-divider:$image_tag"
-  "$username/block-feed-block-gateway-logger:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-fetcher-flow:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-consumer:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-divider:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-logger:$image_tag"
 )
 
 # Use xargs to run docker push in parallel

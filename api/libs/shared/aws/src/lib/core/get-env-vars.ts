@@ -15,7 +15,7 @@ export const getEnvVars = () => {
     [ENV_KEYS.AWS_ACCESS_KEY_ID]: utils.getRequiredEnvVar(
       ENV_KEYS.AWS_ACCESS_KEY_ID
     ),
-    [ENV_KEYS.AWS_ENDPOINT]: utils.getRequiredEnvVar(ENV_KEYS.AWS_ENDPOINT),
+    [ENV_KEYS.AWS_ENDPOINT]: utils.getOptionalEnvVar(ENV_KEYS.AWS_ENDPOINT),
     [ENV_KEYS.AWS_REGION]: utils.getRequiredEnvVar(ENV_KEYS.AWS_REGION),
   }
 }

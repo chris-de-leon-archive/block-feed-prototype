@@ -2,10 +2,10 @@
 
 # Custom
 libs/shared/testing/src/lib/core/openapi
-**/*/env/production/**/*.env
-**/*/env/staging/**/*.env
-env/development/auth0.env
-env/development/aws.env
+env/prod/**/*.env
+env/stag/**/*.env
+env/dev/auth0.env
+env/dev/aws.env
 .generated
 test.http
 ignore

@@ -32,6 +32,14 @@ export class BlockDivider extends BlockGatewayService {
           cursorId: job.data.cursorId,
         })
 
+        // Exit early if there are no functions associated with this cursor
+        if (count === 0) {
+          console.warn(
+            `warning: no functions are associated with cursor ${job.data.cursorId}`
+          )
+          return
+        }
+
         // Adds all jobs to the queue using a single redis transaction
         const batchSze = this.envvars.MAX_FUNCS_PER_CONSUMER
         const batchCnt = Math.floor(count / batchSze) + 1
@@ -55,7 +63,12 @@ export class BlockDivider extends BlockGatewayService {
       }
     )
 
-    // Return a cleanup function
+    // Log a message when a job is completed
+    worker.on("completed", async (job) => {
+      console.log(`completed job with ID ${job.id}`)
+    })
+
+    // Returns a cleanup function
     return async () => {
       await worker.close()
       await flow.close()

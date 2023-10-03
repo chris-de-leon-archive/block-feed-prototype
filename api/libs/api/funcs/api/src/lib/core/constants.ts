@@ -4,7 +4,7 @@ export const NAMESPACE = "funcs"
 
 export type FuncsCtx = trpc.types.TDatabaseCtx & trpc.types.TAuth0Ctx
 
-export const ENV_FILES = ["auth0.env", "db.env"]
+export const ENV_FILES = ["auth0.env", "api.env"]
 
 export const CONSTANTS = {
   CURSOR_ID: {

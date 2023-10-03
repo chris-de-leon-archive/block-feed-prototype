@@ -37,10 +37,16 @@ export const createWorker = <T extends QueueNames>(
       offlineQueue: false,
     },
   })
+    .on("ready", () => {
+      console.log(`worker "${name}" is ready to process jobs`)
+    })
     .on("error", (err) => {
-      console.error(err)
+      console.error(`error: ${err}`)
+    })
+    .on("stalled", (job, err) => {
+      console.error(`stall: ${err}`)
     })
     .on("failed", (job, err) => {
-      console.error(err)
+      console.error(`fail: ${err}`)
     }) as InferWorker<T>
 }

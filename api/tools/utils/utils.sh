@@ -1,3 +1,19 @@
+get_project_name() {
+  echo "block-feed"
+}
+
+clean_str() {
+  echo "$1" | node -e 'process.stdin.on("data", data => {
+    console.log(
+      data
+        .toString()
+        .replace(/\x1B\[\?*[0-9;]*[a-zA-Z]/g, "")
+        .replace(/\x1B[\=|\>]+/g, "")
+        .replace(/\r?\n|\r/g, "")
+    );
+  });'
+}
+
 # $1 = relative path to directory (e.g. ./path/to/directory)
 # $2 = extension (e.g. env, pdf)
 find_files_by_extension() {

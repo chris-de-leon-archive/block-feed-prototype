@@ -1,3 +1,4 @@
+export * from "./handle-axios-error"
 export * from "./create-auth0-user"
 export * from "./with-zipped-code"
 export * from "./create-lambda"

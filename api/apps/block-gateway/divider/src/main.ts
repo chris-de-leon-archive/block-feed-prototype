@@ -3,9 +3,11 @@ import { database } from "@api/shared/database"
 import { utils } from "@api/shared/utils"
 
 const main = async () => {
+  const env = blockdivider.getEnvVars()
+
   const service = new blockdivider.BlockDivider(
-    blockdivider.getEnvVars(),
-    database.core.createClient()
+    env,
+    database.core.createClient(env.BLOCK_DIVIDER_DB_URL)
   )
 
   await service.start()

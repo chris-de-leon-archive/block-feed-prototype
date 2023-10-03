@@ -21,11 +21,23 @@ export class BlockLogger extends BlockGatewayService {
       this.envvars.BLOCK_LOGGER_REDIS_URL,
       QueueNames.BLOCK_LOGGER,
       async (job) => {
-        await this.db.insert(database.schema.invocationLog).values(job.data)
+        if (job.data.length === 0) {
+          return
+        }
+
+        await this.db
+          .insert(database.schema.invocationLog)
+          .values(job.data)
+          .then(({ rowCount }) => rowCount)
       }
     )
 
-    // Return a cleanup function
+    // Log a message when a job is completed
+    worker.on("completed", async (job) => {
+      console.log(`inserted ${job.data.length} row(s)`)
+    })
+
+    // Returns a cleanup function
     return async () => {
       await worker.close()
     }

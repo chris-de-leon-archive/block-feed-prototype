@@ -4,6 +4,7 @@ export const getEnvVars = () => {
   const ENV_KEYS = {
     BLOCK_DIVIDER_REDIS_URL: "BLOCK_DIVIDER_REDIS_URL",
     MAX_FUNCS_PER_CONSUMER: "MAX_FUNCS_PER_CONSUMER",
+    BLOCK_DIVIDER_DB_URL: "BLOCK_DIVIDER_DB_URL",
   } as const
 
   return {
@@ -13,6 +14,9 @@ export const getEnvVars = () => {
     [ENV_KEYS.MAX_FUNCS_PER_CONSUMER]: parseInt(
       utils.getOptionalEnvVar(ENV_KEYS.MAX_FUNCS_PER_CONSUMER) ?? "500",
       10
+    ),
+    [ENV_KEYS.BLOCK_DIVIDER_DB_URL]: utils.getRequiredEnvVar(
+      ENV_KEYS.BLOCK_DIVIDER_DB_URL
     ),
   }
 }

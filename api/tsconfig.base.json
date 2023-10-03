@@ -25,6 +25,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@api/api/core": ["libs/api/core/src/index.ts"],
       "@api/api/funcs/api": ["libs/api/funcs/api/src/index.ts"],
       "@api/api/funcs/tests": ["libs/api/funcs/tests/src/index.ts"],
       "@api/block-gateway/core/block-consumer": [

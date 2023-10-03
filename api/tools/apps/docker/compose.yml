@@ -1,0 +1,67 @@
+version: "3"
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15.4-alpine3.18
+    command: ["postgres", "-c", "log_statement=all"]
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: rootuser
+      POSTGRES_DB: dev
+    networks:
+      - block_feed_net
+
+  # https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html
+  # https://www.pgadmin.org/docs/pgadmin4/latest/import_export_servers.html#json-format
+  # https://stackoverflow.com/questions/68438404/sharing-local-ssh-key-with-pgadmin4-docker-container-permission-denied
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:7.5
+    user: "root"
+    ports:
+      - "5050:5050"
+    volumes:
+      - /root/.ssh:/var/lib/pgadmin/storage/rootuser_mail.com/.ssh
+      - ./pgadmin/servers:/pgadmin4/servers
+    environment:
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers/servers.json
+      PGADMIN_DEFAULT_EMAIL: rootuser@mail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_LISTEN_PORT: 5050
+    networks:
+      - block_feed_net
+
+  flow_emulator:
+    container_name: flow-emulator
+    ports:
+      - "8888:8888"
+    build:
+      dockerfile: ./blockchains/flow/Dockerfile
+      context: .
+    networks:
+      - block_feed_net
+
+  # https://docs.bullmq.io/guide/going-to-production#max-memory-policy
+  redis:
+    container_name: redis
+    image: redis:7.2.1-alpine3.18
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--loglevel",
+        "debug",
+        "--maxmemory-policy",
+        "noeviction",
+      ]
+    ports:
+      - "6379:6379"
+    networks:
+      - block_feed_net
+
+networks:
+  block_feed_net:

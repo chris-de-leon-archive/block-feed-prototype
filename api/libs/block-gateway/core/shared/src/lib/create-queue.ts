@@ -22,5 +22,7 @@ export const createQueue = <T extends QueueNames>(url: URL, name: T) => {
       port: Number(url.port),
       offlineQueue: false,
     },
-  }).on("error", console.error) as InferQueue<T>
+  }).on("error", (err) => {
+    console.error(`error: ${err}`)
+  }) as InferQueue<T>
 }

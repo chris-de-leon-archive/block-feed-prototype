@@ -8,23 +8,23 @@ import { flow } from "@api/shared/flow"
 import assert from "node:assert"
 
 describe("Funcs CRUD Test", () => {
+  const dbAdmin = database.core.createClient(database.core.getEnvVars().DB_URL)
   const blockchain = new FlowBlockchain(flow.createClient())
-  const api = testutils.getApi()
-  const db = database.core.createClient()
-  const a0 = auth0.createClient()
   const chainInfo = blockchain.getInfo()
+  const a0 = auth0.createClient()
+  const api = testutils.getApi()
 
   let headers = {}
   let auth0User: Awaited<ReturnType<typeof testutils.createAuth0User>> | null =
     null
 
   before(async () => {
-    await testutils.wipeDB(db, database.schema.blockFeed.schemaName)
+    await testutils.wipeDB(dbAdmin, database.schema.blockFeed.schemaName)
 
     const user = await testutils.createAuth0User(a0)
     const grnt = await user.getGrant()
 
-    await database.queries.blockCursor.create(db, {
+    await database.queries.blockCursor.create(dbAdmin, {
       blockchain: chainInfo.name,
       id: chainInfo.id,
       networkURL: chainInfo.networkURL,
@@ -52,6 +52,7 @@ describe("Funcs CRUD Test", () => {
       .then((result) => {
         assert.equal(result.data.count, 1)
       })
+      .catch(testutils.handleAxiosError)
 
     await it("finds many functions", async () => {
       const firstId = await api
@@ -63,6 +64,7 @@ describe("Funcs CRUD Test", () => {
           }
           return id
         })
+        .catch(testutils.handleAxiosError)
 
       await it("updates a function", async () => {
         const newName = "new-name"
@@ -79,17 +81,24 @@ describe("Funcs CRUD Test", () => {
           .then((result) => {
             assert.equal(result.data.count, 1)
           })
+          .catch(testutils.handleAxiosError)
 
         await it("finds a function by ID", async () => {
-          await api.funcsFindOne(firstId, { headers }).then((result) => {
-            assert.equal(result.data.name, newName)
-          })
+          await api
+            .funcsFindOne(firstId, { headers })
+            .then((result) => {
+              assert.equal(result.data.name, newName)
+            })
+            .catch(testutils.handleAxiosError)
         })
 
         await it("removes a function", async () => {
-          await api.funcsRemove({ id: firstId }, { headers }).then((result) => {
-            assert.equal(result.data.count, 1)
-          })
+          await api
+            .funcsRemove({ id: firstId }, { headers })
+            .then((result) => {
+              assert.equal(result.data.count, 1)
+            })
+            .catch(testutils.handleAxiosError)
         })
       })
     })

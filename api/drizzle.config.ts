@@ -8,7 +8,7 @@ export default {
     "./libs/shared/database/src/lib/schema/**/*.schema.ts",
     "./libs/shared/database/src/lib/schema/**/*.enum.ts",
   ],
-  out: "./drizzle/migrations",
+  out: `./drizzle/migrations/${process.env["DB_MIGRATIONS_FOLDER"] ?? ""}`,
   schemaFilter: ["public", database.schema.blockFeed.schemaName],
   verbose: true,
   driver: "pg",

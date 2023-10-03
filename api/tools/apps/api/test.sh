@@ -2,7 +2,7 @@ set -e
 
 . ./tools/utils/utils.sh
 
-export_env_files ./env/development
+export_env_files ./env/dev
 echo ""
 
 if [ ! -z $1 ]; then
