@@ -1,6 +1,7 @@
 import { refreshBlockGatewayRole } from "../roles/block-gateway.role"
 import { withConnection } from "drizzle/utils/with-connection"
 import { refreshApiRole } from "../roles/api.role"
+import { utils } from "@api/shared/utils"
 
 withConnection(async ({ db, env }) => {
   await db.transaction(async (tx) => {
@@ -11,12 +12,6 @@ withConnection(async ({ db, env }) => {
         env.DB_BLOCK_GATEWAY_ROLE_UNAME,
         env.DB_BLOCK_GATEWAY_ROLE_PWORD
       ),
-    ]).then((results) => {
-      results.forEach((r) => {
-        if (r.status === "rejected") {
-          throw new Error(r.reason)
-        }
-      })
-    })
+    ]).then(utils.throwIfError)
   })
 })
