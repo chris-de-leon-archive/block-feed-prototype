@@ -1,11 +1,19 @@
-import { TAuth0Ctx, TDatabaseCtx } from "../types"
+import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
 import { createTRPC } from "../create-trpc"
+import { auth0 } from "@api/shared/auth0"
 import { TRPCError } from "@trpc/server"
 import { sql } from "drizzle-orm"
 
 export const requireAuth = (
-  t: ReturnType<typeof createTRPC<TAuth0Ctx & TDatabaseCtx>>
+  t: ReturnType<
+    typeof createTRPC<
+      Readonly<{
+        database: NodePgDatabase<typeof database.schema>
+        auth0: ReturnType<typeof auth0.createClient>
+      }>
+    >
+  >
 ) => {
   return t.middleware(async (opts) => {
     // Gets the authorization header value

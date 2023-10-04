@@ -1,8 +1,12 @@
-import { trpc } from "@api/shared/trpc"
-
+import { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { database } from "@api/shared/database"
+import { auth0 } from "@api/shared/auth0"
 export const NAMESPACE = "funcs"
 
-export type FuncsCtx = trpc.types.TDatabaseCtx & trpc.types.TAuth0Ctx
+export type FuncsCtx = Readonly<{
+  database: NodePgDatabase<typeof database.schema>
+  auth0: ReturnType<typeof auth0.createClient>
+}>
 
 export const ENV_FILES = ["auth0.env", "api.env"]
 
