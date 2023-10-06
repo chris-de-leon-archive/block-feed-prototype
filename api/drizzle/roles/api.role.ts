@@ -43,7 +43,21 @@ export const refreshApiRole = async (
       tx,
       username,
       database.schema.blockFeed.schemaName,
-      getTableName(database.schema.funcs),
+      getTableName(database.schema.subscriptions),
+      ["SELECT", "INSERT", "UPDATE", "DELETE"]
+    ),
+    refreshPermissionsOnTable(
+      tx,
+      username,
+      database.schema.blockFeed.schemaName,
+      getTableName(database.schema.emailSubscriptions),
+      ["SELECT", "INSERT", "UPDATE", "DELETE"]
+    ),
+    refreshPermissionsOnTable(
+      tx,
+      username,
+      database.schema.blockFeed.schemaName,
+      getTableName(database.schema.webhookSubscriptions),
       ["SELECT", "INSERT", "UPDATE", "DELETE"]
     ),
   ]).then(utils.throwIfError)

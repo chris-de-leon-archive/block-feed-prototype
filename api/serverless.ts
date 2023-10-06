@@ -1,8 +1,8 @@
-import { config as funcsFindManyConfig } from "./apps/api/funcs/find-many/src/config"
-import { config as funcsFindOneConfig } from "./apps/api/funcs/find-one/src/config"
-import { config as funcsCreateConfig } from "./apps/api/funcs/create/src/config"
-import { config as funcsUpdateConfig } from "./apps/api/funcs/update/src/config"
-import { config as funcsRemoveConfig } from "./apps/api/funcs/remove/src/config"
+import { config as subscriptionsFindManyConfig } from "./apps/api/subscriptions/find-many/src/config"
+import { config as subscriptionsFindOneConfig } from "./apps/api/subscriptions/find-one/src/config"
+import { config as subscriptionsCreateConfig } from "./apps/api/subscriptions/create/src/config"
+import { config as subscriptionsUpdateConfig } from "./apps/api/subscriptions/update/src/config"
+import { config as subscriptionsRemoveConfig } from "./apps/api/subscriptions/remove/src/config"
 import type { AWS } from "@serverless/typescript"
 import { utils } from "@api/shared/utils"
 
@@ -26,33 +26,25 @@ const config: AWS = {
     individually: true,
   },
   functions: {
-    ...funcsFindManyConfig,
-    ...funcsFindOneConfig,
-    ...funcsCreateConfig,
-    ...funcsUpdateConfig,
-    ...funcsRemoveConfig,
+    ...subscriptionsFindManyConfig,
+    ...subscriptionsFindOneConfig,
+    ...subscriptionsCreateConfig,
+    ...subscriptionsUpdateConfig,
+    ...subscriptionsRemoveConfig,
   },
-  plugins: [
-    "serverless-localstack",
-    "serverless-webpack",
-    "serverless-offline",
-  ],
+  plugins: ["serverless-localstack", "serverless-webpack"],
   custom: {
     localstack: {
       stages: [utils.enums.AppEnv.DEV],
       host: "http://localhost:4566",
       debug: true,
     },
-    // esbuild: {
-    //   keepOutputDirectory: true,
-    //   define: { "require.resolve": undefined },
-    // },
     webpack: {
       webpackConfig: "webpack.config.js",
       includeModules: true,
       packager: "npm",
       keepOutputDirectory: true,
-      excludeFiles: "./**/*.test.ts",
+      excludeFiles: "./**/*.tests.ts",
     },
   },
 }

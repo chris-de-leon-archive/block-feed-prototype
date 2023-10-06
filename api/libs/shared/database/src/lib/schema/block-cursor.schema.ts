@@ -1,8 +1,8 @@
 import { timestamp, text, uniqueIndex } from "drizzle-orm/pg-core"
 import { blockchainEnum } from "./enums/blockchain.enum"
+import { subscriptions } from "./subscriptions.schema"
 import { blockFeed } from "./block-feed.schema"
 import { relations } from "drizzle-orm"
-import { funcs } from "./funcs.schema"
 
 export const blockCursor = blockFeed.table(
   "block_cursor",
@@ -29,5 +29,5 @@ export const blockCursor = blockFeed.table(
 )
 
 export const blockCursorRelations = relations(blockCursor, ({ many }) => ({
-  funcs: many(funcs),
+  subscriptions: many(subscriptions),
 }))

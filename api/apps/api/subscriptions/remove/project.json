@@ -1,0 +1,50 @@
+{
+  "name": "api-subscriptions-remove",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/subscriptions/remove/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/subscriptions/remove",
+        "main": "apps/api/subscriptions/remove/src/main.ts",
+        "tsConfig": "apps/api/subscriptions/remove/tsconfig.app.json",
+        "assets": ["apps/api/subscriptions/remove/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/subscriptions/remove/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-subscriptions-remove:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-subscriptions-remove:build:development"
+        },
+        "production": {
+          "buildTarget": "api-subscriptions-remove:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/subscriptions/remove/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

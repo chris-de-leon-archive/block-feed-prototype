@@ -53,6 +53,8 @@ docker_build_args=(
   "-t $dockerhub_uname/block-feed-block-gateway-fetcher-flow:$image_tag --build-arg PROJECT_NAME=block-gateway/fetcher/flow"
   "-t $dockerhub_uname/block-feed-block-gateway-consumer:$image_tag --build-arg PROJECT_NAME=block-gateway/consumer"
   "-t $dockerhub_uname/block-feed-block-gateway-divider:$image_tag --build-arg PROJECT_NAME=block-gateway/divider"
+  "-t $dockerhub_uname/block-feed-block-gateway-webhook:$image_tag --build-arg PROJECT_NAME=block-gateway/webhook"
+  "-t $dockerhub_uname/block-feed-block-gateway-mailer:$image_tag --build-arg PROJECT_NAME=block-gateway/mailer"
   "-t $dockerhub_uname/block-feed-block-gateway-logger:$image_tag --build-arg PROJECT_NAME=block-gateway/logger"
 )
 
@@ -64,6 +66,8 @@ image_names=(
   "$dockerhub_uname/block-feed-block-gateway-fetcher-flow:$image_tag"
   "$dockerhub_uname/block-feed-block-gateway-consumer:$image_tag"
   "$dockerhub_uname/block-feed-block-gateway-divider:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-webhook:$image_tag"
+  "$dockerhub_uname/block-feed-block-gateway-mailer:$image_tag"
   "$dockerhub_uname/block-feed-block-gateway-logger:$image_tag"
 )
 

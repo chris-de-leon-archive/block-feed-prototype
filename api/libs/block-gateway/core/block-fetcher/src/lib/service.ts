@@ -1,4 +1,5 @@
 import { getEnvVars } from "./get-env-vars"
+import { DelayedError } from "bullmq"
 import {
   getDefaultJobOptions,
   BlockGatewayService,
@@ -60,7 +61,8 @@ export class BlockFetcher extends BlockGatewayService {
         // If the block height is ahead, re-attempt the job
         const latestBlockHeight = await this.blockchain.getLatestBlockHeight()
         if (job.data > latestBlockHeight) {
-          throw new Error(
+          // TODO: if too many attempts have been made should we skip over this block?
+          throw new DelayedError(
             `requested block height "${job.data}" is larger than current block height "${latestBlockHeight}" (${chainInfo.name}, ${chainInfo.networkURL})`
           )
         }
@@ -95,7 +97,7 @@ export class BlockFetcher extends BlockGatewayService {
 
     // Log a message when a job is completed
     worker.on("completed", async (job) => {
-      console.log(`completed job with ID ${job.id}`)
+      console.log(`worker ${worker.name} completed job with ID ${job.id}`)
     })
 
     // Returns a cleanup function

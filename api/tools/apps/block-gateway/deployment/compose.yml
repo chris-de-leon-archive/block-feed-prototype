@@ -40,9 +40,6 @@ services:
     environment:
       BLOCK_CONSUMER_REDIS_URL: ${REDIS_URL}
       BLOCK_CONSUMER_DB_URL: ${DB_URL}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
     deploy:
       replicas: 1
     logging:
@@ -57,6 +54,36 @@ services:
     environment:
       BLOCK_LOGGER_REDIS_URL: ${REDIS_URL}
       BLOCK_LOGGER_DB_URL: ${DB_URL}
+    deploy:
+      replicas: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  block-mailer:
+    container_name: block-mailer
+    image: caffeineaddict333/block-feed-block-gateway-mailer:${IMAGE_TAG}
+    restart: always
+    environment:
+      BLOCK_MAILER_EMAIL_SOURCE: "to.do@mail.com" # TODO
+      BLOCK_MAILER_REDIS_URL: ${REDIS_URL}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+    deploy:
+      replicas: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  block-webhook:
+    container_name: block-webhook
+    image: caffeineaddict333/block-feed-block-gateway-webhook:${IMAGE_TAG}
+    restart: always
+    environment:
+      BLOCK_MAILER_REDIS_URL: ${REDIS_URL}
     deploy:
       replicas: 1
     logging:

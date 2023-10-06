@@ -1,1 +1,1 @@
-export * as trpc from "./lib/core"
+export * as trpc from "./lib"

@@ -1,7 +1,5 @@
 export * from "./handle-axios-error"
 export * from "./create-auth0-user"
-export * from "./with-zipped-code"
-export * from "./create-lambda"
 export * from "./get-env-vars"
 export * from "./wipe-redis"
 export * from "./openapi"

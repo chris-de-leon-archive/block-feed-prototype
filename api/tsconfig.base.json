@@ -26,8 +26,10 @@
     "baseUrl": ".",
     "paths": {
       "@api/api/core": ["libs/api/core/src/index.ts"],
-      "@api/api/funcs/api": ["libs/api/funcs/api/src/index.ts"],
-      "@api/api/funcs/tests": ["libs/api/funcs/tests/src/index.ts"],
+      "@api/api/subscriptions/api": ["libs/api/subscriptions/api/src/index.ts"],
+      "@api/api/subscriptions/tests": [
+        "libs/api/subscriptions/tests/src/index.ts"
+      ],
       "@api/block-gateway/core/block-consumer": [
         "libs/block-gateway/core/block-consumer/src/index.ts"
       ],
@@ -39,6 +41,12 @@
       ],
       "@api/block-gateway/core/block-logger": [
         "libs/block-gateway/core/block-logger/src/index.ts"
+      ],
+      "@api/block-gateway/core/block-mailer": [
+        "libs/block-gateway/core/block-mailer/src/index.ts"
+      ],
+      "@api/block-gateway/core/block-webhook": [
+        "libs/block-gateway/core/block-webhook/src/index.ts"
       ],
       "@api/block-gateway/core/blockchains/flow": [
         "libs/block-gateway/core/blockchains/flow/src/index.ts"

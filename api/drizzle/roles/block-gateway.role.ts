@@ -29,7 +29,21 @@ export const refreshBlockGatewayRole = async (
       tx,
       username,
       database.schema.blockFeed.schemaName,
-      getTableName(database.schema.funcs),
+      getTableName(database.schema.subscriptions),
+      ["SELECT"]
+    ),
+    refreshPermissionsOnTable(
+      tx,
+      username,
+      database.schema.blockFeed.schemaName,
+      getTableName(database.schema.emailSubscriptions),
+      ["SELECT"]
+    ),
+    refreshPermissionsOnTable(
+      tx,
+      username,
+      database.schema.blockFeed.schemaName,
+      getTableName(database.schema.webhookSubscriptions),
       ["SELECT"]
     ),
     refreshPermissionsOnTable(

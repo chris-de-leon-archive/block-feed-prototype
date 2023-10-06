@@ -1,3 +1,5 @@
+# TODO: add ses resource
+
 resource "aws_security_group" "block_gateway_server_sg" {
   name = "${var.PROJECT_NAME}-block-gateway-server-sg-${var.ENVIRONMENT}"
   ingress {

@@ -6,7 +6,7 @@ export enum Blockchains {
 }
 
 // TODO: https://github.com/drizzle-team/drizzle-orm/issues/669
-export const blockchainEnum = pgEnum("blockchain", [
+export const blockchainEnum = pgEnum("blockchain_enum", [
   Blockchains.ETH,
   ...Object.values(Blockchains),
 ])

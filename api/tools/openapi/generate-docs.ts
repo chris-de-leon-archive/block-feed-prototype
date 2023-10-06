@@ -1,17 +1,17 @@
+import { subscriptionsAPI } from "@api/api/subscriptions/api"
 import { generateOpenApiDocument } from "trpc-openapi"
-import { funcsAPI } from "@api/api/funcs/api"
 import { trpc } from "@api/shared/trpc"
 import * as fs from "node:fs/promises"
 
-const t = trpc.createTRPC<funcsAPI.FuncsCtx>()
+const t = trpc.createTRPC<subscriptionsAPI.Ctx>()
 
 const appRouter = t.router({
-  [funcsAPI.NAMESPACE]: t.router({
-    ...funcsAPI.findMany(t),
-    ...funcsAPI.findOne(t),
-    ...funcsAPI.create(t),
-    ...funcsAPI.update(t),
-    ...funcsAPI.remove(t),
+  [subscriptionsAPI.NAMESPACE]: t.router({
+    ...subscriptionsAPI.findMany(t),
+    ...subscriptionsAPI.findOne(t),
+    ...subscriptionsAPI.create(t),
+    ...subscriptionsAPI.update(t),
+    ...subscriptionsAPI.remove(t),
   }),
 })
 

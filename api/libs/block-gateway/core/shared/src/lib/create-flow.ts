@@ -1,7 +1,7 @@
 import { TBlockGatewayJob } from "./types/block-gateway-job.type"
 import { FlowProducer, FlowOpts } from "bullmq"
 
-class StronglyTypedFlowProducer extends FlowProducer {
+export class StronglyTypedFlowProducer extends FlowProducer {
   override async add(flow: TBlockGatewayJob, opts?: FlowOpts | undefined) {
     return await super.add(flow, opts)
   }

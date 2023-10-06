@@ -1,27 +1,20 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
-import { InferInsertModel } from "drizzle-orm"
 import { getEnvVars } from "./get-env-vars"
 import {
   getDefaultJobOptions,
   BlockGatewayService,
+  TBlockGatewayJob,
   createWorker,
   createFlow,
   QueueNames,
   JobNames,
 } from "@api/block-gateway/core/shared"
-import {
-  InvocationType,
-  InvokeCommand,
-  LambdaClient,
-  LogType,
-} from "@aws-sdk/client-lambda"
 
 export class BlockConsumer extends BlockGatewayService {
   constructor(
     private readonly envvars: ReturnType<typeof getEnvVars>,
-    private readonly db: NodePgDatabase<typeof database.schema>,
-    private readonly lambda: LambdaClient
+    private readonly db: NodePgDatabase<typeof database.schema>
   ) {
     super()
   }
@@ -36,71 +29,63 @@ export class BlockConsumer extends BlockGatewayService {
       QueueNames.BLOCK_CONSUMER,
       async (job) => {
         // Fetches a batch of rows
-        const rows = await database.queries.funcs.findManyByCursorId(this.db, {
-          cursorId: job.data.cursorId,
-          limit: job.data.pagination.limit,
-          offset: job.data.pagination.offset,
-        })
-
-        // Invokes all lambda functions asynchronously in parallel
-        const settled = await Promise.allSettled(
-          rows.map(async (r) => {
-            return await this.lambda.send(
-              new InvokeCommand({
-                FunctionName: r.name,
-                InvocationType: InvocationType.RequestResponse,
-                LogType: LogType.Tail,
-                Payload: JSON.stringify(job.data.block),
-              })
-            )
-          })
+        const rows = await database.queries.subscriptions.findManyByCursorId(
+          this.db,
+          {
+            cursorId: job.data.cursorId,
+            limit: job.data.pagination.limit,
+            offset: job.data.pagination.offset,
+          }
         )
 
-        // Creates an array to hold invocation data
-        const results: InferInsertModel<
-          typeof database.schema.invocationLog
-        >[] = []
-
-        // Adds entries to the results array
-        settled.forEach((r, i) => {
-          if (r.status === "rejected") {
-            return
+        // Creates jobs
+        const jobs: TBlockGatewayJob[] = []
+        rows.forEach((r) => {
+          const { webhookSubscription, emailSubscription, ...subscription } = r
+          if (webhookSubscription != null) {
+            jobs.push({
+              queueName: QueueNames.BLOCK_WEBHOOK,
+              name: JobNames.POST_BLOCK,
+              data: {
+                subscription,
+                details: webhookSubscription,
+                payload: job.data.block,
+              },
+              opts: {
+                ...getDefaultJobOptions(),
+                attempts: webhookSubscription.attempts,
+              },
+            })
           }
-
-          const payload =
-            r.value.Payload != null
-              ? new TextDecoder("utf-8").decode(r.value.Payload.buffer)
-              : ""
-
-          const logResult = Buffer.from(
-            r.value.LogResult ?? "",
-            "base64"
-          ).toString("utf-8")
-
-          results.push({
-            metadata: r.value.$metadata,
-            userId: rows[i].userId,
-            executedVersion: r.value.ExecutedVersion,
-            functionError: r.value.FunctionError,
-            statusCode: r.value.StatusCode,
-            logResult,
-            payload,
-          })
+          if (emailSubscription != null) {
+            jobs.push({
+              queueName: QueueNames.BLOCK_MAILER,
+              name: JobNames.MAIL_BLOCK,
+              data: {
+                subscription,
+                details: emailSubscription,
+                payload: job.data.block,
+              },
+              opts: {
+                ...getDefaultJobOptions(),
+                attempts: emailSubscription.attempts,
+              },
+            })
+          }
         })
 
-        // Logs the invocation data to the database
+        // Adds jobs
         await flow.add({
           queueName: QueueNames.BLOCK_LOGGER,
           name: JobNames.LOG_BLOCK,
-          data: results,
-          opts: getDefaultJobOptions(),
+          children: jobs,
         })
       }
     )
 
     // Log a message when a job is completed
     worker.on("completed", async (job) => {
-      console.log(`completed job with ID ${job.id}`)
+      console.log(`worker ${worker.name} completed job with ID ${job.id}`)
     })
 
     // Returns a cleanup function

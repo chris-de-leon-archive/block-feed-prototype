@@ -8,4 +8,4 @@ export NODE_ENV="$ENV"
 nx run-many \
   --configuration "$ENV" \
   --targets build \
-  --projects block-gateway-consumer,block-gateway-divider,block-gateway-fetcher-flow,block-gateway-logger
+  --projects block-gateway-consumer,block-gateway-divider,block-gateway-fetcher-flow,block-gateway-logger,block-gateway-mailer,block-gateway-webhook
