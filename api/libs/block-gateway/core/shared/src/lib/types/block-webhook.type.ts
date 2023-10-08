@@ -1,3 +1,4 @@
+import { TBlockchainInfo } from "./blockchain-info.type"
 import { QueueNames } from "../enums/queue-names.enum"
 import { TBlockLogger } from "./block-logger.type"
 import { JobNames } from "../enums/job-names.enum"
@@ -12,7 +13,10 @@ export namespace TBlockWebhook {
   export type TQueueInput = Readonly<{
     subscription: InferSelectModel<typeof database.schema.subscriptions>
     details: InferSelectModel<typeof database.schema.webhookSubscriptions>
-    payload: object
+    payload: Readonly<{
+      chain: Readonly<TBlockchainInfo>
+      block: Readonly<object>
+    }>
   }>
   export type TWorker = Worker<TQueueInput, TQueueOutput, TJobName>
   export type TQueue = Queue<TQueueInput, TQueueOutput, TJobName>

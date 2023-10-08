@@ -4,7 +4,7 @@ import { subscriptions } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type CreateInput = Readonly<
-  Pick<InferInsertModel<typeof subscriptions>, "name" | "userId" | "cursorId">
+  Pick<InferInsertModel<typeof subscriptions>, "name" | "userId" | "chainId">
 >
 
 export const create = async (
@@ -13,12 +13,12 @@ export const create = async (
 ) => {
   const inputs = {
     placeholders: {
-      cursorId: sql.placeholder(subscriptions.cursorId.name),
+      chainId: sql.placeholder(subscriptions.chainId.name),
       userId: sql.placeholder(subscriptions.userId.name),
       name: sql.placeholder(subscriptions.name.name),
     },
     values: {
-      [subscriptions.cursorId.name]: args.cursorId,
+      [subscriptions.chainId.name]: args.chainId,
       [subscriptions.userId.name]: args.userId,
       [subscriptions.name.name]: args.name,
     },
@@ -26,7 +26,7 @@ export const create = async (
 
   // TODO: insert email / webhook subscription
   const query = db.insert(subscriptions).values({
-    cursorId: inputs.placeholders.cursorId,
+    chainId: inputs.placeholders.chainId,
     userId: inputs.placeholders.userId,
     name: inputs.placeholders.name,
   })

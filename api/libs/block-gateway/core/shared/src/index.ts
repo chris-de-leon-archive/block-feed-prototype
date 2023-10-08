@@ -1,4 +1,6 @@
 export * from "./lib/types/block-gateway-job.type"
+export * from "./lib/types/block-consumer.type"
+export * from "./lib/types/block-divider.type"
 export * from "./lib/types/block-logger.type"
 export * from "./lib/enums/queue-names.enum"
 export * from "./lib/block-gateway-service"

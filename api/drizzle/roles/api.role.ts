@@ -36,7 +36,7 @@ export const refreshApiRole = async (
       tx,
       username,
       database.schema.blockFeed.schemaName,
-      getTableName(database.schema.blockCursor),
+      getTableName(database.schema.blockchains),
       ["SELECT"]
     ),
     refreshPermissionsOnTable(

@@ -93,40 +93,44 @@ describe("Block Gateway Tests", () => {
     // Creates testing data in the database
     process.stdout.write("Creating test data in database... ")
     const chainInfo = blockchain.getInfo()
-    const userId = randomUUID()
+    const user1Id = randomUUID()
+    const user2Id = randomUUID()
     const sub1Id = randomUUID()
     const sub2Id = randomUUID()
     await dbAdmin.transaction(async (tx) => {
-      await database.queries.blockCursor.create(tx, {
-        id: chainInfo.id,
-        blockchain: chainInfo.name,
-        networkURL: chainInfo.networkURL,
-      })
+      await tx.insert(database.schema.blockchains).values(chainInfo)
       await tx.insert(database.schema.users).values({
-        id: userId,
+        id: user1Id,
       })
       await tx.insert(database.schema.subscriptions).values({
         id: sub1Id,
         name: `Test Subscription (${sub1Id})`,
-        cursorId: chainInfo.id,
-        userId: userId,
+        chainId: chainInfo.id,
+        userId: user1Id,
       })
       await tx.insert(database.schema.webhookSubscriptions).values({
         subscriptionId: sub1Id,
         url: `http://${serverHost}:${serverPort}`,
-        method: database.schema.SubscriptionMethod.WEBHOOK,
+        backoffStrategy: database.schema.BackoffStrategy.FIXED,
+        backoffDelayMS: 1000,
+        isActive: true,
         attempts: 1,
+      })
+      await tx.insert(database.schema.users).values({
+        id: user2Id,
       })
       await tx.insert(database.schema.subscriptions).values({
         id: sub2Id,
         name: `Test Subscription (${sub2Id})`,
-        cursorId: chainInfo.id,
-        userId: userId,
+        chainId: chainInfo.id,
+        userId: user2Id,
       })
       await tx.insert(database.schema.webhookSubscriptions).values({
         subscriptionId: sub2Id,
-        url: `http://${serverHost}:${serverPort}`,
-        method: database.schema.SubscriptionMethod.WEBHOOK,
+        url: `http://${serverHost}:${serverPort}/this-route-does-not-exist`,
+        backoffStrategy: database.schema.BackoffStrategy.FIXED,
+        backoffDelayMS: 1000,
+        isActive: true,
         attempts: 1,
       })
     })
@@ -148,8 +152,10 @@ describe("Block Gateway Tests", () => {
     await services.blockWebhook.start()
     await services.blockLogger.start()
     await services.blockMailer.start()
-    await testutils.sleep(2000)
     console.log("done!\n")
+
+    // Wait a little bit longer for workers to fully start up
+    await testutils.sleep(2000)
   })
 
   after(async () => {
@@ -169,7 +175,7 @@ describe("Block Gateway Tests", () => {
 
   describe("Integration Tests", () => {
     before(async () => {
-      // Starts job processing
+      // Starts the block fetcher
       await services.blockFetcher.start()
       console.log("Waiting for jobs to be processed:\n")
       await testutils.sleep(6000)
@@ -194,6 +200,7 @@ describe("Block Gateway Tests", () => {
 
     console.log(JSON.stringify(invocations, null, 2))
 
+    // TODO:
     // const actual = first
     // const expected = 200
     // assert.equal(

@@ -31,6 +31,9 @@ export const findMany = async (
     where(fields, operators) {
       return operators.eq(fields.userId, inputs.placeholders.userId)
     },
+    orderBy(fields, operators) {
+      return [operators.desc(fields.createdAt), operators.desc(fields.id)]
+    },
     with: {
       // TODO: null?
       webhookSubscription: true,

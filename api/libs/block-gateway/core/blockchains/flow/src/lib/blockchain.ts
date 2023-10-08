@@ -31,7 +31,7 @@ export class FlowBlockchain implements TBlockchain {
         .update(this.client.env.ONFLOW_ACCESS_API_URL)
         .digest("hex"),
       name: database.schema.Blockchains.FLOW,
-      networkURL: this.client.env.ONFLOW_ACCESS_API_URL,
+      url: this.client.env.ONFLOW_ACCESS_API_URL,
     }
   }
 }

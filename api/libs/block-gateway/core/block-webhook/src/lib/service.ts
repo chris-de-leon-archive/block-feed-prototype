@@ -2,7 +2,6 @@ import { getEnvVars } from "./get-env-vars"
 import {
   BlockGatewayService,
   createWorker,
-  createFlow,
   QueueNames,
 } from "@api/block-gateway/core/shared"
 
@@ -12,9 +11,6 @@ export class BlockWebhook extends BlockGatewayService {
   }
 
   public async run() {
-    // Creates a flow
-    const flow = createFlow(this.envvars.BLOCK_WEBHOOK_REDIS_URL)
-
     // Processes jobs in the queue
     const worker = createWorker(
       this.envvars.BLOCK_WEBHOOK_REDIS_URL,
@@ -62,7 +58,6 @@ export class BlockWebhook extends BlockGatewayService {
     // Returns a cleanup function
     return async () => {
       await worker.close()
-      await flow.close()
     }
   }
 }

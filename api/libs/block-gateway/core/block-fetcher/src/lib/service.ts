@@ -33,10 +33,13 @@ export class BlockFetcher extends BlockGatewayService {
       const count = await queue.count()
       if (count <= 0) {
         const latestBlockHeight = await this.blockchain.getLatestBlockHeight()
-        await queue.add(JobNames.FETCH_BLOCK, latestBlockHeight, {
-          ...getDefaultJobOptions(),
-          jobId: this.createJobId(latestBlockHeight),
-        })
+        await queue.add(
+          JobNames.FETCH_BLOCK,
+          latestBlockHeight,
+          getDefaultJobOptions({
+            jobId: this.createJobId(latestBlockHeight),
+          })
+        )
       }
     } finally {
       await queue.close()
@@ -61,9 +64,11 @@ export class BlockFetcher extends BlockGatewayService {
         // If the block height is ahead, re-attempt the job
         const latestBlockHeight = await this.blockchain.getLatestBlockHeight()
         if (job.data > latestBlockHeight) {
-          // TODO: if too many attempts have been made should we skip over this block?
+          // NOTE: this will not decrease the number of attempts.
+          // Instead it will simply retry the job using the backoff
+          // strategy defined in the default job options.
           throw new DelayedError(
-            `requested block height "${job.data}" is larger than current block height "${latestBlockHeight}" (${chainInfo.name}, ${chainInfo.networkURL})`
+            `requested block height "${job.data}" is larger than current block height "${latestBlockHeight}" (${chainInfo.name}, ${chainInfo.url})`
           )
         }
 
@@ -74,24 +79,21 @@ export class BlockFetcher extends BlockGatewayService {
             queueName: QueueNames.BLOCK_FETCHER,
             name: JobNames.FETCH_BLOCK,
             data: job.data + 1,
-            opts: {
-              ...getDefaultJobOptions(),
-              attempts: Number.MAX_SAFE_INTEGER,
+            opts: getDefaultJobOptions({
               delay: this.envvars.BLOCK_FETCHER_BLOCK_DELAY_MS,
               jobId: this.createJobId(job.data + 1),
-            },
+            }),
           },
           {
             queueName: QueueNames.BLOCK_DIVIDER,
             name: JobNames.DIVIDE_BLOCK,
             data: {
-              cursorId: chainInfo.id,
+              chain: chainInfo,
               block,
             },
             opts: getDefaultJobOptions(),
           },
         ])
-        return
       }
     )
 

@@ -1,7 +1,7 @@
 import { createClient, getPreparedStmtName } from "../../core"
 import { type InferSelectModel } from "drizzle-orm"
-import { and, eq, sql } from "drizzle-orm"
 import { subscriptions } from "../../schema"
+import { and, eq, sql } from "drizzle-orm"
 
 export type UpdateInput = Readonly<
   Pick<InferSelectModel<typeof subscriptions>, "id" | "name" | "userId">

@@ -1,14 +1,17 @@
+import { TBlockchainInfo } from "./blockchain-info.type"
 import { QueueNames } from "../enums/queue-names.enum"
 import { JobNames } from "../enums/job-names.enum"
 import { Queue, Worker, Processor } from "bullmq"
+import { database } from "@api/shared/database"
 
 export namespace TBlockConsumer {
   export type TQueueName = QueueNames.BLOCK_CONSUMER
   export type TJobName = JobNames.CONSUME_BLOCK
   export type TQueueOutput = void
-  export type TQueueInput<T = object> = Readonly<{
-    cursorId: string
-    block: T
+  export type TQueueInput = Readonly<{
+    method: database.schema.SubscriptionMethod
+    chain: Readonly<TBlockchainInfo>
+    block: Readonly<object>
     pagination: Readonly<{
       limit: number
       offset: number

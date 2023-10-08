@@ -3,7 +3,6 @@ import { getEnvVars } from "./get-env-vars"
 import {
   BlockGatewayService,
   createWorker,
-  createFlow,
   QueueNames,
 } from "@api/block-gateway/core/shared"
 
@@ -16,9 +15,6 @@ export class BlockMailer extends BlockGatewayService {
   }
 
   public async run() {
-    // Creates a flow
-    const flow = createFlow(this.envvars.BLOCK_MAILER_REDIS_URL)
-
     // Processes jobs in the queue
     const worker = createWorker(
       this.envvars.BLOCK_MAILER_REDIS_URL,
@@ -26,7 +22,6 @@ export class BlockMailer extends BlockGatewayService {
       async (job) => {
         // Emails the block data to the specified address
         const res = await this.ses.send(
-          // TODO: add more contextual blockchain info
           new SendEmailCommand({
             Source: this.envvars.BLOCK_MAILER_EMAIL_SOURCE,
             Destination: {
@@ -34,7 +29,7 @@ export class BlockMailer extends BlockGatewayService {
             },
             Message: {
               Subject: {
-                Data: "Block Feed Data Notification",
+                Data: `Block Feed Notification (${job.data.subscription.name})`,
               },
               Body: {
                 Text: {
@@ -65,7 +60,6 @@ export class BlockMailer extends BlockGatewayService {
     // Returns a cleanup function
     return async () => {
       await worker.close()
-      await flow.close()
     }
   }
 }

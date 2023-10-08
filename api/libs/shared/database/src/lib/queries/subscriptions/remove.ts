@@ -1,7 +1,7 @@
 import { createClient, getPreparedStmtName } from "../../core"
 import { type InferSelectModel } from "drizzle-orm"
-import { eq, sql } from "drizzle-orm"
 import { subscriptions } from "../../schema"
+import { eq, sql } from "drizzle-orm"
 
 export type RemoveInput = Readonly<
   Pick<InferSelectModel<typeof subscriptions>, "id">

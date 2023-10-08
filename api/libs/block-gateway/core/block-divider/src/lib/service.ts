@@ -1,9 +1,12 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
 import { getEnvVars } from "./get-env-vars"
+import { Job } from "bullmq"
 import {
   getDefaultJobOptions,
   BlockGatewayService,
+  TBlockGatewayJob,
+  TBlockDivider,
   createWorker,
   createFlow,
   QueueNames,
@@ -27,42 +30,11 @@ export class BlockDivider extends BlockGatewayService {
       this.envvars.BLOCK_DIVIDER_REDIS_URL,
       QueueNames.BLOCK_DIVIDER,
       async (job) => {
-        // Counts the total number of functions for this cursor in the database
-        const count = await database.queries.subscriptions.countByCursor(
-          this.db,
-          {
-            cursorId: job.data.cursorId,
-          }
-        )
+        // Breaks up the input job into individual jobs
+        const jobs = await this.splitJob(job)
 
-        // Exit early if there are no functions associated with this cursor
-        if (count === 0) {
-          console.warn(
-            `warning: no functions are associated with cursor ${job.data.cursorId}`
-          )
-          return
-        }
-
-        // Adds all jobs to the queue using a single redis transaction
-        const batchSze = this.envvars.MAX_ROWS_PER_CONSUMER
-        const batchCnt = Math.floor(count / batchSze) + 1
-        await flow.addBulk(
-          Array.from({ length: batchCnt }).map((_, i) => {
-            return {
-              queueName: QueueNames.BLOCK_CONSUMER,
-              name: JobNames.CONSUME_BLOCK,
-              data: {
-                cursorId: job.data.cursorId,
-                block: job.data,
-                pagination: {
-                  limit: batchSze,
-                  offset: i * batchSze,
-                },
-              },
-              opts: getDefaultJobOptions(),
-            }
-          })
-        )
+        // Adds the jobs
+        await flow.addBulk(jobs)
       }
     )
 
@@ -76,5 +48,65 @@ export class BlockDivider extends BlockGatewayService {
       await worker.close()
       await flow.close()
     }
+  }
+
+  private async splitJob(job: Job<TBlockDivider.TQueueInput>) {
+    const counts = await this.countActiveSubs(job).then((r) => Object.values(r))
+
+    const jobs = new Array<TBlockGatewayJob>()
+    for (const { method, count } of counts) {
+      const batchSze = this.envvars.MAX_ROWS_PER_CONSUMER
+      const batchCnt = Math.floor(count / batchSze) + 1
+      for (let i = 0; i < batchCnt; i++) {
+        jobs.push({
+          queueName: QueueNames.BLOCK_CONSUMER,
+          name: JobNames.CONSUME_BLOCK,
+          data: {
+            method,
+            chain: job.data.chain,
+            block: job.data.block,
+            pagination: {
+              limit: batchSze,
+              offset: i * batchSze,
+            },
+          },
+          opts: getDefaultJobOptions(),
+        } as const)
+      }
+    }
+
+    return jobs
+  }
+
+  private async countActiveSubs(job: Job<TBlockDivider.TQueueInput>) {
+    const counts =
+      await database.queries.subscriptions.countActiveSubscriptionsByChainId(
+        this.db,
+        {
+          chainId: job.data.chain.id,
+        }
+      )
+
+    // Putting the result above into an intermediate object allows for better
+    // typing support (i.e. if a new value is added to the SubscriptionMethod
+    // enum this code will be highlighted red for us automatically)
+    const countMap: Record<
+      database.schema.SubscriptionMethod,
+      Readonly<{
+        method: database.schema.SubscriptionMethod
+        count: number
+      }>
+    > = {
+      [database.schema.SubscriptionMethod.WEBHOOK]: {
+        method: database.schema.SubscriptionMethod.WEBHOOK,
+        count: counts.activeWebhookSubscriptions,
+      },
+      [database.schema.SubscriptionMethod.EMAIL]: {
+        method: database.schema.SubscriptionMethod.EMAIL,
+        count: counts.activeEmailSubscriptions,
+      },
+    }
+
+    return countMap
   }
 }
