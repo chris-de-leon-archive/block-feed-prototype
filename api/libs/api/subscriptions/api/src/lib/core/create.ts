@@ -6,10 +6,10 @@ import { z } from "zod"
 
 export const CreateInput = z.object({
   name: z.string().min(CONSTANTS.NAME.MIN_LEN).max(CONSTANTS.NAME.MAX_LEN),
-  cursorId: z
+  chainId: z
     .string()
-    .min(CONSTANTS.CURSOR_ID.MIN_LEN)
-    .max(CONSTANTS.CURSOR_ID.MAX_LEN),
+    .min(CONSTANTS.CHAIN_ID.MIN_LEN)
+    .max(CONSTANTS.CHAIN_ID.MAX_LEN),
 })
 
 export const CreateOutput = z.object({
@@ -31,7 +31,7 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<Ctx>>) => {
       .mutation(async (params) => {
         return await database.queries.subscriptions
           .create(params.ctx.database, {
-            cursorId: params.input.cursorId,
+            chainId: params.input.chainId,
             userId: params.ctx.user.sub,
             name: params.input.name,
           })

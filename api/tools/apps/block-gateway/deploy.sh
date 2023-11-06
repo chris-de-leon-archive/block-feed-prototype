@@ -35,7 +35,6 @@ for flag in "${!required_options[@]}"; do
 done
 
 # Run terraform
-. ./tools/utils/tools.sh
 terraform -chdir="$tfdir" fmt
 terraform -chdir="$tfdir" init -migrate-state
 terraform -chdir="$tfdir" apply -auto-approve

@@ -1,6 +1,5 @@
 set -e
 
-. ./tools/utils/tools.sh
 . ./tools/utils/utils.sh
 
 # Gets the API ID

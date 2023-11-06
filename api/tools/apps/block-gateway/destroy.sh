@@ -37,7 +37,6 @@ done
 echo "IMAGE_TAG=\"NOT NEEDED FOR DESTROY\"" >>"$tfvars"
 
 # Run terraform
-. ./tools/utils/tools.sh
 terraform -chdir="$tfdir" fmt
 terraform -chdir="$tfdir" init -migrate-state
 terraform -chdir="$tfdir" destroy -auto-approve

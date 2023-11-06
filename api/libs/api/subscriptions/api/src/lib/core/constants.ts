@@ -12,7 +12,7 @@ export type Ctx = Readonly<{
 export const ENV_FILES = ["auth0.env", "api.env"]
 
 export const CONSTANTS = {
-  CURSOR_ID: {
+  CHAIN_ID: {
     MAX_LEN: Math.pow(2, 8),
     MIN_LEN: 1,
   },

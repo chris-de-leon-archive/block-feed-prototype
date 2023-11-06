@@ -4,13 +4,12 @@
   "license": "MIT",
   "engineStrict": true,
   "engines": {
-    "node": "20.6.0"
+    "node": "20.5.1"
   },
   "scripts": {
     "build": "nx run-many --targets build",
     "clean": "rm -rf .build .serverless dist",
-    "setup": "docker compose -f ./tools/apps/docker/compose.yml up -d --build && npm run db:migrate -- --environment dev",
-    "cleanup": "docker compose -f ./tools/apps/docker/compose.yml down",
+    "setup": "npm i && npm run db:migrate -- --environment dev",
     "api:start:dev": "NODE_ENV=development APP_ENV=dev serverless deploy && npm run api:id",
     "api:build": "NODE_ENV=production APP_ENV=prod serverless package",
     "api:deploy": "NODE_ENV=production APP_ENV=prod serverless deploy",
@@ -57,6 +56,7 @@
     "@nx/node": "16.10.0",
     "@nx/webpack": "16.10.0",
     "@nx/workspace": "16.10.0",
+    "@openapitools/openapi-generator-cli": "2.7.0",
     "@serverless/typescript": "3.30.1",
     "@types/auth0": "3.3.6",
     "@types/aws-lambda": "8.10.122",

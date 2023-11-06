@@ -25,7 +25,7 @@ services:
       - "5050:5050"
     volumes:
       - /root/.ssh:/var/lib/pgadmin/storage/rootuser_mail.com/.ssh
-      - ./pgadmin/servers:/pgadmin4/servers
+      - ./docker/pgadmin/servers:/pgadmin4/servers
     environment:
       PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers/servers.json
       PGADMIN_DEFAULT_EMAIL: rootuser@mail.com
@@ -39,7 +39,7 @@ services:
     ports:
       - "8888:8888"
     build:
-      dockerfile: ./blockchains/flow/Dockerfile
+      dockerfile: ./docker/blockchains/flow/Dockerfile
       context: .
     networks:
       - block_feed_net

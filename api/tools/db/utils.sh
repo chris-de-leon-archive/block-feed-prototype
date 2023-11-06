@@ -1,4 +1,3 @@
-. ./tools/utils/tools.sh
 . ./tools/utils/utils.sh
 
 # $1 = a valid JSON string that's only one layer deep
