@@ -44,12 +44,12 @@ RELAYER_HTTP_MAX_RETRIES=3
 
 # Helpers
 
-build:
+build-local:
 	@docker build --build-arg BUILD_PATH=$(BUILD_PATH) -t $(TAG) .
 
 build-and-push:
-	@docker build --build-arg BUILD_PATH=$(BUILD_PATH) -t $(DOCKERHUB_UNAME)/$(TAG) .
-	@docker push $(DOCKERHUB_UNAME)/$(TAG)
+	@docker build --build-arg BUILD_PATH=$(BUILD_PATH) -t $(DOCKERHUB_USERNAME)/$(TAG) .
+	@docker push $(DOCKERHUB_USERNAME)/$(TAG)
 
 verify-email:
 	@aws --endpoint-url=$(AWS_URL) ses verify-email-identity --email=$(RELAYER_SMTP_SENDER_EMAIL)
@@ -60,16 +60,16 @@ run-tests:
 
 # ETH HTTP
 
-# make build-and-push-eth-http-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-and-push-eth-http-relayer TAG=<...>
 build-and-push-eth-http-relayer:
 	@make build-and-push \
-		DOCKERHUB_UNAME=$(DOCKERHUB_UNAME) \
+		DOCKERHUB_UNAME=$(DOCKERHUB_USERNAME) \
 		BUILD_PATH=$(ETH_HTTP_RELAYER_ENTRYPOINT) \
 		TAG=$(ETH_HTTP_RELAYER_IMAGE_NAME):$(TAG)
 
-# make build-eth-http-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-eth-http-relayer TAG=<...>
 build-eth-http-relayer:
-	@make build \
+	@make build-local \
 		BUILD_PATH=$(ETH_HTTP_RELAYER_ENTRYPOINT) \
 		TAG=$(ETH_HTTP_RELAYER_IMAGE_NAME):$(TAG)
 
@@ -85,16 +85,16 @@ run-eth-http:
 
 # ETH SMTP
 
-# make build-and-push-eth-smtp-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-and-push-eth-smtp-relayer TAG=<...>
 build-and-push-eth-smtp-relayer:
 	@make build-and-push \
-		DOCKERHUB_UNAME=$(DOCKERHUB_UNAME) \
+		DOCKERHUB_UNAME=$(DOCKERHUB_USERNAME) \
 		BUILD_PATH=$(ETH_SMTP_RELAYER_ENTRYPOINT) \
 		TAG=$(ETH_SMTP_RELAYER_IMAGE_NAME):$(TAG)
 
-# make build-eth-smtp-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-eth-smtp-relayer TAG=<...>
 build-eth-smtp-relayer:
-	@make build \
+	@make build-local \
 		BUILD_PATH=$(ETH_SMTP_RELAYER_ENTRYPOINT) \
 		TAG=$(ETH_SMTP_RELAYER_IMAGE_NAME):$(TAG)
 
@@ -116,16 +116,16 @@ run-eth-smtp:
 
 # FLOW HTTP
 
-# make build-and-push-flow-http-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-and-push-flow-http-relayer TAG=<...>
 build-and-push-flow-http-relayer:
 	@make build-and-push \
-		DOCKERHUB_UNAME=$(DOCKERHUB_UNAME) \
+		DOCKERHUB_UNAME=$(DOCKERHUB_USERNAME) \
 		BUILD_PATH=$(FLOW_HTTP_RELAYER_ENTRYPOINT) \
 		TAG=$(FLOW_HTTP_RELAYER_IMAGE_NAME):$(TAG)
 
-# make build-flow-http-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-flow-http-relayer TAG=<...>
 build-flow-http-relayer:
-	@make build \
+	@make build-local \
 		BUILD_PATH=$(FLOW_HTTP_RELAYER_ENTRYPOINT) \
 		TAG=$(FLOW_HTTP_RELAYER_IMAGE_NAME):$(TAG)
 
@@ -141,16 +141,16 @@ run-flow-http:
 
 # FLOW SMTP
 
-# make build-and-push-flow-smtp-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-and-push-flow-smtp-relayer TAG=<...>
 build-and-push-flow-smtp-relayer:
 	@make build-and-push \
-		DOCKERHUB_UNAME=$(DOCKERHUB_UNAME) \
+		DOCKERHUB_UNAME=$(DOCKERHUB_USERNAME) \
 		BUILD_PATH=$(FLOW_SMTP_RELAYER_ENTRYPOINT) \
 		TAG=$(FLOW_SMTP_RELAYER_IMAGE_NAME):$(TAG)
 
-# make build-flow-smtp-relayer DOCKERHUB_UNAME=<...> TAG=<...>
+# make build-flow-smtp-relayer TAG=<...>
 build-flow-smtp-relayer:
-	@make build \
+	@make build-local \
 		BUILD_PATH=$(FLOW_SMTP_RELAYER_ENTRYPOINT) \
 		TAG=$(FLOW_SMTP_RELAYER_IMAGE_NAME):$(TAG)
 

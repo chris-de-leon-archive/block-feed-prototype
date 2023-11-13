@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -26,9 +27,9 @@ import (
 //
 
 const (
-	BLOCK_HEIGHT_KEY_NAME = "relayer:height"
-	IN_PROGRESS_QNAME     = "relayer:inprog"
-	TODO_QNAME            = "relayer:todo"
+	HEIGHT = "height"
+	INPROG = "inprog"
+	TODO   = "todo"
 )
 
 type (
@@ -53,12 +54,14 @@ type (
 
 	RawRelayerOpts struct {
 		RedisConnectionURL string `env:"RELAYER_REDIS_CONNECTION_URL"`
+		RedisPrefix        string `env:"RELAYER_REDIS_PREFIX"`
 		PollMs             string `env:"RELAYER_POLL_MS"`
 	}
 
 	RelayerOpts struct {
 		RedisConnectionURL string `validate:"required"`
 		PollMs             int    `validate:"required,gt=0"`
+		RedisPrefix        string
 	}
 
 	Relayer struct {
@@ -73,8 +76,14 @@ func New(chain IBlockchain) *Relayer {
 	threadManager := threading.Manager()
 
 	opts := common.ParseOpts[RawRelayerOpts, RelayerOpts](func(env *RawRelayerOpts) *RelayerOpts {
+		prefix := env.RedisPrefix
+		if prefix == "" {
+			prefix = "relayer"
+		}
+
 		return &RelayerOpts{
 			RedisConnectionURL: env.RedisConnectionURL,
+			RedisPrefix:        prefix,
 			PollMs:             common.PanicIfError(strconv.Atoi(env.PollMs)),
 		}
 	})
@@ -84,9 +93,9 @@ func New(chain IBlockchain) *Relayer {
 		chain:         chain,
 		opts:          opts,
 		keys: &RelayerRedisKeys{
-			BlockHeight: BLOCK_HEIGHT_KEY_NAME + ":" + chain.ID(),
-			InProgQueue: IN_PROGRESS_QNAME + ":" + chain.ID(),
-			TodoQueue:   TODO_QNAME + ":" + chain.ID(),
+			BlockHeight: strings.Join([]string{opts.RedisPrefix, HEIGHT, chain.ID()}, ":"),
+			InProgQueue: strings.Join([]string{opts.RedisPrefix, INPROG, chain.ID()}, ":"),
+			TodoQueue:   strings.Join([]string{opts.RedisPrefix, TODO, chain.ID()}, ":"),
 		},
 	}
 }

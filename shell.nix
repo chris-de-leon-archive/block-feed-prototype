@@ -11,6 +11,14 @@ let
     config = {}; 
   };
 
+  # v0.18.0
+  kindPkg = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/e49c28b3baa3a93bdadb8966dd128f9985ea0a09.tar.gz";
+  }) {
+    overlays = [];
+    config = {}; 
+  };
+
   # v19.0.2+7 (needed for the openapi-generator-cli)
   javaPkg = import (builtins.fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/e49c28b3baa3a93bdadb8966dd128f9985ea0a09.tar.gz";
@@ -83,6 +91,7 @@ pkgs.mkShell {
     awscli2Pkg.awscli2
     nodePkg.nodejs_20
     redisPkg.redis
+    kindPkg.kind
     javaPkg.jdk
     goPkg.go
   ];
@@ -91,6 +100,8 @@ pkgs.mkShell {
     awslocal() { aws --endpoint-url='http://localhost:4566' $@; }
     export -f awslocal
     docker compose up -d --build
+    docker pull kindest/node:v1.26.6
+    kind create cluster --name dev --image kindest/node:v1.26.6
   '';
 
   # packages = with pkgs; [    

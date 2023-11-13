@@ -79,10 +79,16 @@ func SMTPConsumer() func(ctx context.Context, data relayer.RelayerQueueData) err
 			},
 		)
 
+		// Logs errors
+		if err != nil {
+			logger.Printf("error: %v\n", err)
+			return err
+		}
+
 		// Logs results
 		logger.Printf("sent block %d to %s\n", data.Height, opts.ReceiverEmail)
 
-		// Returns an error if any
-		return err
+		// Returns nil to indicate no errors occurred
+		return nil
 	}
 }
