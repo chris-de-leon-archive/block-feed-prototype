@@ -1,16 +1,12 @@
-import { FlowBlockchain } from "@api/block-gateway/core/blockchains/flow"
 import { after, before, describe, it } from "node:test"
 import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
 import { auth0 } from "@api/shared/auth0"
 import { randomUUID } from "node:crypto"
-import { flow } from "@api/shared/flow"
 import assert from "node:assert"
 
 describe("Subscriptions CRUD Test", () => {
   const dbAdmin = database.core.createClient(database.core.getEnvVars().DB_URL)
-  const blockchain = new FlowBlockchain(flow.createClient())
-  const chainInfo = blockchain.getInfo()
   const a0 = auth0.createClient()
   const api = testutils.getApi()
 
@@ -24,11 +20,12 @@ describe("Subscriptions CRUD Test", () => {
     const user = await testutils.createAuth0User(a0)
     const grnt = await user.getGrant()
 
-    await database.queries.blockCursor.create(dbAdmin, {
-      blockchain: chainInfo.name,
-      id: chainInfo.id,
-      networkURL: chainInfo.networkURL,
-    })
+    // TODO:
+    // await database.queries.blockCursor.create(dbAdmin, {
+    //   blockchain: chainInfo.name,
+    //   id: chainInfo.id,
+    //   networkURL: chainInfo.networkURL,
+    // })
 
     auth0User = user
     headers = {
@@ -40,12 +37,13 @@ describe("Subscriptions CRUD Test", () => {
     await auth0User?.cleanUp()
   })
 
+  // TODO:
   it("creates a subscription", async () => {
     await api
       .subscriptionsCreate(
         {
           name: randomUUID(),
-          cursorId: chainInfo.id,
+          chainId: randomUUID(),
         },
         { headers }
       )

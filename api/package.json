@@ -16,12 +16,6 @@
     "api:destroy": "NODE_ENV=production APP_ENV=prod serverless remove",
     "api:test": "bash ./tools/apps/api/test.sh",
     "api:id": "bash ./tools/apps/api/api-id.sh",
-    "block:start:dev": "bash ./tools/apps/block-gateway/start.sh",
-    "block:build": "bash ./tools/apps/block-gateway/build.sh",
-    "block:deploy": "bash ./tools/apps/block-gateway/deploy.sh",
-    "block:destroy": "bash ./tools/apps/block-gateway/destroy.sh",
-    "block:push": "bash ./tools/apps/block-gateway/push.sh",
-    "block:test": "bash ./tools/apps/block-gateway/test.sh",
     "nx:app:create": "nx g @nx/node:application --directory apps --e2eTestRunner none --unitTestRunner none --framework none --bundler webpack",
     "nx:lib:create": "nx g @nx/node:lib --directory libs --buildable false --publishable false --strict true --testEnvironment node --unitTestRunner none",
     "nx:proj:delete": "nx g @nx/workspace:remove --project-name",
@@ -36,13 +30,8 @@
   },
   "private": true,
   "dependencies": {
-    "@aws-sdk/client-ses": "3.441.0",
-    "@onflow/fcl": "1.7.0",
-    "@onflow/transport-grpc": "1.2.2",
     "@trpc/server": "10.43.1",
     "auth0": "4.1.0",
-    "aws-lambda": "1.0.7",
-    "bullmq": "4.13.0",
     "dotenv": "16.3.1",
     "drizzle-orm": "0.28.6",
     "drizzle-zod": "0.5.1",
@@ -52,19 +41,18 @@
     "zod": "3.22.4"
   },
   "devDependencies": {
-    "@nx/js": "17.0.3",
-    "@nx/node": "17.0.3",
-    "@nx/webpack": "17.0.3",
-    "@nx/workspace": "17.0.3",
+    "@nx/js": "17.1.1",
+    "@nx/node": "17.1.1",
+    "@nx/webpack": "17.1.1",
+    "@nx/workspace": "17.1.1",
     "@openapitools/openapi-generator-cli": "2.7.0",
     "@serverless/typescript": "3.30.1",
     "@types/auth0": "3.3.8",
-    "@types/aws-lambda": "8.10.125",
     "@types/node": "20.8.10",
     "@types/pg": "8.10.7",
     "axios": "1.6.0",
     "drizzle-kit": "0.19.13",
-    "nx": "17.0.3",
+    "nx": "17.1.1",
     "prettier": "2.6.2",
     "serverless": "3.36.0",
     "serverless-localstack": "1.1.2",
@@ -78,3 +66,4 @@
     "webpack-node-externals": "3.0.0"
   }
 }
+
