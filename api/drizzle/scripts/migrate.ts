@@ -1,10 +1,8 @@
 import { withConnection } from "drizzle/utils/with-connection"
-import { migrate } from "drizzle-orm/node-postgres/migrator"
+import { migrate } from "drizzle-orm/mysql2/migrator"
 
-withConnection(async ({ db }) => {
+withConnection(async ({ db, env }) => {
   await migrate(db, {
-    migrationsFolder: `./drizzle/migrations/${
-      process.env["DB_MIGRATIONS_FOLDER"] ?? ""
-    }`,
+    migrationsFolder: env.DRIZZLE_DB_MIGRATIONS_FOLDER ?? ".",
   })
 })

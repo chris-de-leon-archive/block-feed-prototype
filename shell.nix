@@ -11,6 +11,14 @@ let
     config = {}; 
   };
 
+  # v1.4.0
+  localstackPkg = import (builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/e49c28b3baa3a93bdadb8966dd128f9985ea0a09.tar.gz";
+  }) {
+    overlays = [];
+    config = {}; 
+  };
+
   # v0.18.0
   kindPkg = import (builtins.fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/e49c28b3baa3a93bdadb8966dd128f9985ea0a09.tar.gz";
@@ -87,6 +95,7 @@ in
 pkgs.mkShell {
   buildInputs = [
     postgresPkg.postgresql_15_jit
+    localstackPkg.localstack
     terraformPkg.terraform
     awscli2Pkg.awscli2
     nodePkg.nodejs_20

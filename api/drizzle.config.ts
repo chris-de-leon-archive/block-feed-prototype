@@ -1,18 +1,17 @@
-import { database } from "@api/shared/database"
-import type { Config } from "drizzle-kit"
+import { getEnvVars } from "./drizzle/utils/get-env-vars"
+import { defineConfig } from "drizzle-kit"
 
-const env = database.core.getEnvVars()
+const env = getEnvVars()
 
-export default {
+export default defineConfig({
   schema: [
     "./libs/shared/database/src/lib/schema/**/*.schema.ts",
     "./libs/shared/database/src/lib/schema/**/*.enum.ts",
   ],
-  out: `./drizzle/migrations/${process.env["DB_MIGRATIONS_FOLDER"] ?? ""}`,
-  schemaFilter: ["public", database.schema.blockFeed.schemaName],
+  out: env.DRIZZLE_DB_MIGRATIONS_FOLDER,
   verbose: true,
-  driver: "pg",
+  driver: "mysql2",
   dbCredentials: {
-    connectionString: env.DB_URL,
+    uri: new URL(env.DRIZZLE_DB_NAME ?? "", env.DRIZZLE_DB_URL).href,
   },
-} satisfies Config
+})

@@ -1,12 +1,11 @@
-import { pgEnum } from "drizzle-orm/pg-core"
+import { mysqlEnum } from "drizzle-orm/mysql-core"
 
 export enum Blockchains {
   FLOW = "FLOW",
   ETH = "ETH",
 }
 
-// TODO: https://github.com/drizzle-team/drizzle-orm/issues/669
-export const blockchainEnum = pgEnum("blockchain_enum", [
+export const mysqlBlockchain = mysqlEnum("blockchain", [
+  Blockchains.FLOW,
   Blockchains.ETH,
-  ...Object.values(Blockchains),
 ])

@@ -1,13 +1,9 @@
-import { utils } from "@api/shared/utils"
+import { z } from "zod"
 
-export const getEnvVars = () => {
-  const ENV_KEYS = {
-    TEST_LOCALSTACK_URL: "TEST_LOCALSTACK_URL",
-  } as const
-
-  return {
-    [ENV_KEYS.TEST_LOCALSTACK_URL]: utils.getRequiredEnvVar(
-      ENV_KEYS.TEST_LOCALSTACK_URL
-    ),
-  }
-}
+export const getEnvVars = () =>
+  z
+    .object({
+      TEST_API_URL: z.string().min(1),
+      TEST_DB_URL: z.string().min(1),
+    })
+    .parse(process.env)

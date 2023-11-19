@@ -1,31 +1,30 @@
-import { NodePgDatabase, drizzle } from "drizzle-orm/node-postgres"
+import { MySql2Database, drizzle } from "drizzle-orm/mysql2"
 import { database } from "@api/shared/database"
-import { Client } from "pg"
+import { getEnvVars } from "./get-env-vars"
+import * as mysql from "mysql2/promise"
 
 export const withConnection = async (
   cb: (
     ctx: Readonly<{
-      db: NodePgDatabase<typeof database.schema>
-      env: ReturnType<typeof database.core.getEnvVars>
-    }>
-  ) => Promise<void> | void
+      db: MySql2Database<typeof database.schema>
+      env: ReturnType<typeof getEnvVars>
+    }>,
+  ) => Promise<void> | void,
 ) => {
-  const env = database.core.getEnvVars()
+  const env = getEnvVars()
 
-  const client = new Client({
-    connectionString: env.DB_URL,
+  const conn = await mysql.createConnection({
+    uri: new URL(env.DRIZZLE_DB_NAME ?? "", env.DRIZZLE_DB_URL).href,
   })
 
   try {
-    await client.connect()
-
-    const db = drizzle(client, {
-      logger: true,
+    const db = drizzle(conn, {
       schema: database.schema,
+      mode: env.DRIZZLE_DB_MODE,
+      logger: true,
     })
-
     await cb({ db, env })
   } finally {
-    await client.end()
+    await conn.end()
   }
 }

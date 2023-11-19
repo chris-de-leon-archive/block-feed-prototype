@@ -26,10 +26,8 @@
     "baseUrl": ".",
     "paths": {
       "@api/api/core": ["libs/api/core/src/index.ts"],
-      "@api/api/subscriptions/api": ["libs/api/subscriptions/api/src/index.ts"],
-      "@api/api/subscriptions/tests": [
-        "libs/api/subscriptions/tests/src/index.ts"
-      ],
+      "@api/api/relayers/api": ["libs/api/relayers/api/src/index.ts"],
+      "@api/api/relayers/tests": ["libs/api/relayers/tests/src/index.ts"],
       "@api/shared/auth0": ["libs/shared/auth0/src/index.ts"],
       "@api/shared/aws": ["libs/shared/aws/src/index.ts"],
       "@api/shared/database": ["libs/shared/database/src/index.ts"],

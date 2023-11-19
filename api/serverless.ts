@@ -1,8 +1,8 @@
-import { config as subscriptionsFindManyConfig } from "./apps/api/subscriptions/find-many/src/config"
-import { config as subscriptionsFindOneConfig } from "./apps/api/subscriptions/find-one/src/config"
-import { config as subscriptionsCreateConfig } from "./apps/api/subscriptions/create/src/config"
-import { config as subscriptionsUpdateConfig } from "./apps/api/subscriptions/update/src/config"
-import { config as subscriptionsRemoveConfig } from "./apps/api/subscriptions/remove/src/config"
+import { config as relayersFindManyConfig } from "./apps/api/relayers/find-many/src/config"
+import { config as relayersFindOneConfig } from "./apps/api/relayers/find-one/src/config"
+import { config as relayersCreateConfig } from "./apps/api/relayers/create/src/config"
+import { config as relayersUpdateConfig } from "./apps/api/relayers/update/src/config"
+import { config as relayersRemoveConfig } from "./apps/api/relayers/remove/src/config"
 import type { AWS } from "@serverless/typescript"
 import { utils } from "@api/shared/utils"
 
@@ -26,13 +26,17 @@ const config: AWS = {
     individually: true,
   },
   functions: {
-    ...subscriptionsFindManyConfig,
-    ...subscriptionsFindOneConfig,
-    ...subscriptionsCreateConfig,
-    ...subscriptionsUpdateConfig,
-    ...subscriptionsRemoveConfig,
+    ...relayersFindManyConfig,
+    ...relayersFindOneConfig,
+    ...relayersCreateConfig,
+    ...relayersUpdateConfig,
+    ...relayersRemoveConfig,
   },
-  plugins: ["serverless-localstack", "serverless-webpack"],
+  plugins: [
+    "serverless-localstack",
+    "serverless-webpack",
+    "serverless-offline",
+  ],
   custom: {
     localstack: {
       stages: [utils.enums.AppEnv.DEV],

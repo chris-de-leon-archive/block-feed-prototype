@@ -1,48 +1,44 @@
 version: "3"
 
 services:
-  postgres:
-    container_name: postgres
-    image: postgres:15.4-alpine3.18
-    command: ["postgres", "-c", "log_statement=all"]
+  mysql:
+    container_name: mysql
+    image: mysql:8.2.0
+    command: mysqld --general-log=1
     ports:
-      - "5432:5432"
+      - "3306:3306"
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: rootuser
-      POSTGRES_DB: dev
+      MYSQL_ROOT_PASSWORD: "password"
+      MYSQL_DATABASE: "dev"
+      MYSQL_USER: "rootuser"
+      MYSQL_PASSWORD: "password"
     networks:
       - block_feed_net
 
-  # https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html
-  # https://www.pgadmin.org/docs/pgadmin4/latest/import_export_servers.html#json-format
-  # https://stackoverflow.com/questions/68438404/sharing-local-ssh-key-with-pgadmin4-docker-container-permission-denied
-  pgadmin:
-    container_name: pgadmin
-    image: dpage/pgadmin4:7.5
-    user: "root"
+  db-ui:
+    container_name: cloudbeaver
+    image: dbeaver/cloudbeaver:23.2.4
     ports:
-      - "5050:5050"
+      - "8978:8978"
     volumes:
-      - /root/.ssh:/var/lib/pgadmin/storage/rootuser_mail.com/.ssh
-      - ./docker/pgadmin/servers:/pgadmin4/servers
+      - ./docker/cloudbeaver/data-sources.json:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json
     environment:
-      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers/servers.json
-      PGADMIN_DEFAULT_EMAIL: rootuser@mail.com
-      PGADMIN_DEFAULT_PASSWORD: password
-      PGADMIN_LISTEN_PORT: 5050
+      CB_SERVER_NAME: dev
+      CB_SERVER_URL: http://host.docker.internal:8978
+      CB_ADMIN_NAME: rootuser
+      CB_ADMIN_PASSWORD: password
     networks:
       - block_feed_net
 
-  flow_emulator:
-    container_name: flow-emulator
-    ports:
-      - "8888:8888"
-    build:
-      dockerfile: ./docker/blockchains/flow/Dockerfile
-      context: .
-    networks:
-      - block_feed_net
+  # flow_emulator:
+  #   container_name: flow-emulator
+  #   ports:
+  #     - "8888:8888"
+  #   build:
+  #     dockerfile: ./docker/blockchains/flow/Dockerfile
+  #     context: .
+  #   networks:
+  #     - block_feed_net
 
   # https://docs.bullmq.io/guide/going-to-production#max-memory-policy
   redis:

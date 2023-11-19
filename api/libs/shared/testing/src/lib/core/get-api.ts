@@ -6,7 +6,7 @@ export const getApi = () => {
 
   return new DefaultApi(
     new Configuration({
-      basePath: env.TEST_LOCALSTACK_URL,
-    })
+      basePath: env.TEST_API_URL,
+    }),
   )
 }

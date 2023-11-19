@@ -1,0 +1,50 @@
+{
+  "name": "api-relayers-remove",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/relayers/remove/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/relayers/remove",
+        "main": "apps/api/relayers/remove/src/main.ts",
+        "tsConfig": "apps/api/relayers/remove/tsconfig.app.json",
+        "assets": ["apps/api/relayers/remove/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/relayers/remove/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-relayers-remove:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-relayers-remove:build:development"
+        },
+        "production": {
+          "buildTarget": "api-relayers-remove:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/relayers/remove/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

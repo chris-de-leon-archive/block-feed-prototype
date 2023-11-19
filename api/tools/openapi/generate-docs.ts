@@ -1,17 +1,17 @@
-import { subscriptionsAPI } from "@api/api/subscriptions/api"
 import { generateOpenApiDocument } from "trpc-openapi"
+import { RelayersAPI } from "@api/api/relayers/api"
 import { trpc } from "@api/shared/trpc"
 import * as fs from "node:fs/promises"
 
-const t = trpc.createTRPC<subscriptionsAPI.Ctx>()
+const t = trpc.createTRPC<RelayersAPI.Context>()
 
 const appRouter = t.router({
-  [subscriptionsAPI.NAMESPACE]: t.router({
-    ...subscriptionsAPI.findMany(t),
-    ...subscriptionsAPI.findOne(t),
-    ...subscriptionsAPI.create(t),
-    ...subscriptionsAPI.update(t),
-    ...subscriptionsAPI.remove(t),
+  [RelayersAPI.NAMESPACE]: t.router({
+    ...RelayersAPI.findMany(t),
+    ...RelayersAPI.findOne(t),
+    ...RelayersAPI.create(t),
+    ...RelayersAPI.update(t),
+    ...RelayersAPI.remove(t),
   }),
 })
 
@@ -25,7 +25,7 @@ const filename = process.argv.at(2)
 process.stdout.write("Generating docs... ")
 fs.writeFile(
   filename != null ? `${filename}.json` : "docs.json",
-  JSON.stringify(openApiDocument, null, 2)
+  JSON.stringify(openApiDocument, null, 2),
 ).then(() => {
   console.log("done!")
 })

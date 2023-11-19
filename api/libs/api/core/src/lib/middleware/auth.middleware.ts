@@ -1,4 +1,3 @@
-import { NodePgDatabase } from "drizzle-orm/node-postgres"
 import { database } from "@api/shared/database"
 import { auth0 } from "@api/shared/auth0"
 import { TRPCError } from "@trpc/server"
@@ -9,11 +8,11 @@ export const requireAuth = (
   t: ReturnType<
     typeof trpc.createTRPC<
       Readonly<{
-        database: NodePgDatabase<typeof database.schema>
+        database: ReturnType<typeof database.core.createClient>
         auth0: ReturnType<typeof auth0.createClient>
       }>
     >
-  >
+  >,
 ) => {
   return t.middleware(async (opts) => {
     // Gets the authorization header value
@@ -56,7 +55,7 @@ export const requireAuth = (
       .then(({ data }) => data)
       .catch((err) => {
         if (process.env["NODE_ENV"] !== "production") {
-          console.log(err)
+          console.error(err)
         }
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -64,7 +63,7 @@ export const requireAuth = (
         })
       })
 
-    // Prepare insert parameters
+    // Prepares insert parameters
     const inputs = {
       placeholders: {
         id: sql.placeholder(database.schema.users.id.name),
@@ -74,15 +73,14 @@ export const requireAuth = (
       },
     }
 
-    // Prepare insert query
-    const query = opts.ctx.database
+    // Inserts the user (or ignores if one already exists)
+    await opts.ctx.database.drizzle
       .insert(database.schema.users)
       .values({ id: inputs.placeholders.id })
-      .onConflictDoNothing()
-
-    // Execute the query
-    await query
-      .prepare(database.core.getPreparedStmtName(query.toSQL().sql))
+      .onDuplicateKeyUpdate({
+        set: { id: sql`id` },
+      })
+      .prepare()
       .execute(inputs.values)
 
     // Adds the profile info to the context

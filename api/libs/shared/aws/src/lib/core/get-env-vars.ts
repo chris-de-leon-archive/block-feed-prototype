@@ -1,21 +1,11 @@
-import { utils } from "@api/shared/utils"
+import { z } from "zod"
 
-export const getEnvVars = () => {
-  const ENV_KEYS = {
-    AWS_SECRET_ACCESS_KEY: "AWS_SECRET_ACCESS_KEY",
-    AWS_ACCESS_KEY_ID: "AWS_ACCESS_KEY_ID",
-    AWS_ENDPOINT: "AWS_ENDPOINT",
-    AWS_REGION: "AWS_REGION",
-  } as const
-
-  return {
-    [ENV_KEYS.AWS_SECRET_ACCESS_KEY]: utils.getRequiredEnvVar(
-      ENV_KEYS.AWS_SECRET_ACCESS_KEY
-    ),
-    [ENV_KEYS.AWS_ACCESS_KEY_ID]: utils.getRequiredEnvVar(
-      ENV_KEYS.AWS_ACCESS_KEY_ID
-    ),
-    [ENV_KEYS.AWS_ENDPOINT]: utils.getOptionalEnvVar(ENV_KEYS.AWS_ENDPOINT),
-    [ENV_KEYS.AWS_REGION]: utils.getRequiredEnvVar(ENV_KEYS.AWS_REGION),
-  }
-}
+export const getEnvVars = () =>
+  z
+    .object({
+      AWS_SECRET_ACCESS_KEY: z.string().min(1),
+      AWS_ACCESS_KEY_ID: z.string().min(1),
+      AWS_ENDPOINT: z.string().optional(),
+      AWS_REGION: z.string().min(1),
+    })
+    .parse(process.env)

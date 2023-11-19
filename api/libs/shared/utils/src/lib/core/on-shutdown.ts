@@ -1,5 +1,5 @@
 export const onShutdown = (
-  cb: (signalOrCode: NodeJS.Signals | number) => void
+  cb: (signalOrCode: NodeJS.Signals | number) => void,
 ) => {
   // NOTE: if an async callback is passed in for
   // any of these signals / events, node JS will

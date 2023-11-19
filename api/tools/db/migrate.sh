@@ -44,17 +44,23 @@ if [ "$environment" == "stag" ] || [ "$environment" == "prod" ]; then
   # TODO: run migrations through a docker container on the ec2 instance
   #
   export NODE_TLS_REJECT_UNAUTHORIZED='0'
+  export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/$environment"
+  export DRIZZLE_DB_MODE="planetscale"
 
-  export DB_MIGRATIONS_FOLDER="$environment"
   export_env_files "./env/$environment"
   create_temp_db_tunnel "$environment" "5430"
-  drizzle-kit generate:pg
+  drizzle-kit generate:mysql
   ts-node ./drizzle/scripts/migrate.ts
   ts-node ./drizzle/scripts/refresh-roles.ts
 else
-  export DB_MIGRATIONS_FOLDER="dev"
+  export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/dev"
+  export DRIZZLE_DB_MODE="default"
+
+  export DRIZZLE_DB_NAME="dev" # `block_feed` database may not exist yet, so we need to use this one
   export_env_files "./env/dev"
-  ts-node ./drizzle/scripts/drop-schema.ts
-  drizzle-kit push:pg
+  ts-node ./drizzle/scripts/recreate-database.ts
+
+  export DRIZZLE_DB_NAME="block_feed"
+  drizzle-kit push:mysql
   ts-node ./drizzle/scripts/refresh-roles.ts
 fi

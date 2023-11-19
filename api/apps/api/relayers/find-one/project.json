@@ -1,0 +1,50 @@
+{
+  "name": "api-relayers-find-one",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/relayers/find-one/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/relayers/find-one",
+        "main": "apps/api/relayers/find-one/src/main.ts",
+        "tsConfig": "apps/api/relayers/find-one/tsconfig.app.json",
+        "assets": ["apps/api/relayers/find-one/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/relayers/find-one/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-relayers-find-one:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-relayers-find-one:build:development"
+        },
+        "production": {
+          "buildTarget": "api-relayers-find-one:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/relayers/find-one/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

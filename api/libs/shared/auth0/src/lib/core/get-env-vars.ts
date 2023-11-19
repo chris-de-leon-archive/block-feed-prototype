@@ -1,19 +1,10 @@
-import { utils } from "@api/shared/utils"
+import { z } from "zod"
 
-export const getEnvVars = () => {
-  const ENV_KEYS = {
-    AUTH0_CLIENT_SECRET: "AUTH0_CLIENT_SECRET",
-    AUTH0_CLIENT_ID: "AUTH0_CLIENT_ID",
-    AUTH0_DOMAIN: "AUTH0_DOMAIN",
-  } as const
-
-  return {
-    [ENV_KEYS.AUTH0_CLIENT_SECRET]: utils.getRequiredEnvVar(
-      ENV_KEYS.AUTH0_CLIENT_SECRET
-    ),
-    [ENV_KEYS.AUTH0_CLIENT_ID]: utils.getRequiredEnvVar(
-      ENV_KEYS.AUTH0_CLIENT_ID
-    ),
-    [ENV_KEYS.AUTH0_DOMAIN]: utils.getRequiredEnvVar(ENV_KEYS.AUTH0_DOMAIN),
-  }
-}
+export const getEnvVars = () =>
+  z
+    .object({
+      AUTH0_CLIENT_SECRET: z.string().min(1),
+      AUTH0_CLIENT_ID: z.string().min(1),
+      AUTH0_DOMAIN: z.string().min(1),
+    })
+    .parse(process.env)

@@ -1,16 +1,9 @@
-import { getRequiredEnvVar } from "./get-required-env-var"
 import { AppEnv } from "./enums/app-env.enum"
+import { z } from "zod"
 
-const isAppEnv = (s: string): s is AppEnv => {
-  return Object.values(AppEnv).includes(s as AppEnv)
-}
-
-export const getAppEnv = () => {
-  const appEnv = getRequiredEnvVar("APP_ENV")
-
-  if (!isAppEnv(appEnv)) {
-    throw new Error(`"APP_ENV" must be one of ${Object.values(AppEnv)}`)
-  }
-
-  return appEnv
-}
+export const getAppEnv = () =>
+  z
+    .object({
+      APP_ENV: z.nativeEnum(AppEnv),
+    })
+    .parse(process.env).APP_ENV
