@@ -46,10 +46,10 @@ type (
 	}
 
 	RelayerQueueData struct {
-		Timestamp int64
 		Chain     string
-		Height    uint64
 		Block     []byte
+		Timestamp int64
+		Height    uint64
 	}
 
 	RawRelayerOpts struct {
@@ -60,8 +60,8 @@ type (
 
 	RelayerOpts struct {
 		RedisConnectionURL string `validate:"required"`
-		PollMs             int    `validate:"required,gt=0"`
 		RedisPrefix        string
+		PollMs             int `validate:"required,gt=0"`
 	}
 
 	Relayer struct {
@@ -100,22 +100,22 @@ func New(chain IBlockchain) *Relayer {
 	}
 }
 
-func (this *Relayer) Run(ctx context.Context, consumer func(ctx context.Context, data RelayerQueueData) error) {
-	this.threadManager.Spawn(func() {
-		this.runConsumerUntilCancelled(ctx, consumer)
+func (relayer *Relayer) Run(ctx context.Context, consumer func(ctx context.Context, data RelayerQueueData) error) {
+	relayer.threadManager.Spawn(func() {
+		relayer.runConsumerUntilCancelled(ctx, consumer)
 	})
 
-	this.threadManager.Spawn(func() {
-		this.runBlockPollerUntilCancelled(ctx)
+	relayer.threadManager.Spawn(func() {
+		relayer.runBlockPollerUntilCancelled(ctx)
 	})
 
-	this.threadManager.Wait()
+	relayer.threadManager.Wait()
 }
 
-func (this *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
+func (relayer *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
 	// Connects to redis
 	conn := redis.NewClient(&redis.Options{
-		Addr: this.opts.RedisConnectionURL,
+		Addr: relayer.opts.RedisConnectionURL,
 	})
 
 	// Make sure the connection is closed once this function exits
@@ -124,18 +124,17 @@ func (this *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
 	// Continuously produce jobs
 	common.LoopUntilCancelled(ctx, func() {
 		// Fetch the latest block
-		latestBlockHeight, err := this.chain.GetLatestBlockHeight(ctx)
+		latestBlockHeight, err := relayer.chain.GetLatestBlockHeight(ctx)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return
 		}
 
 		// Resolve the current block height
-		height, err := conn.Do(ctx, "GET", this.keys.BlockHeight).Uint64()
+		height, err := conn.Do(ctx, "GET", relayer.keys.BlockHeight).Uint64()
 		switch {
 		case errors.Is(err, redis.Nil):
 			height = latestBlockHeight
-			break
 		case err != nil:
 			fmt.Printf("error: %v\n", err)
 			return
@@ -144,12 +143,12 @@ func (this *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
 		// Validate the current block height
 		if height > latestBlockHeight {
 			fmt.Printf("error: %v\n", fmt.Errorf("current height (%d) is larger than latest block height (%d)", height, latestBlockHeight))
-			time.Sleep(time.Duration(this.opts.PollMs) * time.Millisecond)
+			time.Sleep(time.Duration(relayer.opts.PollMs) * time.Millisecond)
 			return
 		}
 
 		// Fetch the block
-		block, err := this.chain.GetBlockAtHeight(ctx, height)
+		block, err := relayer.chain.GetBlockAtHeight(ctx, height)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return
@@ -158,7 +157,7 @@ func (this *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
 		// Create queue data
 		data, err := common.JsonStringify(RelayerQueueData{
 			Timestamp: time.Now().Unix(),
-			Chain:     this.chain.ID(),
+			Chain:     relayer.chain.ID(),
 			Height:    height,
 			Block:     block,
 		})
@@ -170,44 +169,40 @@ func (this *Relayer) runBlockPollerUntilCancelled(ctx context.Context) {
 		// Start a tx, increment the block height, add the block to a queue, and commit
 		err = conn.Watch(ctx, func(tx *redis.Tx) error {
 			_, err := tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-				err = pipe.Do(ctx, "SET", this.keys.BlockHeight, height, "NX").Err()
+				err = pipe.Do(ctx, "SET", relayer.keys.BlockHeight, height, "NX").Err()
 				if err != nil && !errors.Is(err, redis.Nil) {
 					return err
 				}
-				err = pipe.Do(ctx, "INCR", this.keys.BlockHeight).Err()
+				err = pipe.Do(ctx, "INCR", relayer.keys.BlockHeight).Err()
 				if err != nil && !errors.Is(err, redis.Nil) {
 					return err
 				}
-				err = pipe.Do(ctx, "RPUSH", this.keys.TodoQueue, data).Err()
+				err = pipe.Do(ctx, "RPUSH", relayer.keys.TodoQueue, data).Err()
 				if err != nil && !errors.Is(err, redis.Nil) {
 					return err
 				}
 				return nil
 			})
 			return err
-		}, this.keys.BlockHeight, this.keys.TodoQueue)
+		}, relayer.keys.BlockHeight, relayer.keys.TodoQueue)
 
 		// Handle any transaction errors
 		switch {
-		case errors.Is(err, redis.TxFailedErr):
-			fmt.Printf("error: %v\n", err)
-			break
 		case errors.Is(err, redis.Nil):
 			break
 		case err != nil:
 			fmt.Printf("error: %v\n", err)
-			break
 		}
 
 		// Wait before re-looping
-		time.Sleep(time.Duration(this.opts.PollMs) * time.Millisecond)
+		time.Sleep(time.Duration(relayer.opts.PollMs) * time.Millisecond)
 	})
 }
 
-func (this *Relayer) runConsumerUntilCancelled(ctx context.Context, consumer func(ctx context.Context, data RelayerQueueData) error) {
+func (relayer *Relayer) runConsumerUntilCancelled(ctx context.Context, consumer func(ctx context.Context, data RelayerQueueData) error) {
 	// Connects to redis
 	conn := redis.NewClient(&redis.Options{
-		Addr: this.opts.RedisConnectionURL,
+		Addr: relayer.opts.RedisConnectionURL,
 	})
 
 	// Make sure the connection is closed once this function exits
@@ -218,15 +213,14 @@ func (this *Relayer) runConsumerUntilCancelled(ctx context.Context, consumer fun
 		// Picks up any in progress jobs
 		// 	-> If all in progress jobs have been processed, process jobs from the TODO queue
 		// 	-> If no data is in the TODO queue, wait for data to be added before continuing
-		val, err := conn.Do(ctx, "LMOVE", this.keys.InProgQueue, this.keys.InProgQueue, "LEFT", "LEFT").Text()
+		val, err := conn.Do(ctx, "LMOVE", relayer.keys.InProgQueue, relayer.keys.InProgQueue, "LEFT", "LEFT").Text()
 		switch {
 		case errors.Is(err, redis.Nil):
-			val, err = conn.Do(ctx, "BLMOVE", this.keys.TodoQueue, this.keys.InProgQueue, "LEFT", "RIGHT", 0).Text()
+			val, err = conn.Do(ctx, "BLMOVE", relayer.keys.TodoQueue, relayer.keys.InProgQueue, "LEFT", "RIGHT", 0).Text()
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				return
 			}
-			break
 		case err != nil:
 			fmt.Printf("error: %v\n", err)
 			return
@@ -251,6 +245,6 @@ func (this *Relayer) runConsumerUntilCancelled(ctx context.Context, consumer fun
 		// code), then the client will receive the same block multiple times.
 
 		// If the consumer runs successfully, remove the job
-		conn.Do(ctx, "LREM", this.keys.InProgQueue, 0, val)
+		conn.Do(ctx, "LREM", relayer.keys.InProgQueue, 0, val)
 	})
 }

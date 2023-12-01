@@ -27,7 +27,7 @@ func TestFlowHttpRelayer(t *testing.T) {
 	// Defines helper variables
 	var (
 		counter = 0
-		handler = func(w http.ResponseWriter, r *http.Request) { counter = counter + 1 }
+		handler = func(_ http.ResponseWriter, _ *http.Request) { counter = counter + 1 }
 	)
 
 	// Creates a mock server

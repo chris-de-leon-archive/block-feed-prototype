@@ -41,7 +41,7 @@ if [ "$environment" == "stag" ] || [ "$environment" == "prod" ]; then
   #
   # https://stackoverflow.com/a/45088585/22520608
   #
-  # TODO: run migrations through a docker container on the ec2 instance
+  # TODO: test migrations on planetscale
   #
   export NODE_TLS_REJECT_UNAUTHORIZED='0'
   export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/$environment"

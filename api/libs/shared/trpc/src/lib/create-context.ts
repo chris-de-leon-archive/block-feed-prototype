@@ -1,13 +1,8 @@
 import { CreateAWSLambdaContextOptions } from "@trpc/server/adapters/aws-lambda"
-import { inferAsyncReturnType } from "@trpc/server"
 import { APIGatewayProxyEvent } from "aws-lambda"
 
 export const createContext =
-  <T extends object>(args: T) =>
-  ({ event, context }: CreateAWSLambdaContextOptions<APIGatewayProxyEvent>) => {
-    return { event, context, ...args }
+  <T extends Record<string, unknown>>(ctx: T) =>
+  (awsCtx: CreateAWSLambdaContextOptions<APIGatewayProxyEvent>) => {
+    return { ...awsCtx, ...ctx }
   }
-
-export type Context<T extends object> = inferAsyncReturnType<
-  typeof createContext<T>
->

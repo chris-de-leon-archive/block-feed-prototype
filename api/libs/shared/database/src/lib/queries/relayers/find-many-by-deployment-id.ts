@@ -3,32 +3,37 @@ import { createClient } from "../../core"
 import { relayers } from "../../schema"
 import { sql } from "drizzle-orm"
 
-export type FindOneInput = Readonly<{
-  where: Readonly<Pick<InferSelectModel<typeof relayers>, "id" | "userId">>
+export type FindManyByDeploymentIdInput = Readonly<{
+  where: Readonly<
+    Pick<InferSelectModel<typeof relayers>, "userId" | "deploymentId">
+  >
 }>
 
-export const findOne = async (
+export const findManyByDeploymentId = async (
   db: ReturnType<typeof createClient>,
-  args: FindOneInput,
+  args: FindManyByDeploymentIdInput,
 ) => {
   const inputs = {
     placeholders: {
-      id: sql.placeholder(relayers.id.name).getSQL(),
       userId: sql.placeholder(relayers.userId.name).getSQL(),
+      deploymentId: sql.placeholder(relayers.deploymentId.name).getSQL(),
     },
     values: {
-      [relayers.id.name]: args.where.id,
       [relayers.userId.name]: args.where.userId,
+      [relayers.deploymentId.name]: args.where.deploymentId,
     },
   }
 
   return await db.drizzle.query.relayers
-    .findFirst({
+    .findMany({
       where(fields, operators) {
         return operators.and(
-          operators.eq(fields.id, inputs.placeholders.id),
           operators.eq(fields.userId, inputs.placeholders.userId),
+          operators.eq(fields.deploymentId, inputs.placeholders.deploymentId),
         )
+      },
+      orderBy(fields, operators) {
+        return [operators.desc(fields.createdAt), operators.desc(fields.id)]
       },
     })
     .prepare()

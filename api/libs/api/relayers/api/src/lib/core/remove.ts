@@ -12,24 +12,24 @@ export const RemoveOutput = z.object({
   count: z.number().nullable(),
 })
 
-export const remove = (t: ReturnType<typeof trpc.createTRPC<Context>>) => {
-  return {
-    [OPERATIONS.REMOVE.NAME]: t.procedure
-      .meta({
-        openapi: {
-          method: OPERATIONS.REMOVE.METHOD,
-          path: OPERATIONS.REMOVE.PATH,
-        },
-      })
-      .input(RemoveInput)
-      .output(RemoveOutput)
-      .use(api.middleware.requireAuth(t))
-      .mutation(async (params) => {
-        return await database.queries.relayers
-          .remove(params.ctx.database, {
+export const remove = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
+  t.procedure
+    .meta({
+      openapi: {
+        method: OPERATIONS.REMOVE.METHOD,
+        path: OPERATIONS.REMOVE.PATH,
+        protect: true,
+      },
+    })
+    .input(RemoveInput)
+    .output(RemoveOutput)
+    .use(t.middleware(api.middleware.requireAuth))
+    .mutation(async (params) => {
+      return await database.queries.relayers
+        .remove(params.ctx.database, {
+          where: {
             id: params.input.id,
-          })
-          .then((result) => ({ count: result[0].affectedRows }))
-      }),
-  }
-}
+          },
+        })
+        .then((result) => ({ count: result[0].affectedRows }))
+    })

@@ -24,12 +24,12 @@ func Blockchain(url string) *EthereumBlockchain {
 	}
 }
 
-func (this *EthereumBlockchain) ID() string {
+func (blockchain *EthereumBlockchain) ID() string {
 	return "eth"
 }
 
-func (this *EthereumBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
-	result, err := this.client.BlockByNumber(ctx, (&big.Int{}).SetUint64(height))
+func (blockchain *EthereumBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
+	result, err := blockchain.client.BlockByNumber(ctx, (&big.Int{}).SetUint64(height))
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +42,8 @@ func (this *EthereumBlockchain) GetBlockAtHeight(ctx context.Context, height uin
 	return []byte(block), nil
 }
 
-func (this *EthereumBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
-	result, err := this.client.BlockNumber(ctx)
+func (blockchain *EthereumBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
+	result, err := blockchain.client.BlockNumber(ctx)
 	if err != nil {
 		return 0, err
 	}

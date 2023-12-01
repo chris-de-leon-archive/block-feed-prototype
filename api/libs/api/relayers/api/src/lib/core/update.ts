@@ -17,26 +17,35 @@ export const UpdateOutput = z.object({
   count: z.number().nullable(),
 })
 
-export const update = (t: ReturnType<typeof trpc.createTRPC<Context>>) => {
-  return {
-    [OPERATIONS.UPDATE.NAME]: t.procedure
-      .meta({
-        openapi: {
-          method: OPERATIONS.UPDATE.METHOD,
-          path: OPERATIONS.UPDATE.PATH,
-        },
-      })
-      .input(UpdateInput)
-      .output(UpdateOutput)
-      .use(api.middleware.requireAuth(t))
-      .mutation(async (params) => {
-        return await database.queries.relayers
-          .update(params.ctx.database, {
-            id: params.input.id as any,
-            name: params.input.name,
+export const update = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
+  t.procedure
+    .meta({
+      openapi: {
+        method: OPERATIONS.UPDATE.METHOD,
+        path: OPERATIONS.UPDATE.PATH,
+        protect: true,
+      },
+    })
+    .input(UpdateInput)
+    .output(UpdateOutput)
+    .use(t.middleware(api.middleware.requireAuth))
+    .mutation(async (params) => {
+      const result = await database.queries.relayers.update(
+        params.ctx.database,
+        {
+          where: {
+            id: params.input.id,
             userId: params.ctx.user.sub,
-          })
-          .then((result) => ({ count: result[0].affectedRows }))
-      }),
-  }
-}
+          },
+          data: {
+            name: params.input.name,
+          },
+        },
+      )
+
+      if (result == null) {
+        return { count: 0 }
+      }
+
+      return { count: result[0].affectedRows }
+    })

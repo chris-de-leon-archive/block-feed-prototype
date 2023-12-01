@@ -12,14 +12,14 @@ func Manager() *ThreadManager {
 	return &ThreadManager{}
 }
 
-func (this *ThreadManager) Spawn(fn func()) {
-	this.wg.Add(1)
+func (threadManager *ThreadManager) Spawn(fn func()) {
+	threadManager.wg.Add(1)
 	go func() {
-		defer this.wg.Done()
+		defer threadManager.wg.Done()
 		fn()
 	}()
 }
 
-func (this *ThreadManager) Wait() {
-	this.wg.Wait()
+func (threadManager *ThreadManager) Wait() {
+	threadManager.wg.Wait()
 }

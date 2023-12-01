@@ -46,6 +46,7 @@ describe("Relayers Auth Tests", () => {
         await api.relayersCreate(
           {
             name: randomUUID(),
+            deploymentId: randomUUID(),
             chain: database.schema.Blockchains.FLOW,
             transport: database.schema.RelayerTransports.HTTP,
             options: {

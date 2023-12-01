@@ -3,15 +3,15 @@ import { RelayersAPI } from "@api/api/relayers/api"
 import { trpc } from "@api/shared/trpc"
 import * as fs from "node:fs/promises"
 
-const t = trpc.createTRPC<RelayersAPI.Context>()
+const t = trpc.createTRPC<any>()
 
 const appRouter = t.router({
   [RelayersAPI.NAMESPACE]: t.router({
-    ...RelayersAPI.findMany(t),
-    ...RelayersAPI.findOne(t),
-    ...RelayersAPI.create(t),
-    ...RelayersAPI.update(t),
-    ...RelayersAPI.remove(t),
+    [RelayersAPI.OPERATIONS.FIND_MANY.NAME]: RelayersAPI.findMany(t),
+    [RelayersAPI.OPERATIONS.FIND_ONE.NAME]: RelayersAPI.findOne(t),
+    [RelayersAPI.OPERATIONS.CREATE.NAME]: RelayersAPI.create(t),
+    [RelayersAPI.OPERATIONS.UPDATE.NAME]: RelayersAPI.update(t),
+    [RelayersAPI.OPERATIONS.REMOVE.NAME]: RelayersAPI.remove(t),
   }),
 })
 

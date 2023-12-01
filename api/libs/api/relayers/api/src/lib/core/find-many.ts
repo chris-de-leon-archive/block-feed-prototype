@@ -20,24 +20,24 @@ export const FindManyInput = z.object({
 
 export const FindManyOutput = z.array(database.schema.zSelectRelayersSchema)
 
-export const findMany = (t: ReturnType<typeof trpc.createTRPC<Context>>) => {
-  return {
-    [OPERATIONS.FIND_MANY.NAME]: t.procedure
-      .meta({
-        openapi: {
-          method: OPERATIONS.FIND_MANY.METHOD,
-          path: OPERATIONS.FIND_MANY.PATH,
-        },
-      })
-      .input(FindManyInput)
-      .output(FindManyOutput)
-      .use(api.middleware.requireAuth(t))
-      .query(async (params) => {
-        return await database.queries.relayers.findMany(params.ctx.database, {
+export const findMany = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
+  t.procedure
+    .meta({
+      openapi: {
+        method: OPERATIONS.FIND_MANY.METHOD,
+        path: OPERATIONS.FIND_MANY.PATH,
+        protect: true,
+      },
+    })
+    .input(FindManyInput)
+    .output(FindManyOutput)
+    .use(t.middleware(api.middleware.requireAuth))
+    .query(async (params) => {
+      return await database.queries.relayers.findMany(params.ctx.database, {
+        where: {
           userId: params.ctx.user.sub,
-          limit: params.input.limit,
-          offset: params.input.offset,
-        })
-      }),
-  }
-}
+        },
+        limit: params.input.limit,
+        offset: params.input.offset,
+      })
+    })

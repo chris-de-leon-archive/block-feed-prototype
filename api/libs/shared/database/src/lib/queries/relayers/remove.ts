@@ -3,9 +3,9 @@ import { createClient } from "../../core"
 import { relayers } from "../../schema"
 import { eq, sql } from "drizzle-orm"
 
-export type RemoveInput = Readonly<
-  Pick<InferSelectModel<typeof relayers>, "id">
->
+export type RemoveInput = Readonly<{
+  where: Readonly<Pick<InferSelectModel<typeof relayers>, "id">>
+}>
 
 export const remove = async (
   db: ReturnType<typeof createClient>,
@@ -16,7 +16,7 @@ export const remove = async (
       id: sql.placeholder(relayers.id.name).getSQL(),
     },
     values: {
-      [relayers.id.name]: args.id,
+      [relayers.id.name]: args.where.id,
     },
   }
 

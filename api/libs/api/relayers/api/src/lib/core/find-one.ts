@@ -11,35 +11,35 @@ export const FindOneInput = z.object({
 
 export const FindOneOutput = database.schema.zSelectRelayersSchema
 
-export const findOne = (t: ReturnType<typeof trpc.createTRPC<Context>>) => {
-  return {
-    [OPERATIONS.FIND_ONE.NAME]: t.procedure
-      .meta({
-        openapi: {
-          method: OPERATIONS.FIND_ONE.METHOD,
-          path: OPERATIONS.FIND_ONE.PATH,
-        },
-      })
-      .input(FindOneInput)
-      .output(FindOneOutput)
-      .use(api.middleware.requireAuth(t))
-      .query(async (params) => {
-        const result = await database.queries.relayers.findOne(
-          params.ctx.database,
-          {
+export const findOne = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
+  t.procedure
+    .meta({
+      openapi: {
+        method: OPERATIONS.FIND_ONE.METHOD,
+        path: OPERATIONS.FIND_ONE.PATH,
+        protect: true,
+      },
+    })
+    .input(FindOneInput)
+    .output(FindOneOutput)
+    .use(t.middleware(api.middleware.requireAuth))
+    .query(async (params) => {
+      const result = await database.queries.relayers.findOne(
+        params.ctx.database,
+        {
+          where: {
             id: params.input.id,
             userId: params.ctx.user.sub,
           },
-        )
+        },
+      )
 
-        if (result == null) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `record with id "${params.input.id}" does not exist`,
-          })
-        }
+      if (result == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `record with id "${params.input.id}" does not exist`,
+        })
+      }
 
-        return result
-      }),
-  }
-}
+      return result
+    })

@@ -1,6 +1,7 @@
 import { mysqlRelayerTransport } from "./enums/relayer-transport.enum"
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 import { mysqlBlockchain } from "./enums/blockchain.enum"
+import { deployments } from "./deployments.schema"
 import { users } from "./users.schema"
 import { CONSTANTS } from "../core"
 import { z } from "zod"
@@ -24,7 +25,7 @@ export const relayers = mysqlTableWithSchema(
   "relayers",
   {
     id: varchar("id", {
-      length: CONSTANTS.SCHEMA.RELAYERS.MAX_ID_LEN,
+      length: CONSTANTS.SCHEMA.SHARED.UUID_LEN,
     }).primaryKey(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     name: varchar("name", { length: CONSTANTS.SCHEMA.RELAYERS.MAX_NAME_LEN })
@@ -33,6 +34,11 @@ export const relayers = mysqlTableWithSchema(
     chain: mysqlBlockchain.notNull(),
     transport: mysqlRelayerTransport.notNull(),
     options: json("options").$type<z.infer<typeof zRelayerOptions>>().notNull(),
+    deploymentId: varchar("deployment_id", {
+      length: CONSTANTS.SCHEMA.SHARED.UUID_LEN,
+    })
+      .references(() => deployments.id)
+      .notNull(),
     userId: varchar("user_id", { length: CONSTANTS.SCHEMA.USERS.MAX_ID_LEN })
       .references(() => users.id)
       .notNull(),

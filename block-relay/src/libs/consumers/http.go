@@ -19,9 +19,9 @@ type (
 	}
 
 	HTTPConsumerOpts struct {
+		Url          string `validate:"required"`
 		RetryDelayMs int    `validate:"required,gte=0"`
 		MaxRetries   int    `validate:"required,gte=0"`
-		Url          string `validate:"required"`
 	}
 )
 

@@ -17,7 +17,7 @@ func TestEthHttpRelayer(t *testing.T) {
 	// Defines helper constants
 	const (
 		RELAYER_REDIS_CONNECTION_URL = "host.docker.internal:6379"
-		RELAYER_NETWORK_URL          = "https://ethereum-sepolia.blockpi.network/v1/rpc/public"
+		RELAYER_NETWORK_URL          = "https://rpc.sepolia.org/"
 		RELAYER_HTTP_RETRY_DELAY_MS  = "1000"
 		RELAYER_HTTP_MAX_RETRIES     = "3"
 		RELAYER_POLL_MS              = 2000
@@ -27,7 +27,7 @@ func TestEthHttpRelayer(t *testing.T) {
 	// Defines helper variables
 	var (
 		counter = 0
-		handler = func(w http.ResponseWriter, r *http.Request) { counter = counter + 1 }
+		handler = func(_ http.ResponseWriter, _ *http.Request) { counter = counter + 1 }
 	)
 
 	// Creates a mock server

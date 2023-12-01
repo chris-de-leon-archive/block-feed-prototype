@@ -36,7 +36,7 @@ func GetAWSConfig() aws.Config {
 	})
 
 	// Creates an AWS endpoint resolver
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+	resolver := aws.EndpointResolverWithOptionsFunc(func(_, region string, _ ...interface{}) (aws.Endpoint, error) {
 		if opts.Url != "" {
 			return aws.Endpoint{
 				PartitionID:   "aws",

@@ -24,17 +24,17 @@ func Blockchain(url string) *FlowBlockchain {
 	}
 }
 
-func (this *FlowBlockchain) ID() string {
+func (blockchain *FlowBlockchain) ID() string {
 	return "flow"
 }
 
-func (this *FlowBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
-	block, err := this.client.GetBlockByHeight(ctx, uint64(height))
+func (blockchain *FlowBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
+	block, err := blockchain.client.GetBlockByHeight(ctx, uint64(height))
 	if err != nil {
 		return nil, err
 	}
 
-	txs, err := this.client.GetTransactionsByBlockID(ctx, block.ID)
+	txs, err := blockchain.client.GetTransactionsByBlockID(ctx, block.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,8 @@ func (this *FlowBlockchain) GetBlockAtHeight(ctx context.Context, height uint64)
 	return []byte(result), nil
 }
 
-func (this *FlowBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
-	block, err := this.client.GetLatestBlock(ctx, true)
+func (blockchain *FlowBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
+	block, err := blockchain.client.GetLatestBlock(ctx, true)
 	if err != nil {
 		return 0, err
 	}

@@ -1,10 +1,10 @@
 import { type InferSelectModel } from "drizzle-orm"
 import { createClient } from "../../core"
-import { relayers } from "../../schema"
+import { deployments } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type FindOneInput = Readonly<{
-  where: Readonly<Pick<InferSelectModel<typeof relayers>, "id" | "userId">>
+  where: Readonly<Pick<InferSelectModel<typeof deployments>, "id" | "userId">>
 }>
 
 export const findOne = async (
@@ -13,22 +13,25 @@ export const findOne = async (
 ) => {
   const inputs = {
     placeholders: {
-      id: sql.placeholder(relayers.id.name).getSQL(),
-      userId: sql.placeholder(relayers.userId.name).getSQL(),
+      id: sql.placeholder(deployments.id.name).getSQL(),
+      userId: sql.placeholder(deployments.userId.name).getSQL(),
     },
     values: {
-      [relayers.id.name]: args.where.id,
-      [relayers.userId.name]: args.where.userId,
+      [deployments.id.name]: args.where.id,
+      [deployments.userId.name]: args.where.userId,
     },
   }
 
-  return await db.drizzle.query.relayers
+  return await db.drizzle.query.deployments
     .findFirst({
       where(fields, operators) {
         return operators.and(
           operators.eq(fields.id, inputs.placeholders.id),
           operators.eq(fields.userId, inputs.placeholders.userId),
         )
+      },
+      with: {
+        relayers: true,
       },
     })
     .prepare()

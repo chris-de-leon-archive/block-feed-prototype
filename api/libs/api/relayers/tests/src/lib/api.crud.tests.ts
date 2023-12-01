@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto"
 import assert from "node:assert"
 
 describe("Relayers CRUD", () => {
+  const deploymentId = randomUUID()
   const a0 = auth0.createClient()
   const api = testutils.getApi()
   const db = database.core.createClient({
@@ -18,10 +19,27 @@ describe("Relayers CRUD", () => {
     null
 
   before(async () => {
-    await testutils.wipeDB(db.drizzle)
-
     const user = await testutils.createAuth0User(a0)
     const grnt = await user.getGrant()
+
+    await testutils.wipeDB(db.drizzle)
+    await db.drizzle
+      .transaction(async (tx) => {
+        const userInfo = user.getInfo()
+        await tx.insert(database.schema.users).values({
+          id: userInfo.user_id,
+        })
+        await tx.insert(database.schema.deployments).values({
+          id: deploymentId,
+          name: "test",
+          namespace: "test",
+          userId: userInfo.user_id,
+        })
+      })
+      .catch((err) => {
+        console.error(err)
+        throw err
+      })
 
     auth0User = user
     headers = {
@@ -48,6 +66,7 @@ describe("Relayers CRUD", () => {
       .relayersCreate(
         {
           name: randomUUID(),
+          deploymentId,
           chain: database.schema.Blockchains.FLOW,
           transport: database.schema.RelayerTransports.HTTP,
           options: {
@@ -66,6 +85,14 @@ describe("Relayers CRUD", () => {
           assert.fail("create failed")
         }
         return id
+      })
+      .catch(testutils.handleAxiosError)
+
+    // Makes sure void updates don't cause any errors
+    await api
+      .relayersUpdate({ id, name: undefined }, { headers })
+      .then((result) => {
+        assert.equal(result.data.count, 0)
       })
       .catch(testutils.handleAxiosError)
 
