@@ -9,13 +9,13 @@ const input = createInterface({
 const main = async () => {
   const client = auth0.createClient()
 
-  const email = await new Promise<string>((res, rej) => {
+  const email = await new Promise<string>((res) => {
     input.question("Auth0 Email: ", (answer) => {
       res(answer)
     })
   })
 
-  const password = await new Promise<string>((res, rej) => {
+  const password = await new Promise<string>((res) => {
     input.question("Auth0 Password: ", (answer) => {
       res(answer)
     })

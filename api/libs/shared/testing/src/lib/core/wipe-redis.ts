@@ -7,7 +7,7 @@ export const wipeRedis = async () => {
       stderr: string
     }>
   >((res, rej) => {
-    exec(`docker exec redis redis-cli "FLUSHALL"`, (err, stdout, stderr) => {
+    exec(`redis-cli -c "FLUSHALL"`, (err, stdout, stderr) => {
       if (err != null) {
         rej(err)
         return

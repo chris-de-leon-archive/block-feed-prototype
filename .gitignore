@@ -1,0 +1,9 @@
+api/libs/shared/testing/src/lib/core/openapi
+api/env/prod/**/*.env
+api/env/stag/**/*.env
+api/env/dev/auth0.env
+api/env/dev/aws.env
+api/.generated
+api/test.http
+api/ignore
+ignore

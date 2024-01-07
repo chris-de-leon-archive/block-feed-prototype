@@ -1,8 +1,8 @@
 import { CONSTANTS, Context, OPERATIONS } from "./constants"
-import { AppsV1Api } from "@kubernetes/client-node"
 import { database } from "@api/shared/database"
 import { TRPCError } from "@trpc/server"
 import { trpc } from "@api/shared/trpc"
+import { k8s } from "@api/shared/k8s"
 import { api } from "@api/api/core"
 import { z } from "zod"
 
@@ -31,7 +31,8 @@ export const CreateOutput = z.object({
   id: z.string().nullable(),
 })
 
-export type CreateContext = Context & Readonly<{ k8s: AppsV1Api }>
+export type CreateContext = Context &
+  Readonly<{ k8s: ReturnType<typeof k8s.createClient> }>
 
 export const create = (t: ReturnType<typeof trpc.createTRPC<CreateContext>>) =>
   t.procedure

@@ -1,39 +1,48 @@
 import { after, before, describe, it } from "node:test"
 import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
+import { createAppServer } from "./utils"
 import { auth0 } from "@api/shared/auth0"
 import { randomUUID } from "node:crypto"
+import { k8s } from "@api/shared/k8s"
+import { api } from "@api/api/core"
 import assert from "node:assert"
 
-describe("Relayers CRUD", () => {
-  const deploymentId = randomUUID()
-  const a0 = auth0.createClient()
-  const api = testutils.getApi()
-  const db = database.core.createClient({
-    DB_URL: testutils.getEnvVars().TEST_DB_URL,
-    DB_LOGGING: true,
-  })
-
+describe("Relayers CRUD Tests", () => {
+  let auth0User: Awaited<ReturnType<typeof testutils.createAuth0User>>
   let headers = {}
-  let auth0User: Awaited<ReturnType<typeof testutils.createAuth0User>> | null =
-    null
+
+  const env = { test: testutils.getEnvVars(), api: api.core.getEnvVars() }
+  const ctx = {
+    auth0: auth0.createClient(),
+    k8s: k8s.createClient(),
+    env: { api: env.api },
+    database: database.core.createClient({
+      DB_URL: env.test.TEST_DB_URL,
+      DB_LOGGING: env.test.TEST_DB_LOGGING,
+    }),
+  }
+
+  const appServer = testutils.asyncServer(
+    createAppServer(ctx, { verbose: true }),
+  )
+
+  const deployment = {
+    name: "test-deployment", // TODO: add validation for naming to API
+    namespace: "default",
+  }
 
   before(async () => {
-    const user = await testutils.createAuth0User(a0)
+    // Sets up an Auth0 user
+    const user = await testutils.createAuth0User(ctx.auth0)
     const grnt = await user.getGrant()
 
-    await testutils.wipeDB(db.drizzle)
-    await db.drizzle
+    // Sets up the database
+    await testutils.wipeDB(ctx.database.drizzle)
+    await ctx.database.drizzle
       .transaction(async (tx) => {
-        const userInfo = user.getInfo()
         await tx.insert(database.schema.users).values({
-          id: userInfo.user_id,
-        })
-        await tx.insert(database.schema.deployments).values({
-          id: deploymentId,
-          name: "test",
-          namespace: "test",
-          userId: userInfo.user_id,
+          id: user.getInfo().user_id,
         })
       })
       .catch((err) => {
@@ -41,6 +50,10 @@ describe("Relayers CRUD", () => {
         throw err
       })
 
+    // Sets up the API server
+    await appServer.start()
+
+    // Sets up helper variables
     auth0User = user
     headers = {
       Authorization: `bearer ${grnt.access_token}`,
@@ -48,21 +61,52 @@ describe("Relayers CRUD", () => {
   })
 
   after(async () => {
-    await auth0User?.cleanUp()
-    await new Promise((res, rej) => {
-      db.pool.end((err) => {
-        if (err != null) {
-          rej(err)
-          return
-        }
-        res(undefined)
-      })
-    })
+    await testutils.runPromisesInOrder(
+      [
+        auth0User?.cleanUp(),
+        appServer.close(),
+        new Promise((res, rej) => {
+          ctx.database.pool.end((err) => {
+            if (err != null) {
+              rej(err)
+              return
+            }
+            res(undefined)
+          })
+        }),
+      ],
+      (err) => {
+        console.error(err)
+      },
+    )
   })
 
   it("Integration Test", async () => {
+    // Gets the OpenAPI SDK
+    const sdk = testutils.getApi({
+      basePath: appServer.getInfo().url,
+    })
+
+    // Gets user info
+    const userInfo = auth0User.getInfo()
+
+    // TODO: creates a deployment
+    const deploymentId = await database.queries.deployments
+      .create(ctx.database, {
+        data: {
+          ...deployment,
+          userId: userInfo.user_id,
+        },
+      })
+      .then((result) => {
+        if (result.id == null) {
+          assert.fail("deployment was not created")
+        }
+        return result.id
+      })
+
     // Creates a relayer
-    const id = await api
+    const id = await sdk
       .relayersCreate(
         {
           name: randomUUID(),
@@ -89,7 +133,7 @@ describe("Relayers CRUD", () => {
       .catch(testutils.handleAxiosError)
 
     // Makes sure void updates don't cause any errors
-    await api
+    await sdk
       .relayersUpdate({ id, name: undefined }, { headers })
       .then((result) => {
         assert.equal(result.data.count, 0)
@@ -98,7 +142,7 @@ describe("Relayers CRUD", () => {
 
     // Updates the relayer
     const newName = "new-name"
-    await api
+    await sdk
       .relayersUpdate({ id, name: newName }, { headers })
       .then((result) => {
         assert.equal(result.data.count, 1)
@@ -106,7 +150,7 @@ describe("Relayers CRUD", () => {
       .catch(testutils.handleAxiosError)
 
     // Makes sure the relayer was updated
-    await api
+    await sdk
       .relayersFindOne(id, { headers })
       .then((result) => {
         assert.equal(result.data.id, id)
@@ -115,7 +159,7 @@ describe("Relayers CRUD", () => {
       .catch(testutils.handleAxiosError)
 
     // Removes the relayer
-    await api
+    await sdk
       .relayersRemove({ id }, { headers })
       .then((result) => {
         assert.equal(result.data.count, 1)
@@ -123,7 +167,7 @@ describe("Relayers CRUD", () => {
       .catch(testutils.handleAxiosError)
 
     // Find many should return no results
-    await api
+    await sdk
       .relayersFindMany(undefined, undefined, { headers })
       .then((result) => {
         assert.equal(result.data.length, 0)

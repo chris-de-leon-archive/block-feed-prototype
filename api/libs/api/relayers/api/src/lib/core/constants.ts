@@ -8,7 +8,13 @@ export type Context = Readonly<{
   auth0: ReturnType<typeof auth0.createClient>
 }>
 
-export const ENV_FILES = ["auth0.env", "db.env"]
+export const ENV_FILES = [
+  "auth0.env",
+  "node.env",
+  "api.env",
+  "k8s.env",
+  "db.env",
+]
 
 export const CONSTANTS = {
   NAME: {
@@ -65,6 +71,15 @@ export const OPERATIONS = {
   })(),
   REMOVE: (() => {
     const name = "Remove" as const
+    return {
+      ID: `${NAMESPACE}${name}`,
+      METHOD: "POST",
+      NAME: name,
+      PATH: `/${NAMESPACE}.${name}`,
+    } as const
+  })(),
+  DEPLOY: (() => {
+    const name = "Deploy" as const
     return {
       ID: `${NAMESPACE}${name}`,
       METHOD: "POST",

@@ -47,13 +47,11 @@ export const requireAuth = async (
   const accessToken = tokens[tokens.length - 1]
 
   // Uses the auth token to get the user profile info
+  // TODO: cache info in redis
   const profile = await opts.ctx.auth0.userInfo
     .getUserInfo(accessToken)
     .then(({ data }) => data)
-    .catch((err) => {
-      if (process.env["NODE_ENV"] !== "production") {
-        console.error(err)
-      }
+    .catch(() => {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "invalid access token",

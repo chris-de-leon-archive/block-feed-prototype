@@ -12,6 +12,7 @@ const appRouter = t.router({
     [RelayersAPI.OPERATIONS.CREATE.NAME]: RelayersAPI.create(t),
     [RelayersAPI.OPERATIONS.UPDATE.NAME]: RelayersAPI.update(t),
     [RelayersAPI.OPERATIONS.REMOVE.NAME]: RelayersAPI.remove(t),
+    [RelayersAPI.OPERATIONS.DEPLOY.NAME]: RelayersAPI.deploy(t),
   }),
 })
 

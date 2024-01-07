@@ -1,12 +1,5 @@
-import { Configuration, DefaultApi } from "./openapi"
-import { getEnvVars } from "./get-env-vars"
+import { Configuration, ConfigurationParameters, DefaultApi } from "./openapi"
 
-export const getApi = () => {
-  const env = getEnvVars()
-
-  return new DefaultApi(
-    new Configuration({
-      basePath: env.TEST_API_URL,
-    }),
-  )
+export const getApi = (params?: ConfigurationParameters) => {
+  return new DefaultApi(new Configuration(params))
 }

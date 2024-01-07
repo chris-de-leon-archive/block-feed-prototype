@@ -32,6 +32,9 @@ done
 
 # Run migrations
 if [ "$environment" == "stag" ] || [ "$environment" == "prod" ]; then
+  export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/$environment"
+  export DRIZZLE_DB_MODE="planetscale"
+
   # We're using an SSH tunnel to connect from localhost to
   # an EC2 instance to the RDS instance. The communication
   # from localhost to EC2 is protected by default since we
@@ -44,8 +47,6 @@ if [ "$environment" == "stag" ] || [ "$environment" == "prod" ]; then
   # TODO: test migrations on planetscale
   #
   export NODE_TLS_REJECT_UNAUTHORIZED='0'
-  export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/$environment"
-  export DRIZZLE_DB_MODE="planetscale"
 
   export_env_files "./env/$environment"
   create_temp_db_tunnel "$environment" "5430"
@@ -56,7 +57,8 @@ else
   export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/dev"
   export DRIZZLE_DB_MODE="default"
 
-  export DRIZZLE_DB_NAME="dev" # `block_feed` database may not exist yet, so we need to use this one
+  # `block_feed` database may not exist yet, so we need to use this database to create it
+  export DRIZZLE_DB_NAME="dev"
   export_env_files "./env/dev"
   ts-node ./drizzle/scripts/recreate-database.ts
 

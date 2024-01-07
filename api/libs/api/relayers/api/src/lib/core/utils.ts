@@ -13,15 +13,15 @@ export const getImageNameFromRelayer = (
   > = {
     [database.schema.Blockchains.FLOW]: {
       [database.schema.RelayerTransports.HTTP]:
-        env.API_FLOW_HTTP_RELAYER_DOCKER_IMAGE_TAG,
+        env.API_FLOW_HTTP_RELAYER_DOCKER_IMAGE,
       [database.schema.RelayerTransports.SMTP]:
-        env.API_FLOW_SMTP_RELAYER_DOCKER_IMAGE_TAG,
+        env.API_FLOW_SMTP_RELAYER_DOCKER_IMAGE,
     },
     [database.schema.Blockchains.ETH]: {
       [database.schema.RelayerTransports.HTTP]:
-        env.API_ETH_HTTP_RELAYER_DOCKER_IMAGE_TAG,
+        env.API_ETH_HTTP_RELAYER_DOCKER_IMAGE,
       [database.schema.RelayerTransports.SMTP]:
-        env.API_ETH_SMTP_RELAYER_DOCKER_IMAGE_TAG,
+        env.API_ETH_SMTP_RELAYER_DOCKER_IMAGE,
     },
   }
   return map[relayer.chain][relayer.transport]
@@ -37,19 +37,20 @@ export const getK8sDeploymentConfig = (
     apiVersion: "apps/v1",
     kind: "Deployment",
     metadata: {
-      name: deployment.id,
+      name: deployment.name,
+      namespace: deployment.namespace,
     },
     spec: {
       replicas: 1,
       selector: {
         matchLabels: {
-          app: deployment.name,
+          id: deployment.id,
         },
       },
       template: {
         metadata: {
           labels: {
-            app: deployment.name,
+            id: deployment.id,
           },
         },
         spec: {

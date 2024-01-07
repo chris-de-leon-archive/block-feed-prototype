@@ -3,11 +3,12 @@ version: "3"
 services:
   mysql:
     container_name: mysql
-    image: mysql:8.2.0
+    image: docker.io/mysql:8.2.0
     command: mysqld --general-log=1
     ports:
       - "3306:3306"
     environment:
+      # NOTE: the username for the root password is "root"
       MYSQL_ROOT_PASSWORD: "password"
       MYSQL_DATABASE: "dev"
       MYSQL_USER: "rootuser"
@@ -15,9 +16,25 @@ services:
     networks:
       - block_feed_net
 
+  # # https://github.com/localstack/localstack/issues/5304#issuecomment-1158815209
+  # localstack:
+  #   privileged: true
+  #   container_name: localstack
+  #   image: docker.io/localstack/localstack:3.0.2
+  #   ports:
+  #     - "4566:4566"
+  #     - "4571:4571"
+  #   environment:
+  #     DEFAULT_REGION: us-west-2
+  #     DEBUG: 1
+  #     TEST_AWS_ACCOUNT_ID: 000000000000
+  #     # DOCKER_HOST: unix:///run/podman/podman.sock
+  #   networks:
+  #     - block_feed_net
+
   db-ui:
     container_name: cloudbeaver
-    image: dbeaver/cloudbeaver:23.2.4
+    image: docker.io/dbeaver/cloudbeaver:23.2.4
     ports:
       - "8978:8978"
     volumes:
@@ -43,7 +60,7 @@ services:
   # https://docs.bullmq.io/guide/going-to-production#max-memory-policy
   redis:
     container_name: redis
-    image: redis:7.2.1-alpine3.18
+    image: docker.io/redis:7.2.1-alpine3.18
     command:
       [
         "redis-server",

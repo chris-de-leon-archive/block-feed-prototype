@@ -36,5 +36,13 @@ export const refreshApiRole = async (
       getTableName(database.schema.relayers),
       ["SELECT", "INSERT", "UPDATE", "DELETE"],
     ),
+    refreshPermissionsOnTable(
+      tx,
+      username,
+      database.core.CONSTANTS.DATABASES.BLOCK_FEED,
+      getTableName(database.schema.deployments),
+      ["SELECT", "INSERT", "UPDATE", "DELETE"],
+    ),
+    ,
   ]).then(utils.throwIfError)
 }

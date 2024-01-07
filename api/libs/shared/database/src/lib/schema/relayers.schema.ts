@@ -2,6 +2,7 @@ import { mysqlRelayerTransport } from "./enums/relayer-transport.enum"
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 import { mysqlBlockchain } from "./enums/blockchain.enum"
 import { deployments } from "./deployments.schema"
+import { relations } from "drizzle-orm"
 import { users } from "./users.schema"
 import { CONSTANTS } from "../core"
 import { z } from "zod"
@@ -46,6 +47,13 @@ export const relayers = mysqlTableWithSchema(
   undefined,
   CONSTANTS.DATABASES.BLOCK_FEED,
 )
+
+export const relayerRelations = relations(relayers, ({ one }) => ({
+  deployment: one(deployments, {
+    fields: [relayers.deploymentId],
+    references: [deployments.id],
+  }),
+}))
 
 export const zSelectRelayersSchema = createSelectSchema(relayers)
 

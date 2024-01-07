@@ -1,12 +1,29 @@
+import { after, before, describe, it } from "node:test"
 import { AxiosError, AxiosRequestConfig } from "axios"
 import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
+import { createAppServer } from "./utils"
+import { auth0 } from "@api/shared/auth0"
 import { randomUUID } from "node:crypto"
-import { describe, it } from "node:test"
+import { k8s } from "@api/shared/k8s"
+import { api } from "@api/api/core"
 import assert from "node:assert"
 
 describe("Relayers Auth Tests", () => {
-  const api = testutils.getApi()
+  const env = { test: testutils.getEnvVars(), api: api.core.getEnvVars() }
+  const ctx = {
+    auth0: auth0.createClient(),
+    k8s: k8s.createClient(),
+    env: { api: env.api },
+    database: database.core.createClient({
+      DB_URL: env.test.TEST_DB_URL,
+      DB_LOGGING: env.test.TEST_DB_LOGGING,
+    }),
+  }
+
+  const appServer = testutils.asyncServer(
+    createAppServer(ctx, { verbose: false }),
+  )
 
   const args = [
     {
@@ -29,21 +46,21 @@ describe("Relayers Auth Tests", () => {
     },
   ]
 
-  const testFunctions = [
+  const testFunctions = (sdk: ReturnType<typeof testutils.getApi>) => [
     {
       name: "find many",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.relayersFindMany(undefined, undefined, config),
+        await sdk.relayersFindMany(undefined, undefined, config),
     },
     {
       name: "find one",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.relayersFindOne(randomUUID(), config),
+        await sdk.relayersFindOne(randomUUID(), config),
     },
     {
       name: "create",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.relayersCreate(
+        await sdk.relayersCreate(
           {
             name: randomUUID(),
             deploymentId: randomUUID(),
@@ -63,21 +80,49 @@ describe("Relayers Auth Tests", () => {
     {
       name: "remove",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.relayersRemove({ id: randomUUID() }, config),
+        await sdk.relayersRemove({ id: randomUUID() }, config),
     },
     {
       name: "update",
       call: async (config: AxiosRequestConfig<unknown>) =>
-        await api.relayersUpdate(
+        await sdk.relayersUpdate(
           { id: randomUUID(), name: "new-name" },
           config,
         ),
     },
   ]
 
-  it("Blocks bad requests", async () => {
+  before(async () => {
+    await appServer.start()
+  })
+
+  after(async () => {
+    await testutils.runPromisesInOrder(
+      [
+        appServer.close(),
+        new Promise((res, rej) => {
+          ctx.database.pool.end((err) => {
+            if (err != null) {
+              rej(err)
+              return
+            }
+            res(undefined)
+          })
+        }),
+      ],
+      (err) => {
+        console.error(err)
+      },
+    )
+  })
+
+  it("Integration Test", async () => {
+    const sdk = testutils.getApi({
+      basePath: appServer.getInfo().url,
+    })
+
     await Promise.allSettled(
-      testFunctions
+      testFunctions(sdk)
         .flatMap((f) => args.map((a) => ({ func: f, args: a })))
         .map(async (test) => {
           return await it(`${test.func.name} (${test.args.name})`, async () => {

@@ -1,3 +1,7 @@
+#################
+### Variables ###
+#################
+
 # Flow HTTP vars
 FLOW_HTTP_RELAYER_ENTRYPOINT="./src/apps/flow/http/main.go"
 FLOW_HTTP_RELAYER_IMAGE_NAME="block-relayer-flow-http"
@@ -42,7 +46,9 @@ RELAYER_HTTP_URL="http://localhost:3000/webhook"
 RELAYER_HTTP_RETRY_DELAY_MS=3000
 RELAYER_HTTP_MAX_RETRIES=3
 
-# Helpers
+###############
+### Helpers ###
+###############
 
 build-local:
 	@docker build --build-arg BUILD_PATH=$(BUILD_PATH) -t $(TAG) .
@@ -58,7 +64,9 @@ verify-email:
 run-tests:
 	@go test ./tests... -v
 
-# ETH HTTP
+################
+### ETH HTTP ###
+################
 
 # make build-and-push-eth-http-relayer TAG=<...>
 build-and-push-eth-http-relayer:
@@ -83,7 +91,9 @@ run-eth-http:
 	RELAYER_POLL_MS=$(ETH_POLL_MS) \
 	go run $(ETH_HTTP_RELAYER_ENTRYPOINT)
 
-# ETH SMTP
+################
+### ETH SMTP ###
+################
 
 # make build-and-push-eth-smtp-relayer TAG=<...>
 build-and-push-eth-smtp-relayer:
@@ -114,7 +124,9 @@ run-eth-smtp:
 	AWS_URL=$(AWS_URL) \
 	go run $(ETH_SMTP_RELAYER_ENTRYPOINT)
 
-# FLOW HTTP
+#################
+### FLOW HTTP ###
+#################
 
 # make build-and-push-flow-http-relayer TAG=<...>
 build-and-push-flow-http-relayer:
@@ -139,7 +151,9 @@ run-flow-http:
 	RELAYER_POLL_MS=$(FLOW_POLL_MS) \
 	go run $(FLOW_HTTP_RELAYER_ENTRYPOINT)
 
-# FLOW SMTP
+#################
+### FLOW SMTP ###
+#################
 
 # make build-and-push-flow-smtp-relayer TAG=<...>
 build-and-push-flow-smtp-relayer:

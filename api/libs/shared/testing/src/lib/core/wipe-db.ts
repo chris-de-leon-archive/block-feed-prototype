@@ -26,9 +26,17 @@ export const wipeDB = async (db: MySql2Database<typeof database.schema>) => {
   const pName = sql.identifier("truncate_tables")
   await db
     .transaction(async (tx) => {
-      await tx.execute(sql`DROP PROCEDURE IF EXISTS ${dbName}.${pName}`)
+      // NOTE: instead of dropping and recreating this procedure before
+      // every test, we can simply reuse it if it already exists. Also,
+      // the npm test command should automatically wipe and re-migrate
+      // the database before running all the test cases, so this should
+      // be sufficient to have reliable test cases. The command to drop
+      // the procedure is left here for reference:
+      //
+      //  await tx.execute(sql`DROP PROCEDURE IF EXISTS ${dbName}.${pName}`)
+      //
       await tx.execute(sql`
-        CREATE PROCEDURE ${dbName}.${pName}()
+        CREATE PROCEDURE IF NOT EXISTS ${dbName}.${pName}()
         BEGIN
           SET FOREIGN_KEY_CHECKS = 0;
           ${sql.join(tables, sql`\n          `)}
@@ -36,7 +44,6 @@ export const wipeDB = async (db: MySql2Database<typeof database.schema>) => {
         END;
       `)
       await tx.execute(sql`CALL ${dbName}.${pName}()`)
-      await tx.execute(sql`DROP PROCEDURE IF EXISTS ${dbName}.${pName}`)
     })
     .catch((err) => {
       console.error(err)

@@ -1,0 +1,46 @@
+{
+  "name": "api-relayers-deploy",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/relayers/deploy/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/relayers/deploy",
+        "main": "apps/api/relayers/deploy/src/main.ts",
+        "tsConfig": "apps/api/relayers/deploy/tsconfig.app.json",
+        "assets": ["apps/api/relayers/deploy/src/assets"],
+        "webpackConfig": "apps/api/relayers/deploy/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-relayers-deploy:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-relayers-deploy:build:development"
+        },
+        "production": {
+          "buildTarget": "api-relayers-deploy:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    }
+  },
+  "tags": []
+}

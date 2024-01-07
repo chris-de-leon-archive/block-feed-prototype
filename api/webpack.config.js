@@ -5,6 +5,7 @@ const path = require("path")
 
 // https://github.com/serverless-heaven/serverless-webpack
 // https://stackoverflow.com/a/35820388/22520608
+// https://stackoverflow.com/a/57586868
 
 /**
  * @type {import('webpack').Configuration}
