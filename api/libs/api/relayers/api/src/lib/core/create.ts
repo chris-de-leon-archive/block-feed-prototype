@@ -5,6 +5,7 @@ import { trpc } from "@api/shared/trpc"
 import { k8s } from "@api/shared/k8s"
 import { api } from "@api/api/core"
 import { z } from "zod"
+import { randomUUID } from "node:crypto"
 
 const relayerStaticOpts = {
   RELAYER_REDIS_CONNECTION_URL: true,
@@ -47,10 +48,13 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<CreateContext>>) =>
     .output(CreateOutput)
     .use(t.middleware(api.middleware.requireAuth))
     .mutation(async (params) => {
+      // Creates a relayer ID
+      const relayerId = randomUUID()
+
       // TODO: make these configurable
       const staticOptions: Record<keyof typeof relayerStaticOpts, string> = {
         RELAYER_REDIS_CONNECTION_URL: "host.docker.internal:6379",
-        RELAYER_REDIS_PREFIX: `${params.ctx.user.sub}:${params.input.deploymentId}`,
+        RELAYER_REDIS_PREFIX: `${params.ctx.user.sub}:${params.input.deploymentId}:${relayerId}`,
       }
 
       // Creates an object containing all relayer options
@@ -84,10 +88,11 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<CreateContext>>) =>
         })
       }
 
-      // Create the relayer and return an ID
+      // Create the relayer and return its ID (or null if it could not be created)
       return await database.queries.relayers
         .create(params.ctx.database, {
           data: {
+            id: relayerId,
             name: params.input.name,
             transport: params.input.transport,
             deploymentId: params.input.deploymentId,

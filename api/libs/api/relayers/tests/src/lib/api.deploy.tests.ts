@@ -137,8 +137,7 @@ describe("Relayers Deploy Tests", () => {
       })
 
     // Defines the relayers
-    // TODO: all relayers use the same redis DB and may interact with the same keys, so transaction errors may occur if more than 1 relayer is created
-    const relayers = Array.from({ length: 1 }).map(() => {
+    const relayers = Array.from({ length: 3 }).map(() => {
       return {
         name: randomUUID(),
         deploymentId,

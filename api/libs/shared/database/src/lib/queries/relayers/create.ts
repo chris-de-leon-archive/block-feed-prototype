@@ -5,14 +5,17 @@ import { relayers } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type CreateInput = Readonly<{
-  data: Readonly<Omit<InferInsertModel<typeof relayers>, "id">>
+  data: Readonly<
+    Omit<InferInsertModel<typeof relayers>, "id"> &
+      Partial<{ id: ReturnType<typeof randomUUID> }>
+  >
 }>
 
 export const create = async (
   db: ReturnType<typeof createClient>,
   args: CreateInput,
 ) => {
-  const id = randomUUID()
+  const id = args.data.id ?? randomUUID()
 
   const inputs = {
     placeholders: {
