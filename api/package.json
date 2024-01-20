@@ -6,7 +6,7 @@
   "scripts": {
     "build": "nx run-many --targets build",
     "clean": "rm -rf .build .serverless .nx dist",
-    "setup": "npm i && npm run db:migrate -- --environment dev",
+    "setup": "npm i && npm run db:push",
     "api:start:offline": "SLS_DEBUG=* NODE_ENV=development APP_ENV=dev serverless offline",
     "api:start:localstack": "NODE_ENV=development APP_ENV=dev serverless deploy",
     "api:build": "NODE_ENV=production APP_ENV=prod serverless package",
@@ -20,6 +20,7 @@
     "openapi:gen:client": "bash ./tools/openapi/generate-code.sh ./libs/shared/testing/src/lib/core/openapi",
     "openapi:gen:docs": "ts-node ./tools/openapi/generate-docs.ts",
     "db:migrate": "bash ./tools/db/migrate.sh",
+    "db:push": "bash ./tools/db/push.sh",
     "db:info": "bash ./tools/db/info.sh",
     "auth0": "bash ./tools/auth0/run.sh"
   },

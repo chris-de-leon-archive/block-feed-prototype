@@ -1,0 +1,19 @@
+version: "2"
+
+# TODO: use Drizzle to generate the sql schema, then use a script to
+# format it in a way that sqlc will understand
+
+sql:
+  - engine: "mysql"
+    queries: "./sql/queries.sql"
+    schema: "./sql/schema.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "./src/libs/sqlc"
+        emit_result_struct_pointers: true
+        emit_params_struct_pointers: true
+        json_tags_case_style: "camel"
+        emit_prepared_queries: true
+        emit_empty_slices: true
+        emit_json_tags: true

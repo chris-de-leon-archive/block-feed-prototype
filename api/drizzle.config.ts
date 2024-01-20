@@ -8,7 +8,7 @@ export default defineConfig({
     "./libs/shared/database/src/lib/schema/**/*.schema.ts",
     "./libs/shared/database/src/lib/schema/**/*.enum.ts",
   ],
-  out: env.DRIZZLE_DB_MIGRATIONS_FOLDER,
+  out: env.DRIZZLE_DB_MIGRATIONS_FOLDER ?? "./drizzle/migrations",
   verbose: true,
   driver: "mysql2",
   dbCredentials: {

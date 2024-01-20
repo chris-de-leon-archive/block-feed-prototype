@@ -1,0 +1,112 @@
+version: "3"
+
+services:
+  block-producer-flow-testnet:
+    image: block-producer-flow-testnet:1
+    labels:
+      - kompose.service.type=headless
+    build:
+      dockerfile: ./Dockerfile
+      context: ./block-relay
+      args:
+        BUILD_PATH: "./src/apps/producer/flow/main.go"
+    environment:
+      BLOCKCHAIN_CONNECTION_URL: "access.devnet.nodes.onflow.org:9000"
+      BLOCKCHAIN_ID: "flow-testnet"
+      BLOCK_PRODUCER_STREAM_URL: "rabbitmq-stream://guest:guest@rabbitmq:5552"
+      BLOCK_PRODUCER_POLL_MS: "1000"
+
+  block-splitter:
+    image: block-splitter:1
+    labels:
+      - kompose.service.type=headless
+    build:
+      dockerfile: ./Dockerfile
+      context: ./block-relay
+      args:
+        BUILD_PATH: "./src/apps/splitter/main.go"
+    environment:
+      BLOCK_SPLITTER_STREAM_URL: "rabbitmq-stream://guest:guest@rabbitmq:5552"
+      BLOCK_SPLITTER_STREAM_NAME: "flow-testnet"
+      BLOCK_SPLITTER_QUEUE_URL: "amqp://rabbitmq:5672"
+      BLOCK_SPLITTER_QUEUE_NAME: "webhook-jobs"
+      BLOCK_SPLITTER_NAME: "block-splitter-flow-testnet-1"
+
+  block-consumer:
+    image: block-consumer:1
+    labels:
+      - kompose.service.type=headless
+    deploy:
+      mode: "replicated"
+      replicas: 2
+    build:
+      dockerfile: ./Dockerfile
+      context: ./block-relay
+      args:
+        BUILD_PATH: "./src/apps/consumer/main.go"
+    environment:
+      REDIS_CACHE_CONNECTION_URL: "redis:6379"
+      REDIS_CACHE_MAX_KEYS: "100"
+      REDIS_CACHE_TTL_MS: "10000"
+      BLOCK_CONSUMER_QUEUE_URL: "amqp://rabbitmq:5672"
+      BLOCK_CONSUMER_QUEUE_NAME: "webhook-jobs"
+      BLOCK_CONSUMER_MAX_POOL_SIZE: "5"
+      #
+      # NOTE: these env variables should be added to the deployment file generated
+      # by kompose so that each consumer replica gets a unique name for Rabbit MQ.
+      #
+      # Source: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/#using-environment-variables-inside-of-your-config
+      #
+      # - env:
+      #   - name: POD_NAMESPACE
+      #     valueFrom:
+      #       fieldRef:
+      #         fieldPath: metadata.namespace
+      #   - name: POD_NAME
+      #     valueFrom:
+      #       fieldRef:
+      #         fieldPath: metadata.name
+      #
+      BLOCK_CONSUMER_NAME: "$$(POD_NAMESPACE)-$$(POD_NAME)"
+
+  # https://redis.uptrace.dev/guide/go-redis-cache.html#redis-config
+  redis:
+    image: docker.io/redis:7.2.1-alpine3.18
+    labels:
+      - kompose.service.type=headless
+    command:
+      [
+        "redis-server",
+        "--port",
+        "6379",
+        "--loglevel",
+        "debug",
+        "--maxmemory",
+        "100mb",
+        "--maxmemory-policy",
+        "allkeys-lfu",
+        "--activedefrag",
+        "yes",
+        "--save",
+        '""',
+      ]
+    ports:
+      - "6379:6379"
+
+  # https://github.com/rabbitmq/rabbitmq-stream-go-client?tab=readme-ov-file#run-server-with-docker
+  rabbitmq:
+    image: docker.io/rabbitmq:3.12.12-alpine
+    labels:
+      - kompose.service.type=headless
+    command:
+      [
+        "sh",
+        "-c",
+        "rabbitmq-plugins enable --offline rabbitmq_stream && rabbitmq-server",
+      ]
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: '-rabbitmq_stream advertised_host rabbitmq -rabbit loopback_users "none"'
+    ports:
+      - "5672:5672" # amqp port
+      - "5552:5552" # stream port
+

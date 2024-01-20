@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"time"
@@ -30,7 +31,7 @@ func init() {
 	translations_en.RegisterDefaultTranslations(validate, trans)
 }
 
-func LoadFromEnv[T any]() *T {
+func LoadFromEnv[T any]() (*T, error) {
 	var envVariables T
 
 	// Load values from env into the struct
@@ -46,40 +47,44 @@ func LoadFromEnv[T any]() *T {
 	// Validate the env variables
 	err := validator.New().Struct(envVariables)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return &envVariables
+	return &envVariables, nil
 }
 
-func ParseOpts[T any, R any](parse func(*T) *R) *R {
+func ParseOpts[T any, R any](parse func(*T) (*R, error)) (*R, error) {
 	// Fetches the relayer options from environment
-	env := LoadFromEnv[T]()
+	env, err := LoadFromEnv[T]()
+	if err != nil {
+		return nil, err
+	}
 
 	// Parses the environment variables
-	opts := parse(env)
+	opts, err := parse(env)
+	if err != nil {
+		return nil, err
+	}
 
 	// Validates the relayer options
-	err := validate.Struct(opts)
+	err = validate.Struct(opts)
 	if err != nil {
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
-			panic(validationErrors[0].Translate(trans))
+			return nil, errors.New(validationErrors[0].Translate(trans))
 		}
-		panic(err)
+		return nil, err
 	}
 
 	// Returns the parsed relayer options
-	return opts
+	return opts, nil
 }
 
 func JsonStringify(data any) (string, error) {
 	b, err := json.MarshalIndent(data, "", " ")
-
 	if err != nil {
 		var empty string
 		return empty, err
 	}
-
 	return string(b), nil
 }
 
@@ -120,34 +125,14 @@ func Map[T any, R any](s []T, fn func(T, int) R) []R {
 	return mapped
 }
 
-func MergeMaps(maps ...map[string]any) map[string]any {
-	merged := map[string]any{}
-	for _, m := range maps {
-		for k, v := range m {
-			merged[k] = v
-		}
-	}
-	return merged
-}
-
 func ForEach[T any](s []T, fn func(T, int)) {
 	for i, elem := range s {
 		fn(elem, i)
 	}
 }
 
-func PanicIfError[V any](val V, err error) V {
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
-
-func RetryIfError[V any](maxAttempts int, onError func(error, int, int), fn func() (V, error)) (V, error) {
-	var (
-		attempts = 0
-		empty    V
-	)
+func RetryIfError[V any](maxAttempts uint64, onError func(error, uint64, uint64), fn func() (V, error)) (*V, error) {
+	attempts := uint64(0)
 
 	for attempts < maxAttempts {
 		// Run the callback
@@ -155,7 +140,7 @@ func RetryIfError[V any](maxAttempts int, onError func(error, int, int), fn func
 
 		// Return immediately on context errors
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-			return empty, err
+			return nil, err
 		}
 
 		// Retry on any other type of error
@@ -166,15 +151,17 @@ func RetryIfError[V any](maxAttempts int, onError func(error, int, int), fn func
 		}
 
 		// Return on success
-		return v, nil
+		return &v, nil
 	}
 
-	return empty, fmt.Errorf("retry limit of %d reached", maxAttempts)
+	return nil, fmt.Errorf("retry limit of %d exceeded", maxAttempts)
 }
 
-func ConstantDelay(delayMs int) func(err error, currentAttempts int, maxAttempts int) {
-	return func(err error, currentAttempts int, maxAttempts int) {
-		fmt.Printf("%v (attempt %d of %d)\n", err, currentAttempts, maxAttempts)
+func ConstantDelay(logger *log.Logger, delayMs uint64, logErrors bool) func(err error, currentAttempts uint64, maxAttempts uint64) {
+	return func(err error, currentAttempts uint64, maxAttempts uint64) {
+		if logErrors {
+			logger.Printf("%v (attempt %d of %d)\n", err, currentAttempts, maxAttempts)
+		}
 		if currentAttempts < maxAttempts {
 			time.Sleep(time.Duration(delayMs) * time.Millisecond)
 		}

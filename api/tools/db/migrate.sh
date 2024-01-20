@@ -54,15 +54,20 @@ if [ "$environment" == "stag" ] || [ "$environment" == "prod" ]; then
   ts-node ./drizzle/scripts/migrate.ts
   ts-node ./drizzle/scripts/refresh-roles.ts
 else
-  export DRIZZLE_DB_MIGRATIONS_FOLDER="./drizzle/migrations/dev"
+  # Set development env variables
+  export DRIZZLE_DB_MIGRATIONS_FOLDER="drizzle/migrations/dev"
   export DRIZZLE_DB_MODE="default"
 
-  # `block_feed` database may not exist yet, so we need to use this database to create it
+  # We need to use the database that was initialized by docker compose to create a new database
   export DRIZZLE_DB_NAME="dev"
   export_env_files "./env/dev"
   ts-node ./drizzle/scripts/recreate-database.ts
 
+  # Generate migration files
+  drizzle-kit generate:mysql
+
+  # The newly created database should exist now, let's connect to it and run migrations
   export DRIZZLE_DB_NAME="block_feed"
-  drizzle-kit push:mysql
+  ts-node ./drizzle/scripts/migrate.ts
   ts-node ./drizzle/scripts/refresh-roles.ts
 fi

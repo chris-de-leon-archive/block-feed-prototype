@@ -1,0 +1,348 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-consumer
+      name: block-consumer
+    spec:
+      clusterIP: None
+      ports:
+        - name: headless
+          port: 55555
+          targetPort: 0
+      selector:
+        io.kompose.service: block-consumer
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-producer-flow-testnet
+      name: block-producer-flow-testnet
+    spec:
+      clusterIP: None
+      ports:
+        - name: headless
+          port: 55555
+          targetPort: 0
+      selector:
+        io.kompose.service: block-producer-flow-testnet
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-splitter
+      name: block-splitter
+    spec:
+      clusterIP: None
+      ports:
+        - name: headless
+          port: 55555
+          targetPort: 0
+      selector:
+        io.kompose.service: block-splitter
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: rabbitmq
+      name: rabbitmq
+    spec:
+      clusterIP: None
+      ports:
+        - name: "5672"
+          port: 5672
+          targetPort: 5672
+        - name: "5552"
+          port: 5552
+          targetPort: 5552
+      selector:
+        io.kompose.service: rabbitmq
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: redis
+      name: redis
+    spec:
+      clusterIP: None
+      ports:
+        - name: "6379"
+          port: 6379
+          targetPort: 6379
+      selector:
+        io.kompose.service: redis
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-consumer
+      name: block-consumer
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          io.kompose.service: block-consumer
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: block-consumer
+        spec:
+          containers:
+            - env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: BLOCK_CONSUMER_MAX_POOL_SIZE
+                  value: "5"
+                - name: BLOCK_CONSUMER_NAME
+                  value: $(POD_NAMESPACE)-$(POD_NAME)
+                - name: BLOCK_CONSUMER_QUEUE_NAME
+                  value: webhook-jobs
+                - name: BLOCK_CONSUMER_QUEUE_URL
+                  value: amqp://rabbitmq:5672
+                - name: REDIS_CACHE_CONNECTION_URL
+                  value: redis:6379
+                - name: REDIS_CACHE_MAX_KEYS
+                  value: "100"
+                - name: REDIS_CACHE_TTL_MS
+                  value: "10000"
+              image: block-consumer:1
+              name: block-consumer
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-producer-flow-testnet
+      name: block-producer-flow-testnet
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: block-producer-flow-testnet
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: block-producer-flow-testnet
+        spec:
+          containers:
+            - env:
+                - name: BLOCKCHAIN_CONNECTION_URL
+                  value: access.devnet.nodes.onflow.org:9000
+                - name: BLOCKCHAIN_ID
+                  value: flow-testnet
+                - name: BLOCK_PRODUCER_POLL_MS
+                  value: "1000"
+                - name: BLOCK_PRODUCER_STREAM_URL
+                  value: rabbitmq-stream://guest:guest@rabbitmq:5552
+              image: block-producer-flow-testnet:1
+              name: block-producer-flow-testnet
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-splitter
+      name: block-splitter
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: block-splitter
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: block-splitter
+        spec:
+          containers:
+            - env:
+                - name: BLOCK_SPLITTER_NAME
+                  value: block-splitter-flow-testnet-1
+                - name: BLOCK_SPLITTER_QUEUE_NAME
+                  value: webhook-jobs
+                - name: BLOCK_SPLITTER_QUEUE_URL
+                  value: amqp://rabbitmq:5672
+                - name: BLOCK_SPLITTER_STREAM_NAME
+                  value: flow-testnet
+                - name: BLOCK_SPLITTER_STREAM_URL
+                  value: rabbitmq-stream://guest:guest@rabbitmq:5552
+              image: block-splitter:1
+              name: block-splitter
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: rabbitmq
+      name: rabbitmq
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: rabbitmq
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: rabbitmq
+        spec:
+          containers:
+            - args:
+                - sh
+                - -c
+                - rabbitmq-plugins enable --offline rabbitmq_stream && rabbitmq-server
+              env:
+                - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
+                  value: -rabbitmq_stream advertised_host rabbitmq -rabbit loopback_users "none"
+              image: docker.io/rabbitmq:3.12.12-alpine
+              name: rabbitmq
+              ports:
+                - containerPort: 5672
+                - containerPort: 5552
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: redis
+      name: redis
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: redis
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: redis
+        spec:
+          containers:
+            - args:
+                - redis-server
+                - --port
+                - "6379"
+                - --loglevel
+                - debug
+                - --maxmemory
+                - 100mb
+                - --maxmemory-policy
+                - allkeys-lfu
+                - --activedefrag
+                - "yes"
+                - --save
+                - '""'
+              image: docker.io/redis:7.2.1-alpine3.18
+              name: redis
+              ports:
+                - containerPort: 6379
+              resources: {}
+          restartPolicy: Always
+    status: {}
+kind: List
+metadata: {}
