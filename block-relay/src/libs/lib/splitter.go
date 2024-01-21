@@ -147,12 +147,13 @@ func RunBlockSplitter(ctx context.Context) error {
 		}
 
 		// TODO: fetch records from DB using sqlc (assume the number of rows can fit into memory)
+
 		urls := []string{"http://localhost:3000"}
 		for _, url := range urls {
 			body, err := common.JsonStringify(&WebhookData{
 				RetryDelayMs: 1000,
 				MaxRetries:   1,
-				Block:        message.GetData(),
+				BlockData:    message.GetData(),
 				Url:          url,
 			})
 			if err != nil {

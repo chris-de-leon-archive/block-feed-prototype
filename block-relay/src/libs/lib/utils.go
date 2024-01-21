@@ -11,7 +11,7 @@ import (
 type (
 	WebhookData struct {
 		Url          string
-		Block        []byte
+		BlockData    []byte // BlockData struct encoded as []byte
 		RetryDelayMs uint64 // NOTE: should be gt 0
 		MaxRetries   uint64 // NOTE: should be gt 0
 	}

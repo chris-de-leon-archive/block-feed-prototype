@@ -112,11 +112,11 @@ func RunBlockConsumer(ctx context.Context) error {
 		}
 
 		// Gets the block data
-		blockInfo, err := common.JsonParse[BlockData](string(data.Block))
+		blockInfo, err := common.JsonParse[BlockData](string(data.BlockData))
 		if err != nil {
 			return err
 		} else {
-			logger.Printf("Successfully parsed block data with %d bytes", len(data.Block))
+			logger.Printf("Successfully parsed block data with %d bytes", len(data.BlockData))
 		}
 
 		// Creates a cache key for the block which is [chain ID]:[block number/height]
