@@ -2,21 +2,21 @@ package blockchains
 
 import "fmt"
 
-var chainToClientFunc = map[ChainID](func(opts BlockchainOpts) (IBlockchain, error)){
-	ETH_TESTNET_SEPOLIA: func(opts BlockchainOpts) (IBlockchain, error) {
-		return NewEthereumBlockchain(opts.ChainID, opts.ConnectionURL)
+var chainToClientFunc = map[ChainID](func(opts *BlockchainOpts) (IBlockchain, error)){
+	ETH_TESTNET_SEPOLIA: func(opts *BlockchainOpts) (IBlockchain, error) {
+		return NewEthereumBlockchain(opts)
 	},
-	ETH_TESTNET_GOERLI: func(opts BlockchainOpts) (IBlockchain, error) {
-		return NewEthereumBlockchain(opts.ChainID, opts.ConnectionURL)
+	ETH_TESTNET_GOERLI: func(opts *BlockchainOpts) (IBlockchain, error) {
+		return NewEthereumBlockchain(opts)
 	},
-	ETH_MAINNET: func(opts BlockchainOpts) (IBlockchain, error) {
-		return NewEthereumBlockchain(opts.ChainID, opts.ConnectionURL)
+	ETH_MAINNET: func(opts *BlockchainOpts) (IBlockchain, error) {
+		return NewEthereumBlockchain(opts)
 	},
-	FLOW_MAINNET: func(opts BlockchainOpts) (IBlockchain, error) {
-		return NewFlowBlockchain(opts.ChainID, opts.ConnectionURL)
+	FLOW_MAINNET: func(opts *BlockchainOpts) (IBlockchain, error) {
+		return NewFlowBlockchain(opts)
 	},
-	FLOW_TESTNET: func(opts BlockchainOpts) (IBlockchain, error) {
-		return NewFlowBlockchain(opts.ChainID, opts.ConnectionURL)
+	FLOW_TESTNET: func(opts *BlockchainOpts) (IBlockchain, error) {
+		return NewFlowBlockchain(opts)
 	},
 }
 
@@ -33,13 +33,16 @@ func NewChainResolver() *ChainResolver {
 	}
 }
 
-func (resolver *ChainResolver) Close() {
+func (resolver *ChainResolver) Close(onError func(err error)) {
 	for _, client := range resolver.cache {
-		client.Close()
+		err := client.Close()
+		if err != nil {
+			onError(err)
+		}
 	}
 }
 
-func (resolver *ChainResolver) ResolveChain(opts BlockchainOpts) (IBlockchain, error) {
+func (resolver *ChainResolver) ResolveChain(opts *BlockchainOpts) (IBlockchain, error) {
 	// Checks if a client with an active connection already exists
 	if client, exists := resolver.cache[opts.ChainID]; exists {
 		return client, nil

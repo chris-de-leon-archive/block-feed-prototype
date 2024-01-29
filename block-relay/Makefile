@@ -27,8 +27,19 @@ build-and-push:
 	@docker build --build-arg BUILD_PATH=$(BUILD_PATH) -t $(DOCKERHUB_USERNAME)/$(TAG) .
 	@docker push $(DOCKERHUB_USERNAME)/$(TAG)
 
-run-tests:
+test:
+	@sqlc generate
 	@go test ./tests... -v
+
+migrate: DB_URL := "postgres://rootuser:password@host.docker.internal:5432/dev?sslmode=disable"
+migrate:
+	@-docker stop pg-atlas
+	@docker run --rm -d --name pg-atlas -p 5432:5432 -e POSTGRES_USER=rootuser -e POSTGRES_PASSWORD=password -e POSTGRES_DB=dev postgres:16.1-alpine3.18
+	@sleep 3
+	@atlas schema clean --url $(DB_URL) --auto-approve
+	@docker exec -i pg-atlas psql $(DB_URL) --single-transaction -v ON_ERROR_STOP=1 -c "CREATE SCHEMA IF NOT EXISTS \"block_feed\";"
+	@atlas migrate diff --dir "file://./sql/migrations" --to "file://./sql/schema.sql" --dev-url "$(DB_URL)&search_path=block_feed"
+	@docker stop pg-atlas
 
 ###########################
 ### Flow Block Producer ###

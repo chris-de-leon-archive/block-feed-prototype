@@ -9,14 +9,9 @@ const (
 )
 
 type (
-	BlockchainOptsEnv struct {
-		ConnectionURL string `env:"BLOCKCHAIN_CONNECTION_URL"`
-		ChainID       string `env:"BLOCKCHAIN_ID"`
-	}
-
 	BlockchainOpts struct {
-		ConnectionURL string  `validate:"required"`
-		ChainID       ChainID `validate:"required"`
+		ChainUrl string
+		ChainID  ChainID
 	}
 
 	ChainID string

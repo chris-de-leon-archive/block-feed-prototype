@@ -13,34 +13,38 @@ import (
 type EthereumBlockchain struct {
 	client *ethclient.Client
 	opts   *BlockchainOpts
+	id     string
 }
 
-func NewEthereumBlockchain(id ChainID, url string) (IBlockchain, error) {
+func NewEthereumBlockchain(opts *BlockchainOpts) (IBlockchain, error) {
 	validChainIDs := map[ChainID]ChainID{
 		ETH_TESTNET_SEPOLIA: ETH_TESTNET_SEPOLIA,
 		ETH_TESTNET_GOERLI:  ETH_TESTNET_GOERLI,
 		ETH_MAINNET:         ETH_MAINNET,
 	}
-	if _, exists := validChainIDs[id]; !exists {
-		return nil, fmt.Errorf("\"%s\" is an invalid chain ID for Ethereum client", id)
+	if _, exists := validChainIDs[opts.ChainID]; !exists {
+		return nil, fmt.Errorf("\"%s\" is an invalid chain ID for Ethereum client", opts.ChainID)
 	}
 
-	client, err := ethclient.Dial(url)
+	client, err := ethclient.Dial(opts.ChainUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	return &EthereumBlockchain{
 		client: client,
-		opts: &BlockchainOpts{
-			ConnectionURL: url,
-			ChainID:       id,
-		},
+		opts:   opts,
+		id:     string(opts.ChainID),
 	}, nil
 }
 
-func (blockchain *EthereumBlockchain) Close() {
+func (blockchain *EthereumBlockchain) Close() error {
 	blockchain.client.Close()
+	return nil
+}
+
+func (blockchain *EthereumBlockchain) ID() string {
+	return blockchain.id
 }
 
 func (blockchain *EthereumBlockchain) GetOpts() *BlockchainOpts {

@@ -4,12 +4,24 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+)
+
+const (
+	DEFAULT_POSTGRES_PASSWORD = "password"
+	DEFAULT_POSTGRES_USERNAME = "rootuser"
+	DEFAULT_POSTGRES_DB       = "test"
+	DEFAULT_POSTGRES_SCHEMA   = "block_feed"
+	POSTGRES_PORT             = "5432/tcp"
+	REDIS_PORT                = "6379/tcp"
 )
 
 type (
@@ -19,42 +31,36 @@ type (
 		Port nat.Port
 	}
 
-	RabbitMQContainer struct {
+	ContainerWithConnectionInfo struct {
 		Container testcontainers.Container
-		Stream    *HostConnectionInfo
-		Amqp      *HostConnectionInfo
-	}
-
-	RedisContainer struct {
-		Container testcontainers.Container
-		Cache     *HostConnectionInfo
+		Conn      *HostConnectionInfo
 	}
 )
 
-func NewRedisContainer(ctx context.Context, t *testing.T, version string) (*RedisContainer, error) {
-	// Defines the container ports to expose
-	const REDIS_PORT = "6379/tcp"
+func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
+	// Gets the directory that this file exists in
+	dir, err := GetCurrentDir()
+	if err != nil {
+		return nil, err
+	}
 
 	// Creates the container
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        fmt.Sprintf("redis:%s", version),
-			ExposedPorts: []string{REDIS_PORT},
-			WaitingFor:   wait.ForLog("Ready to accept connections"),
-			Cmd: []string{
-				"redis-server",
-				"--port",
-				"6379",
-				"--loglevel",
-				"debug",
-				"--maxmemory",
-				"100mb",
-				"--maxmemory-policy",
-				"allkeys-lfu",
-				"--activedefrag",
-				"yes",
-				"--save",
-				"\"\"",
+			ExposedPorts: []string{POSTGRES_PORT},
+			WaitingFor:   wait.ForExposedPort(),
+			Cmd:          []string{"postgres", "-c", "log_statement=all"},
+			FromDockerfile: testcontainers.FromDockerfile{
+				Context:    path.Join(*dir, ".."),
+				Dockerfile: path.Join("tests", "assets", "postgres", "Dockerfile"),
+				BuildArgs: map[string]*string{
+					"POSTGRES_VERSION": &version,
+				},
+			},
+			Env: map[string]string{
+				"POSTGRES_PASSWORD": DEFAULT_POSTGRES_PASSWORD,
+				"POSTGRES_USER":     DEFAULT_POSTGRES_USERNAME,
+				"POSTGRES_DB":       DEFAULT_POSTGRES_DB,
 			},
 		},
 		Started: true,
@@ -68,32 +74,35 @@ func NewRedisContainer(ctx context.Context, t *testing.T, version string) (*Redi
 	}
 
 	// Gets the connection info of the container
-	conn, err := GetConnectionInfo(ctx, container, REDIS_PORT)
+	conn, err := GetConnectionInfo(ctx, container, nat.Port(POSTGRES_PORT))
 	if err != nil {
 		return nil, err
 	}
 
+	// Replace the default URL with the correct postgres connection string
+	conn.Url = fmt.Sprintf(
+		"postgres://%s:%s@%s:%s",
+		DEFAULT_POSTGRES_USERNAME,
+		DEFAULT_POSTGRES_PASSWORD,
+		"host.docker.internal",
+		conn.Port.Port(),
+	)
+
 	// Returns the container info
-	return &RedisContainer{
+	return &ContainerWithConnectionInfo{
 		Container: container,
-		Cache:     conn,
+		Conn:      conn,
 	}, nil
 }
 
-func NewRabbitMQContainer(ctx context.Context, t *testing.T, version string) (*RabbitMQContainer, error) {
-	// Defines the container ports to expose
-	const (
-		STREAM_PORT = "5552/tcp"
-		AMQP_PORT   = "5672/tcp"
-	)
-
+func NewRedisContainer(ctx context.Context, t *testing.T, version string, cmd []string) (*ContainerWithConnectionInfo, error) {
 	// Creates the container
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        fmt.Sprintf("rabbitmq:%s", version),
-			ExposedPorts: []string{AMQP_PORT, STREAM_PORT},
-			WaitingFor:   wait.ForLog("Server startup complete"),
-			Entrypoint:   []string{"sh", "-c", "rabbitmq-plugins enable --offline rabbitmq_stream && rabbitmq-server"},
+			Image:        fmt.Sprintf("redis:%s", version),
+			ExposedPorts: []string{REDIS_PORT},
+			WaitingFor:   wait.ForExposedPort(),
+			Cmd:          cmd,
 		},
 		Started: true,
 	})
@@ -105,42 +114,42 @@ func NewRabbitMQContainer(ctx context.Context, t *testing.T, version string) (*R
 		ScheduleContainerTermination(t, container)
 	}
 
-	// Gets the STREAM connection info of the container
-	streamConn, err := GetConnectionInfo(ctx, container, STREAM_PORT)
+	// Gets the connection info of the container
+	conn, err := GetConnectionInfo(ctx, container, nat.Port(REDIS_PORT))
 	if err != nil {
 		return nil, err
 	}
 
-	// Gets the AMQP connection info of the container
-	amqpConn, err := GetConnectionInfo(ctx, container, AMQP_PORT)
-	if err != nil {
-		return nil, err
-	}
-
-	// Configures the RabbitMQ stream
-	out, err := Dexec(ctx, container, []string{
-		"touch /etc/rabbitmq/rabbitmq.conf",
-		"echo \"loopback_users = none\" >> /etc/rabbitmq/rabbitmq.conf",
-		fmt.Sprintf("echo \"stream.advertised_port = %s\" >> /etc/rabbitmq/rabbitmq.conf", streamConn.Port.Port()),
-		"echo \"stream.advertised_host = localhost\" >> /etc/rabbitmq/rabbitmq.conf",
-		"cat /etc/rabbitmq/rabbitmq.conf",
-		"rabbitmqctl stop_app",
-		"rabbitmqctl start_app",
-	})
-	if err != nil {
-		return nil, err
-	} else {
-		fmt.Println(*out)
-	}
-
-	// Reformats the URLs and returns the container info
-	streamConn.Url = fmt.Sprintf("rabbitmq-stream://guest:guest@%s:%s", streamConn.Host, streamConn.Port.Port())
-	amqpConn.Url = fmt.Sprintf("amqp://%s:%s", amqpConn.Host, amqpConn.Port.Port())
-	return &RabbitMQContainer{
+	// Returns the container info
+	return &ContainerWithConnectionInfo{
 		Container: container,
-		Stream:    streamConn,
-		Amqp:      amqpConn,
+		Conn:      conn,
 	}, nil
+}
+
+func RedisDefaultCmd() []string {
+	return []string{
+		"redis-server",
+		"--port", "6379",
+		"--loglevel", "debug",
+	}
+}
+
+func RedisCacheCmd() []string {
+	return append(RedisDefaultCmd(), []string{
+		"--maxmemory", "100mb",
+		"--maxmemory-policy", "allkeys-lfu",
+		"--activedefrag", "yes",
+		"--save", "\"\"",
+	}...)
+}
+
+func RedisQueueCmd() []string {
+	return append(RedisDefaultCmd(), []string{
+		"--maxmemory", "0", // no memory limit
+		"--maxmemory-policy", "noeviction",
+		"--appendonly", "yes",
+	}...)
 }
 
 func GetConnectionInfo(ctx context.Context, container testcontainers.Container, containerPort nat.Port) (*HostConnectionInfo, error) {
@@ -168,19 +177,12 @@ func ScheduleContainerTermination(t *testing.T, container testcontainers.Contain
 	// Clean up the container when the test case finishes
 	t.Cleanup(func() {
 		if err := container.Terminate(context.Background()); err != nil {
-			t.Error(err)
+			t.Log(err)
 		}
 	})
 }
 
-func Dexec(ctx context.Context, container testcontainers.Container, cmds []string) (*string, error) {
-	// Joins the commands together into one unified command
-	cmd := []string{
-		"sh",
-		"-c",
-		strings.Join(cmds, " && "),
-	}
-
+func Dexec(ctx context.Context, container testcontainers.Container, cmd []string) (*string, error) {
 	// Prints the unified command
 	fmt.Println(strings.Join(cmd, " "))
 
@@ -200,4 +202,21 @@ func Dexec(ctx context.Context, container testcontainers.Container, cmds []strin
 	// Returns output as a string
 	output := buf.String()
 	return &output, nil
+}
+
+func GetCurrentDir() (*string, error) {
+	// Get the file path and line number of the calling function
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil, fmt.Errorf("failed to get file path")
+	}
+
+	// Convert the relative path to an absolute path
+	absDirPath, err := filepath.Abs(filepath.Dir(filename))
+	if err != nil {
+		return nil, err
+	}
+
+	// Returns the absolute path
+	return &absDirPath, nil
 }

@@ -1,33 +1,81 @@
-CREATE TABLE `deployments` (
-	`id` varchar(36) NOT NULL,
-	`created_at` timestamp NOT NULL DEFAULT (now()),
-	`name` varchar(253) NOT NULL,
-	`namespace` varchar(253) NOT NULL,
-	`user_id` varchar(255) NOT NULL,
-	CONSTRAINT `deployments_id` PRIMARY KEY(`id`),
-	CONSTRAINT `deployments_user_id_name_unique` UNIQUE(`user_id`,`name`)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE "customer" (
+  "id" TEXT PRIMARY KEY,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE `relayers` (
-	`id` varchar(36) NOT NULL,
-	`created_at` timestamp NOT NULL DEFAULT (now()),
-	`name` varchar(255) NOT NULL,
-	`blockchain` enum('FLOW','ETH') NOT NULL,
-	`relayer_transport` enum('HTTP','SMTP') NOT NULL,
-	`options` json NOT NULL,
-	`deployment_id` varchar(36) NOT NULL,
-	`user_id` varchar(255) NOT NULL,
-	CONSTRAINT `relayers_id` PRIMARY KEY(`id`),
-	CONSTRAINT `relayers_name_unique` UNIQUE(`name`)
+CREATE TABLE "webhook" (
+  "id" UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  "chain_id" TEXT NOT NULL,
+	"url" TEXT NOT NULL,
+  "max_retries" INTEGER NOT NULL,
+  "timeout_ms" INTEGER NOT NULL,
+  "retry_delay_ms" INTEGER NOT NULL,
+  "customer_id" TEXT NOT NULL, 
+  FOREIGN KEY ("customer_id") REFERENCES "customer" ("id")
 );
 
-CREATE TABLE `users` (
-	`id` varchar(255) NOT NULL,
-	`created_at` timestamp NOT NULL DEFAULT (now()),
-	CONSTRAINT `users_id` PRIMARY KEY(`id`)
+CREATE TABLE "pending_webhook_job" (
+	"block_height" TEXT,
+  "chain_id" TEXT NOT NULL,
+  "chain_url" TEXT NOT NULL,
+  "channel_name" TEXT NOT NULL,
+  PRIMARY KEY ("chain_id", "block_height")
 );
 
-ALTER TABLE `deployments` ADD CONSTRAINT `deployments_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;
-ALTER TABLE `relayers` ADD CONSTRAINT `relayers_deployment_id_deployments_id_fk` FOREIGN KEY (`deployment_id`) REFERENCES `deployments`(`id`) ON DELETE no action ON UPDATE no action;
-ALTER TABLE `relayers` ADD CONSTRAINT `relayers_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;
+CREATE TABLE "webhook_job" (
+	"id" BIGSERIAL PRIMARY KEY,
+	"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "chain_id" TEXT NOT NULL,
+  "chain_url" TEXT NOT NULL,
+	"block_height" TEXT NOT NULL,
+  "url" TEXT NOT NULL,
+  "max_retries" INTEGER NOT NULL, 
+  "timeout_ms" INTEGER NOT NULL,
+  "retry_delay_ms" INTEGER NOT NULL 
+);
+
+CREATE TABLE "block_cursor" (
+  "id" TEXT PRIMARY KEY,
+	"block_height" TEXT NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION create_webhook_jobs_trigger_fn() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO "webhook_job"(
+    "chain_id",
+    "chain_url",
+	  "block_height",
+    "url",
+    "max_retries",
+    "timeout_ms",
+    "retry_delay_ms"
+  ) 
+  SELECT
+    NEW.chain_id,
+    NEW.chain_url,
+    NEW.block_height,
+    "webhook".url,
+    "webhook".max_retries,
+    "webhook".timeout_ms,
+    "webhook".retry_delay_ms
+  FROM "webhook"
+  WHERE "chain_id" = NEW.chain_id;
+
+  DELETE FROM "pending_webhook_job" 
+  WHERE "block_height" = NEW.block_height
+  AND "chain_id" = NEW.chain_id;
+
+  PERFORM pg_notify(NEW.channel_name, '');
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER create_webhook_jobs_trigger
+AFTER INSERT ON "pending_webhook_job"
+FOR EACH ROW 
+EXECUTE FUNCTION create_webhook_jobs_trigger_fn();
 

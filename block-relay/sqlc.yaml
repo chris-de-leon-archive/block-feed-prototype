@@ -1,15 +1,13 @@
 version: "2"
 
-# TODO: use Drizzle to generate the sql schema, then use a script to
-# format it in a way that sqlc will understand
-
 sql:
-  - engine: "mysql"
+  - engine: "postgresql"
     queries: "./sql/queries.sql"
     schema: "./sql/schema.sql"
     gen:
       go:
         package: "sqlc"
+        sql_package: "pgx/v5"
         out: "./src/libs/sqlc"
         emit_result_struct_pointers: true
         emit_params_struct_pointers: true
@@ -17,3 +15,7 @@ sql:
         emit_prepared_queries: true
         emit_empty_slices: true
         emit_json_tags: true
+        overrides:
+          - db_type: "bigserial"
+            go_type:
+              type: "int64"
