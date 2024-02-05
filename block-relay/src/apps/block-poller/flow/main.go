@@ -3,21 +3,22 @@ package main
 import (
 	"block-relay/src/libs/blockchains"
 	"block-relay/src/libs/common"
-	"block-relay/src/libs/lib"
+	"block-relay/src/libs/services"
 	"context"
 	"os/signal"
 	"syscall"
 
-	"github.com/caarlos0/env"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type EnvVars struct {
-	DatabaseUrl   string `validate:"required,gt=0" env:"BLOCK_POLLER_DATABASE_URL,required"`
-	BlockchainUrl string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_URL,required"`
-	BlockchainId  string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_ID,required"`
-	BatchSize     int    `validate:"required,gt=0" env:"BLOCK_POLLER_BATCH_SIZE,required"`
-	PollMs        int    `validate:"required,gt=0" env:"BLOCK_POLLER_POLL_MS,required"`
+	DatabaseUrl         string `validate:"required,gt=0" env:"BLOCK_POLLER_DATABASE_URL,required"`
+	BlockchainUrl       string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_URL,required"`
+	BlockchainId        string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_ID,required"`
+	Name                string `validate:"required,gt=0" env:"BLOCK_POLLER_NAME,required"`
+	MaxInFlightRequests int    `validate:"required,gt=0" env:"BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS,required"`
+	BatchSize           int    `validate:"required,gt=0" env:"BLOCK_POLLER_BATCH_SIZE,required"`
+	PollMs              int    `validate:"required,gt=0" env:"BLOCK_POLLER_POLL_MS,required"`
 }
 
 func main() {
@@ -25,14 +26,9 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	// Parses env variables into a struct
-	envvars := EnvVars{}
-	if err := env.Parse(&envvars); err != nil {
-		panic(err)
-	}
-
-	// Validates the env variables
-	if err := common.ValidateStruct[EnvVars](envvars); err != nil {
+	// Loads env variables into a struct and validates them
+	envvars, err := common.LoadEnvVars[EnvVars]()
+	if err != nil {
 		panic(err)
 	}
 
@@ -60,18 +56,20 @@ func main() {
 	}
 
 	// Creates the service
-	service := lib.NewBlockPoller(lib.BlockPollerParams{
+	service := services.NewBlockPoller(services.BlockPollerParams{
 		DatabaseConnPool: dbConnPool,
 		Chain:            chain,
-		Opts: lib.BlockPollerOpts{
+		Opts: services.BlockPollerOpts{
 			BatchSize: envvars.BatchSize,
 			PollMs:    envvars.PollMs,
+			Name:      envvars.Name,
 		},
 	})
 
 	// Runs the service until the context is cancelled
 	err = service.Run(ctx)
 	if err != nil {
+		common.LogError(nil, err)
 		panic(err)
 	}
 }

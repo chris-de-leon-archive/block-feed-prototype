@@ -1,5 +1,6 @@
 set -e
 
+SCHEMA_FILE="/sql/schema.sql"
 SCHEMA_NAME="block_feed"
 
 psql \
@@ -15,4 +16,4 @@ PGOPTIONS="--search_path=$SCHEMA_NAME" psql \
 	--dbname "$POSTGRES_DB" \
 	--single-transaction \
 	-v ON_ERROR_STOP=1 \
-	-f /sql/schema.sql
+	-f "$SCHEMA_FILE"

@@ -1,5 +1,7 @@
 package blockchains
 
+import "context"
+
 const (
 	ETH_TESTNET_SEPOLIA ChainID = "eth-testnet-sepolia"
 	ETH_TESTNET_GOERLI  ChainID = "eth-testnet-goerli"
@@ -9,10 +11,22 @@ const (
 )
 
 type (
+	ChainID string
+
 	BlockchainOpts struct {
 		ChainUrl string
 		ChainID  ChainID
 	}
 
-	ChainID string
+	Block struct {
+		Data   []byte
+		Height uint64
+	}
+
+	IBlockchain interface {
+		GetBlock(ctx context.Context, height *uint64) (*Block, error)
+		GetOpts() *BlockchainOpts
+		ID() string
+		Close() error
+	}
 )

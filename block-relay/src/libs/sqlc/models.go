@@ -5,12 +5,25 @@
 package sqlc
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BlockCache struct {
+	BlockchainID string `json:"blockchainId"`
+	BlockHeight  int64  `json:"blockHeight"`
+	Block        []byte `json:"block"`
+}
+
 type BlockCursor struct {
-	ID          string `json:"id"`
-	BlockHeight string `json:"blockHeight"`
+	ID           string `json:"id"`
+	BlockchainID string `json:"blockchainId"`
+	BlockHeight  int64  `json:"blockHeight"`
+}
+
+type Blockchain struct {
+	ID  string `json:"id"`
+	Url string `json:"url"`
 }
 
 type Customer struct {
@@ -18,31 +31,20 @@ type Customer struct {
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }
 
-type PendingWebhookJob struct {
-	BlockHeight string `json:"blockHeight"`
-	ChainID     string `json:"chainId"`
-	ChainUrl    string `json:"chainUrl"`
-	ChannelName string `json:"channelName"`
-}
-
 type Webhook struct {
-	ID           pgtype.UUID `json:"id"`
-	ChainID      string      `json:"chainId"`
-	Url          string      `json:"url"`
-	MaxRetries   int32       `json:"maxRetries"`
-	TimeoutMs    int32       `json:"timeoutMs"`
-	RetryDelayMs int32       `json:"retryDelayMs"`
-	CustomerID   string      `json:"customerId"`
+	ID           uuid.UUID          `json:"id"`
+	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
+	Url          string             `json:"url"`
+	MaxBlocks    int32              `json:"maxBlocks"`
+	MaxRetries   int32              `json:"maxRetries"`
+	TimeoutMs    int32              `json:"timeoutMs"`
+	CustomerID   string             `json:"customerId"`
+	BlockchainID string             `json:"blockchainId"`
 }
 
 type WebhookJob struct {
-	ID           int64              `json:"id"`
-	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
-	ChainID      string             `json:"chainId"`
-	ChainUrl     string             `json:"chainUrl"`
-	BlockHeight  string             `json:"blockHeight"`
-	Url          string             `json:"url"`
-	MaxRetries   int32              `json:"maxRetries"`
-	TimeoutMs    int32              `json:"timeoutMs"`
-	RetryDelayMs int32              `json:"retryDelayMs"`
+	ID          int64              `json:"id"`
+	CreatedAt   pgtype.Timestamptz `json:"createdAt"`
+	BlockHeight int64              `json:"blockHeight"`
+	WebhookID   uuid.UUID          `json:"webhookId"`
 }

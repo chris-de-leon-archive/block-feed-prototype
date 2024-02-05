@@ -1,8 +1,8 @@
 package blockchains
 
 import (
-	"block-relay/src/libs/common"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -51,8 +51,13 @@ func (blockchain *EthereumBlockchain) GetOpts() *BlockchainOpts {
 	return blockchain.opts
 }
 
-func (blockchain *EthereumBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
-	result, err := blockchain.client.BlockByNumber(ctx, (&big.Int{}).SetUint64(height))
+func (blockchain *EthereumBlockchain) GetBlock(ctx context.Context, height *uint64) (*Block, error) {
+	var h *big.Int
+	if height != nil {
+		h = (&big.Int{}).SetUint64(*height)
+	}
+
+	result, err := blockchain.client.BlockByNumber(ctx, h)
 	if err != nil {
 		return nil, err
 	}
@@ -62,19 +67,14 @@ func (blockchain *EthereumBlockchain) GetBlockAtHeight(ctx context.Context, heig
 		return nil, err
 	}
 
-	return []byte(block), nil
+	return &Block{
+		Height: result.NumberU64(),
+		Data:   block,
+	}, nil
 }
 
-func (blockchain *EthereumBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
-	result, err := blockchain.client.BlockNumber(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return result, nil
-}
-
-func stringifyBlock(block *ethtypes.Block) (string, error) {
-	return common.JsonStringify(map[string]any{
+func stringifyBlock(block *ethtypes.Block) ([]byte, error) {
+	return json.MarshalIndent(map[string]any{
 		"receivedAt": block.ReceivedAt.String(),
 		"baseFee":    block.BaseFee().String(),
 		// "beaconRoot":     block.BeaconRoot().String(), // throws an error
@@ -102,5 +102,5 @@ func stringifyBlock(block *ethtypes.Block) (string, error) {
 		"uncleHash":     block.UncleHash().String(),
 		"uncles":        block.Uncles(),
 		"withdrawals":   block.Withdrawals(),
-	})
+	}, "", " ")
 }

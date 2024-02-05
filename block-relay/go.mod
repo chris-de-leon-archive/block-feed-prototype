@@ -3,17 +3,18 @@ module block-relay
 go 1.21
 
 require (
-	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/docker/go-connections v0.4.0
 	github.com/ethereum/go-ethereum v1.13.10
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.17.0
+	github.com/google/uuid v1.5.0
 	github.com/jackc/pgx/v5 v5.5.2
 	github.com/onflow/flow-go-sdk v0.44.0
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/testcontainers/testcontainers-go v0.27.0
+	golang.org/x/sync v0.5.0
 )
 
 require (
@@ -48,7 +49,6 @@ require (
 	github.com/go-test/deep v1.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -99,7 +99,6 @@ require (
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect

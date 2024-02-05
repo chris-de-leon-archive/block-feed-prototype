@@ -1,12 +1,10 @@
-package tests
+package testutils
 
 import (
 	"context"
 	"fmt"
 	"io"
 	"path"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -51,8 +49,8 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*C
 			WaitingFor:   wait.ForExposedPort(),
 			Cmd:          []string{"postgres", "-c", "log_statement=all"},
 			FromDockerfile: testcontainers.FromDockerfile{
-				Context:    path.Join(*dir, ".."),
-				Dockerfile: path.Join("tests", "assets", "postgres", "Dockerfile"),
+				Context:    path.Join(*dir, "..", "..", "..", "db"),
+				Dockerfile: path.Join("Dockerfile"),
 				BuildArgs: map[string]*string{
 					"POSTGRES_VERSION": &version,
 				},
@@ -79,13 +77,16 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*C
 		return nil, err
 	}
 
-	// Replace the default URL with the correct postgres connection string
+	// Replaces the default URL with the correct postgres connection string
+	// excluding the database name (so we can configure it later)
 	conn.Url = fmt.Sprintf(
-		"postgres://%s:%s@%s:%s",
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
 		DEFAULT_POSTGRES_USERNAME,
 		DEFAULT_POSTGRES_PASSWORD,
 		"host.docker.internal",
 		conn.Port.Port(),
+		DEFAULT_POSTGRES_DB,
+		DEFAULT_POSTGRES_SCHEMA,
 	)
 
 	// Returns the container info
@@ -174,7 +175,7 @@ func GetConnectionInfo(ctx context.Context, container testcontainers.Container, 
 }
 
 func ScheduleContainerTermination(t *testing.T, container testcontainers.Container) {
-	// Clean up the container when the test case finishes
+	// Cleans up the container when the test case finishes
 	t.Cleanup(func() {
 		if err := container.Terminate(context.Background()); err != nil {
 			t.Log(err)
@@ -202,21 +203,4 @@ func Dexec(ctx context.Context, container testcontainers.Container, cmd []string
 	// Returns output as a string
 	output := buf.String()
 	return &output, nil
-}
-
-func GetCurrentDir() (*string, error) {
-	// Get the file path and line number of the calling function
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, fmt.Errorf("failed to get file path")
-	}
-
-	// Convert the relative path to an absolute path
-	absDirPath, err := filepath.Abs(filepath.Dir(filename))
-	if err != nil {
-		return nil, err
-	}
-
-	// Returns the absolute path
-	return &absDirPath, nil
 }

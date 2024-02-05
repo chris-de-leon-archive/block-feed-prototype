@@ -2,21 +2,20 @@ package main
 
 import (
 	"block-relay/src/libs/common"
-	"block-relay/src/libs/lib"
+	"block-relay/src/libs/services"
 	"context"
 	"os/signal"
 	"syscall"
 
-	"github.com/caarlos0/env"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
 type EnvVars struct {
-	DatabaseUrl    string `validate:"required,gt=0" env:"JOB_PRODUCER_DATABASE_URL,required"`
-	RedisStreamUrl string `validate:"required,gt=0" env:"JOB_PRODUCER_REDIS_STREAM_URL,required"`
-	BatchSize      int32  `validate:"required,gt=0" env:"JOB_PRODUCER_BATCH_SIZE,required"`
-	MaxWaitMs      int32  `validate:"required,gt=0" env:"JOB_PRODUCER_MAX_WAIT_MS,required"`
+	DatabaseUrl    string `validate:"required,gt=0" env:"BLOCK_RECEIVER_DATABASE_URL,required"`
+	RedisStreamUrl string `validate:"required,gt=0" env:"BLOCK_RECEIVER_REDIS_STREAM_URL,required"`
+	BatchSize      int32  `validate:"required,gt=0" env:"BLOCK_RECEIVER_BATCH_SIZE,required"`
+	MaxWaitMs      int    `validate:"required,gt=0" env:"BLOCK_RECEIVER_MAX_WAIT_MS,required"`
 }
 
 func main() {
@@ -24,19 +23,17 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	// Parses env variables into a struct
-	envvars := EnvVars{}
-	if err := env.Parse(&envvars); err != nil {
-		panic(err)
-	}
-
-	// Validates the env variables
-	if err := common.ValidateStruct[EnvVars](envvars); err != nil {
+	// Loads env variables into a struct and validates them
+	envvars, err := common.LoadEnvVars[EnvVars]()
+	if err != nil {
 		panic(err)
 	}
 
 	// Creates a redis client
-	redisClient := redis.NewClient(&redis.Options{Addr: envvars.RedisStreamUrl})
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:                  envvars.RedisStreamUrl,
+		ContextTimeoutEnabled: true,
+	})
 	defer func() {
 		if err := redisClient.Close(); err != nil {
 			common.LogError(nil, err)
@@ -52,10 +49,10 @@ func main() {
 	}
 
 	// Creates the service
-	service := lib.NewJobProducer(lib.JobProducerParams{
+	service := services.NewBlockReceiver(services.BlockReceiverParams{
 		DatabaseConnPool: dbConnPool,
 		RedisClient:      redisClient,
-		Opts: lib.JobProducerOpts{
+		Opts: services.BlockReceiverOpts{
 			BatchSize: envvars.BatchSize,
 			MaxWaitMs: envvars.MaxWaitMs,
 		},
@@ -64,6 +61,7 @@ func main() {
 	// Runs the service until the context is cancelled
 	err = service.Run(ctx)
 	if err != nil {
+		common.LogError(nil, err)
 		panic(err)
 	}
 }

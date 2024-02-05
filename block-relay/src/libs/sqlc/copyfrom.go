@@ -9,13 +9,13 @@ import (
 	"context"
 )
 
-// iteratorForCreatePendingWebhookJob implements pgx.CopyFromSource.
-type iteratorForCreatePendingWebhookJob struct {
-	rows                 []*CreatePendingWebhookJobParams
+// iteratorForCacheBlocks implements pgx.CopyFromSource.
+type iteratorForCacheBlocks struct {
+	rows                 []*CacheBlocksParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreatePendingWebhookJob) Next() bool {
+func (r *iteratorForCacheBlocks) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -27,19 +27,22 @@ func (r *iteratorForCreatePendingWebhookJob) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreatePendingWebhookJob) Values() ([]interface{}, error) {
+func (r iteratorForCacheBlocks) Values() ([]interface{}, error) {
 	return []interface{}{
+		r.rows[0].BlockchainID,
 		r.rows[0].BlockHeight,
-		r.rows[0].ChainID,
-		r.rows[0].ChainUrl,
-		r.rows[0].ChannelName,
+		r.rows[0].Block,
 	}, nil
 }
 
-func (r iteratorForCreatePendingWebhookJob) Err() error {
+func (r iteratorForCacheBlocks) Err() error {
 	return nil
 }
 
-func (q *Queries) CreatePendingWebhookJob(ctx context.Context, arg []*CreatePendingWebhookJobParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"pending_webhook_job"}, []string{"block_height", "chain_id", "chain_url", "channel_name"}, &iteratorForCreatePendingWebhookJob{rows: arg})
+// CacheBlocks
+//
+//	INSERT INTO "block_cache" ("blockchain_id", "block_height", "block")
+//	VALUES ($1, $2, $3)
+func (q *Queries) CacheBlocks(ctx context.Context, arg []*CacheBlocksParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"block_cache"}, []string{"blockchain_id", "block_height", "block"}, &iteratorForCacheBlocks{rows: arg})
 }

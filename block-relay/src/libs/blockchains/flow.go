@@ -1,8 +1,8 @@
 package blockchains
 
 import (
-	"block-relay/src/libs/common"
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 
@@ -52,8 +52,15 @@ func (blockchain *FlowBlockchain) GetOpts() *BlockchainOpts {
 	return blockchain.opts
 }
 
-func (blockchain *FlowBlockchain) GetBlockAtHeight(ctx context.Context, height uint64) ([]byte, error) {
-	block, err := blockchain.client.GetBlockByHeight(ctx, height)
+func (blockchain *FlowBlockchain) GetBlock(ctx context.Context, height *uint64) (*Block, error) {
+	var block *flow.Block
+	var err error
+
+	if height == nil {
+		block, err = blockchain.client.GetLatestBlock(ctx, true)
+	} else {
+		block, err = blockchain.client.GetBlockByHeight(ctx, *height)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -66,20 +73,15 @@ func (blockchain *FlowBlockchain) GetBlockAtHeight(ctx context.Context, height u
 	blockWithTxs := mapifyBlock(block)
 	maps.Copy(blockWithTxs, map[string]any{"transactions": mapifyTransactions(txs)})
 
-	result, err := common.JsonStringify(blockWithTxs)
+	result, err := json.MarshalIndent(blockWithTxs, "", " ")
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(result), nil
-}
-
-func (blockchain *FlowBlockchain) GetLatestBlockHeight(ctx context.Context) (uint64, error) {
-	block, err := blockchain.client.GetLatestBlock(ctx, true)
-	if err != nil {
-		return 0, err
-	}
-	return block.Height, nil
+	return &Block{
+		Height: block.Height,
+		Data:   result,
+	}, nil
 }
 
 func mapifyTransactions(txs []*flow.Transaction) []map[string]any {

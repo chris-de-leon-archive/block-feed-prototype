@@ -1,9 +1,9 @@
 FROM golang:1.21.6-alpine3.18 AS builder
-ARG BUILD_PATH
 WORKDIR /workspace
 COPY ./go.mod ./
 COPY ./go.sum ./
 COPY ./src ./src
+ARG BUILD_PATH
 RUN go build -o bin ${BUILD_PATH}
 
 FROM alpine:3.18.4
