@@ -20,7 +20,17 @@ docker run --rm -d \
 # Waits for postgres to come online
 sleep 2
 
-# Generates a database migration
+# Makes sure the database is clean before generating the migration
 atlas schema clean --url $DB_URL --auto-approve
-docker exec -i "$CONTAINER_NAME" psql $DB_URL --single-transaction -v ON_ERROR_STOP=1 -c "CREATE SCHEMA IF NOT EXISTS \"$DB_SCHEMA\";"
-atlas migrate diff --dir "file://./migrations" --to "file://./schema.sql" --dev-url "$DB_URL&search_path=$DB_SCHEMA"
+
+# Creates a database schema
+docker exec -i "$CONTAINER_NAME" psql $DB_URL \
+	--single-transaction \
+	-v ON_ERROR_STOP=1 \
+	-c "CREATE SCHEMA IF NOT EXISTS \"$DB_SCHEMA\";"
+
+# Generates a new migration
+atlas migrate diff \
+	--dir "file://./migrations" \
+	--to "file://./schema.sql" \
+	--dev-url "$DB_URL&search_path=$DB_SCHEMA"

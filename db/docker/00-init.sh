@@ -1,7 +1,13 @@
 set -e
 
-SCHEMA_FILE="/sql/schema.sql"
+# For development/testing purposes only
+
+SCHEMA_FILE="/db/schema.sql"
 SCHEMA_NAME="block_feed"
+
+BLOCK_RELAY_RFILE="/db/roles/block-relay.role.sql"
+BLOCK_RELAY_UNAME="block_relay_role"
+BLOCK_RELAY_PWORD="password"
 
 psql \
 	--username "$POSTGRES_USER" \
@@ -17,3 +23,13 @@ PGOPTIONS="--search_path=$SCHEMA_NAME" psql \
 	--single-transaction \
 	-v ON_ERROR_STOP=1 \
 	-f "$SCHEMA_FILE"
+
+psql \
+	--username "$POSTGRES_USER" \
+	--dbname "$POSTGRES_DB" \
+	--single-transaction \
+	-v ON_ERROR_STOP=1 \
+	-v schema="$SCHEMA_NAME" \
+	-v uname="$BLOCK_RELAY_UNAME" \
+	-v pword="$BLOCK_RELAY_PWORD" \
+	-f "$BLOCK_RELAY_RFILE"

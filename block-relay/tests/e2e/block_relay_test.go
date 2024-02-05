@@ -13,10 +13,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // TODO: make sure docker images are locally available using docker pull BEFORE this test file is run
-// TODO: database access control
 // TODO: tests to add:
 //
 //	try to create a consumer group that already exists (stream consumer)
@@ -53,6 +54,9 @@ func TestBlockRelay(t *testing.T) {
 
 		CHAIN_URL = "access.devnet.nodes.onflow.org:9000"
 		CHAIN_ID  = blockchains.FLOW_TESTNET
+
+		BLOCK_RELAY_UNAME = "block_relay_role"
+		BLOCK_RELAY_PWORD = "password"
 
 		TEST_DURATION_MS       = 5000
 		WEBHOOK_MAX_RETRIES    = 2
@@ -103,8 +107,11 @@ func TestBlockRelay(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Instead of using superuser credentials, use a role with limited permissions
+	dbUrl := testutils.PostgresUrl(*postgresC.Conn, BLOCK_RELAY_UNAME, BLOCK_RELAY_PWORD)
+
 	// Creates a block poller service
-	blockPoller, err := testutils.NewBlockPoller(t, ctx, postgresC.Conn.Url, *blockchainOpts, services.BlockPollerOpts{
+	blockPoller, err := testutils.NewBlockPoller(t, ctx, dbUrl, *blockchainOpts, services.BlockPollerOpts{
 		Name:                BLOCK_POLLER_NAME,
 		MaxInFlightRequests: BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS,
 		BatchSize:           BLOCK_POLLER_BATCH_SIZE,
@@ -115,7 +122,7 @@ func TestBlockRelay(t *testing.T) {
 	}
 
 	// Creates a block poller service
-	blockReceiver, err := testutils.NewBlockReceiver(t, ctx, redisC.Conn.Url, postgresC.Conn.Url, services.BlockReceiverOpts{
+	blockReceiver, err := testutils.NewBlockReceiver(t, ctx, redisC.Conn.Url, dbUrl, services.BlockReceiverOpts{
 		BatchSize: BLOCK_RECEIVER_BATCH_SIZE,
 		MaxWaitMs: BLOCK_RECEIVER_MAX_WAIT_MS,
 	})
@@ -124,7 +131,7 @@ func TestBlockRelay(t *testing.T) {
 	}
 
 	// Creates a webhook consumer service
-	webhookConsumer, err := testutils.NewWebhookConsumer(t, ctx, redisC.Conn.Url, postgresC.Conn.Url,
+	webhookConsumer, err := testutils.NewWebhookConsumer(t, ctx, redisC.Conn.Url, dbUrl,
 		services.StreamConsumerOpts{
 			ConsumerName:   WEBHOOK_CONSUMER_NAME,
 			MaxPoolSize:    WEBHOOK_CONSUMER_MAX_POOL_SIZE,
@@ -138,7 +145,7 @@ func TestBlockRelay(t *testing.T) {
 	}
 
 	// Creates a rescheduling consumer service
-	reschedulingConsumer, err := testutils.NewReschedulingConsumer(t, ctx, redisC.Conn.Url, postgresC.Conn.Url,
+	reschedulingConsumer, err := testutils.NewReschedulingConsumer(t, ctx, redisC.Conn.Url, dbUrl,
 		services.StreamConsumerOpts{
 			ConsumerName:   RESCHEDULING_CONSUMER_NAME,
 			MaxPoolSize:    RESCHEDULING_CONSUMER_MAX_POOL_SIZE,
@@ -153,37 +160,12 @@ func TestBlockRelay(t *testing.T) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(TEST_DURATION_MS)*time.Millisecond)
 	defer cancel()
 
-	// Runs the block poller in a separate go routine
-	go func() {
-		if err := blockPoller.Run(timeoutCtx); err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			t.Logf("error: %v\n", err)
-			return
-		}
-	}()
-
-	// Runs the block receiver in a separate go routine
-	go func() {
-		if err := blockReceiver.Run(timeoutCtx); err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			t.Logf("error: %v\n", err)
-			return
-		}
-	}()
-
-	// Runs the webhook consumer in a separate go routine
-	go func() {
-		if err := webhookConsumer.Run(timeoutCtx); err != nil && !errors.Is(err, context.DeadlineExceeded) && !strings.Contains(err.Error(), "i/o timeout") {
-			t.Logf("error: %v\n", err)
-			return
-		}
-	}()
-
-	// Runs the rescheduling consumer in a separate go routine
-	go func() {
-		if err := reschedulingConsumer.Run(timeoutCtx); err != nil && !errors.Is(err, context.DeadlineExceeded) && !strings.Contains(err.Error(), "i/o timeout") {
-			t.Logf("error: %v\n", err)
-			return
-		}
-	}()
+	// Runs all services in the background
+	eg := new(errgroup.Group)
+	eg.Go(func() error { return blockPoller.Run(timeoutCtx) })
+	eg.Go(func() error { return blockReceiver.Run(timeoutCtx) })
+	eg.Go(func() error { return webhookConsumer.Run(timeoutCtx) })
+	eg.Go(func() error { return reschedulingConsumer.Run(timeoutCtx) })
 
 	// Fetches database queries
 	queries, err := testutils.GetQueries(t, ctx, postgresC.Conn.Url)
@@ -191,7 +173,7 @@ func TestBlockRelay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Creates a dummy webhook subscription
+	// Creates a dummy webhook subscription (which starts the workers)
 	if err := testutils.SetupWebhook(ctx, queries, *blockchainOpts, server.URL,
 		WEBHOOK_RETRY_DELAY_MS,
 		WEBHOOK_MAX_RETRIES,
@@ -201,7 +183,10 @@ func TestBlockRelay(t *testing.T) {
 	}
 
 	// Waits for the timeout (processing should occur in the background while we wait)
-	<-timeoutCtx.Done()
+	// Fails the test if an unexpected error occurs
+	if err := eg.Wait(); err != nil && !errors.Is(err, context.DeadlineExceeded) && !strings.Contains(err.Error(), "i/o timeout") {
+		t.Fatal(err)
+	}
 
 	// Checks that the correct number of http calls was made
 	blockCount := 0

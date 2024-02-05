@@ -77,17 +77,8 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*C
 		return nil, err
 	}
 
-	// Replaces the default URL with the correct postgres connection string
-	// excluding the database name (so we can configure it later)
-	conn.Url = fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
-		DEFAULT_POSTGRES_USERNAME,
-		DEFAULT_POSTGRES_PASSWORD,
-		"host.docker.internal",
-		conn.Port.Port(),
-		DEFAULT_POSTGRES_DB,
-		DEFAULT_POSTGRES_SCHEMA,
-	)
+	// The default URL allows superuser access
+	conn.Url = PostgresUrl(*conn, DEFAULT_POSTGRES_USERNAME, DEFAULT_POSTGRES_PASSWORD)
 
 	// Returns the container info
 	return &ContainerWithConnectionInfo{
@@ -151,6 +142,18 @@ func RedisQueueCmd() []string {
 		"--maxmemory-policy", "noeviction",
 		"--appendonly", "yes",
 	}...)
+}
+
+func PostgresUrl(conn HostConnectionInfo, uname string, pword string) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
+		uname,
+		pword,
+		"host.docker.internal",
+		conn.Port.Port(),
+		DEFAULT_POSTGRES_DB,
+		DEFAULT_POSTGRES_SCHEMA,
+	)
 }
 
 func GetConnectionInfo(ctx context.Context, container testcontainers.Container, containerPort nat.Port) (*HostConnectionInfo, error) {
