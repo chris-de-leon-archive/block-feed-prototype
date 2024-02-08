@@ -1,0 +1,50 @@
+{
+  "name": "api-webhooks-find-one",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/webhooks/find-one/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/webhooks/find-one",
+        "main": "apps/api/webhooks/find-one/src/main.ts",
+        "tsConfig": "apps/api/webhooks/find-one/tsconfig.app.json",
+        "assets": ["apps/api/webhooks/find-one/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/api/webhooks/find-one/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-webhooks-find-one:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-webhooks-find-one:build:development"
+        },
+        "production": {
+          "buildTarget": "api-webhooks-find-one:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/api/webhooks/find-one/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

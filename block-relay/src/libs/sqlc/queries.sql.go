@@ -18,6 +18,7 @@ type CacheBlocksParams struct {
 }
 
 const CreateWebhook = `-- name: CreateWebhook :execrows
+
 WITH 
   inserted_user AS (
     INSERT INTO "customer" ("id", "created_at")
@@ -66,7 +67,7 @@ type CreateWebhookParams struct {
 	TimeoutMs         int32  `json:"timeoutMs"`
 }
 
-// CreateWebhook
+// TODO: remove this since it is only used for testing purposes
 //
 //	WITH
 //	  inserted_user AS (
@@ -120,17 +121,30 @@ func (q *Queries) CreateWebhook(ctx context.Context, arg *CreateWebhookParams) (
 	return result.RowsAffected(), nil
 }
 
-const FindBlockCursor = `-- name: FindBlockCursor :one
-SELECT id, blockchain_id, block_height FROM "block_cursor" WHERE "id" = $1 LIMIT 1
+const GetLatestCachedBlockHeight = `-- name: GetLatestCachedBlockHeight :one
+SELECT "blockchain_id", "block_height" 
+FROM "block_cache" 
+WHERE "blockchain_id" = $1
+ORDER BY "block_height" DESC
+LIMIT 1
 `
 
-// FindBlockCursor
+type GetLatestCachedBlockHeightRow struct {
+	BlockchainID string `json:"blockchainId"`
+	BlockHeight  int64  `json:"blockHeight"`
+}
+
+// GetLatestCachedBlockHeight
 //
-//	SELECT id, blockchain_id, block_height FROM "block_cursor" WHERE "id" = $1 LIMIT 1
-func (q *Queries) FindBlockCursor(ctx context.Context, id string) (*BlockCursor, error) {
-	row := q.db.QueryRow(ctx, FindBlockCursor, id)
-	var i BlockCursor
-	err := row.Scan(&i.ID, &i.BlockchainID, &i.BlockHeight)
+//	SELECT "blockchain_id", "block_height"
+//	FROM "block_cache"
+//	WHERE "blockchain_id" = $1
+//	ORDER BY "block_height" DESC
+//	LIMIT 1
+func (q *Queries) GetLatestCachedBlockHeight(ctx context.Context, blockchainID string) (*GetLatestCachedBlockHeightRow, error) {
+	row := q.db.QueryRow(ctx, GetLatestCachedBlockHeight, blockchainID)
+	var i GetLatestCachedBlockHeightRow
+	err := row.Scan(&i.BlockchainID, &i.BlockHeight)
 	return &i, err
 }
 
@@ -353,31 +367,6 @@ type RescheduleWebhookJobParams struct {
 //	ON CONFLICT ("webhook_id") DO NOTHING
 func (q *Queries) RescheduleWebhookJob(ctx context.Context, arg *RescheduleWebhookJobParams) (int64, error) {
 	result, err := q.db.Exec(ctx, RescheduleWebhookJob, arg.BlockHeight, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const UpsertBlockCursor = `-- name: UpsertBlockCursor :execrows
-INSERT INTO "block_cursor" ("id", "blockchain_id", "block_height") 
-VALUES ($1, $2, $3)
-ON CONFLICT ("id") DO UPDATE SET "block_height" = EXCLUDED."block_height"
-`
-
-type UpsertBlockCursorParams struct {
-	ID           string `json:"id"`
-	BlockchainID string `json:"blockchainId"`
-	BlockHeight  int64  `json:"blockHeight"`
-}
-
-// UpsertBlockCursor
-//
-//	INSERT INTO "block_cursor" ("id", "blockchain_id", "block_height")
-//	VALUES ($1, $2, $3)
-//	ON CONFLICT ("id") DO UPDATE SET "block_height" = EXCLUDED."block_height"
-func (q *Queries) UpsertBlockCursor(ctx context.Context, arg *UpsertBlockCursorParams) (int64, error) {
-	result, err := q.db.Exec(ctx, UpsertBlockCursor, arg.ID, arg.BlockchainID, arg.BlockHeight)
 	if err != nil {
 		return 0, err
 	}

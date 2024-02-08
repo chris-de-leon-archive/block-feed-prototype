@@ -32,10 +32,6 @@ DECLARE
     format('GRANT SELECT, INSERT, DELETE ON TABLE %I."webhook_job" TO %I;', schma, uname),
     format('GRANT USAGE ON SEQUENCE %I."webhook_job_id_seq" TO %I;', schma, uname),
 
-    -- block_cursor
-    format('REVOKE ALL PRIVILEGES ON %I."block_cursor" FROM %I;', schma, uname),
-    format('GRANT SELECT, INSERT, UPDATE ON TABLE %I."block_cursor" TO %I;', schma, uname),
-
     -- block_cache
     format('REVOKE ALL PRIVILEGES ON %I."block_cache" FROM %I;', schma, uname),
     format('GRANT SELECT, INSERT, DELETE ON TABLE %I."block_cache" TO %I;', schma, uname)

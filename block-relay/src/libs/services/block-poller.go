@@ -68,7 +68,7 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 	var lastProcessedBlockHeight *uint64 = nil
 
 	// Fetches the last block height that was pushed to the database if one exists
-	blockCursor, err := service.dbQueries.FindBlockCursor(ctx, service.chain.ID())
+	lastCachedBlock, err := service.dbQueries.GetLatestCachedBlockHeight(ctx, service.chain.ID())
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	} else {
@@ -76,9 +76,9 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 	}
 
 	// If a block cursor exists for this chain, extract the last recorded block height
-	if blockCursor != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if lastCachedBlock != nil && !errors.Is(err, pgx.ErrNoRows) {
 		lastProcessedBlockHeight = new(uint64)
-		*lastProcessedBlockHeight = uint64(blockCursor.BlockHeight)
+		*lastProcessedBlockHeight = uint64(lastCachedBlock.BlockHeight)
 	}
 
 	// Defines a channel for processing block heights
@@ -258,15 +258,6 @@ func (service *BlockPoller) cacheBlocks(ctx context.Context, blocks []*sqlc.Cach
 	err := pgx.BeginFunc(ctx, service.dbConnPool, func(tx pgx.Tx) error {
 		// Ensures that the following queries are run in the transaction
 		qtx := service.dbQueries.WithTx(tx)
-
-		// Updates the block cursor height
-		if _, err := qtx.UpsertBlockCursor(ctx, &sqlc.UpsertBlockCursorParams{
-			BlockchainID: service.chain.ID(),
-			BlockHeight:  blocks[len(blocks)-1].BlockHeight,
-			ID:           service.opts.Name,
-		}); err != nil {
-			return err
-		}
 
 		// Caches the blocks
 		if _, err := qtx.CacheBlocks(ctx, blocks); err != nil {

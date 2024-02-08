@@ -1,3 +1,5 @@
+-- TODO: remove this since it is only used for testing purposes
+
 -- name: CreateWebhook :execrows
 WITH 
   inserted_user AS (
@@ -108,18 +110,17 @@ INNER JOIN "webhook" ON "webhook"."id" = "webhook_job"."webhook_id"
 WHERE "webhook_job"."id" = sqlc.arg('id')
 LIMIT 1;
 
--- name: FindBlockCursor :one
-SELECT * FROM "block_cursor" WHERE "id" = sqlc.arg('id') LIMIT 1;
-
--- name: UpsertBlockCursor :execrows
-INSERT INTO "block_cursor" ("id", "blockchain_id", "block_height") 
-VALUES (sqlc.arg('id'), sqlc.arg('blockchain_id'), sqlc.arg('block_height'))
-ON CONFLICT ("id") DO UPDATE SET "block_height" = EXCLUDED."block_height";
-
 -- name: UpsertBlockchain :execrows
 INSERT INTO "blockchain" ("id", "url") 
 VALUES (sqlc.arg('id'), sqlc.arg('url'))
 ON CONFLICT ("id") DO UPDATE SET "url" = EXCLUDED."url";
+
+-- name: GetLatestCachedBlockHeight :one
+SELECT "blockchain_id", "block_height" 
+FROM "block_cache" 
+WHERE "blockchain_id" = sqlc.arg('blockchain_id')
+ORDER BY "block_height" DESC
+LIMIT 1;
 
 -- name: CacheBlocks :copyfrom
 INSERT INTO "block_cache" ("blockchain_id", "block_height", "block") 

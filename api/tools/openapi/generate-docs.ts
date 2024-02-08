@@ -1,18 +1,16 @@
 import { generateOpenApiDocument } from "trpc-openapi"
-import { RelayersAPI } from "@api/api/relayers/api"
+import { WebhooksAPI } from "@api/api/webhooks/api"
 import { trpc } from "@api/shared/trpc"
 import * as fs from "node:fs/promises"
 
 const t = trpc.createTRPC<any>()
 
 const appRouter = t.router({
-  [RelayersAPI.NAMESPACE]: t.router({
-    [RelayersAPI.OPERATIONS.FIND_MANY.NAME]: RelayersAPI.findMany(t),
-    [RelayersAPI.OPERATIONS.FIND_ONE.NAME]: RelayersAPI.findOne(t),
-    [RelayersAPI.OPERATIONS.CREATE.NAME]: RelayersAPI.create(t),
-    [RelayersAPI.OPERATIONS.UPDATE.NAME]: RelayersAPI.update(t),
-    [RelayersAPI.OPERATIONS.REMOVE.NAME]: RelayersAPI.remove(t),
-    [RelayersAPI.OPERATIONS.DEPLOY.NAME]: RelayersAPI.deploy(t),
+  [WebhooksAPI.NAMESPACE]: t.router({
+    [WebhooksAPI.OPERATIONS.FIND_MANY.NAME]: WebhooksAPI.findMany(t),
+    [WebhooksAPI.OPERATIONS.FIND_ONE.NAME]: WebhooksAPI.findOne(t),
+    [WebhooksAPI.OPERATIONS.CREATE.NAME]: WebhooksAPI.create(t),
+    [WebhooksAPI.OPERATIONS.REMOVE.NAME]: WebhooksAPI.remove(t),
   }),
 })
 

@@ -1,5 +1,1 @@
-export * from "./enums/relayer-transport.enum"
-export * from "./enums/blockchain.enum"
-export * from "./deployments.schema"
-export * from "./relayers.schema"
-export * from "./users.schema"
+export * from "./generated/schema"

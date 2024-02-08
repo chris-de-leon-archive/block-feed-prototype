@@ -47,7 +47,7 @@ export const requireAuth = async (
   const accessToken = tokens[tokens.length - 1]
 
   // Uses the auth token to get the user profile info
-  // TODO: cache info in redis
+  // TODO: cache info somewhere?
   const profile = await opts.ctx.auth0.userInfo
     .getUserInfo(accessToken)
     .then(({ data }) => data)
@@ -61,21 +61,21 @@ export const requireAuth = async (
   // Prepares insert parameters
   const inputs = {
     placeholders: {
-      id: sql.placeholder(database.schema.users.id.name),
+      id: sql.placeholder(database.schema.customer.id.name),
     },
     values: {
-      [database.schema.users.id.name]: profile.sub,
+      [database.schema.customer.id.name]: profile.sub,
     },
   }
 
   // Inserts the user (or ignores if one already exists)
   await opts.ctx.database.drizzle
-    .insert(database.schema.users)
+    .insert(database.schema.customer)
     .values({ id: inputs.placeholders.id })
-    .onDuplicateKeyUpdate({
-      set: { id: sql`id` },
+    .onConflictDoNothing({
+      target: database.schema.customer.id,
     })
-    .prepare()
+    .prepare("customer:upsert")
     .execute(inputs.values)
 
   // Adds the auth0 profile info to the context

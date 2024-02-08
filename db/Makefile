@@ -3,3 +3,5 @@ generate-migration:
 
 dev:
 	@bash ./scripts/dev.sh
+
+# TODO: atlas migrations

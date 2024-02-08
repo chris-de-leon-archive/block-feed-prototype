@@ -28,15 +28,7 @@ CREATE TABLE "webhook_job" (
 	"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "block_height" BIGINT NOT NULL,
   "webhook_id" UUID NOT NULL UNIQUE,
-  FOREIGN KEY ("webhook_id") REFERENCES "webhook" ("id")
-);
-
-CREATE TABLE "block_cursor" (
-  "id" TEXT PRIMARY KEY,
-  "blockchain_id" TEXT NOT NULL,
-  "block_height" BIGINT NOT NULL,
-  FOREIGN KEY ("blockchain_id") REFERENCES "blockchain" ("id"),
-  CONSTRAINT unique_block_height_per_chain UNIQUE ("blockchain_id", "block_height")
+  FOREIGN KEY ("webhook_id") REFERENCES "webhook" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "block_cache" (

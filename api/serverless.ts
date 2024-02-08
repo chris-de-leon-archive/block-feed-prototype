@@ -1,9 +1,7 @@
-import { config as relayersFindManyConfig } from "./apps/api/relayers/find-many/src/config"
-import { config as relayersFindOneConfig } from "./apps/api/relayers/find-one/src/config"
-import { config as relayersCreateConfig } from "./apps/api/relayers/create/src/config"
-import { config as relayersUpdateConfig } from "./apps/api/relayers/update/src/config"
-import { config as relayersDeployConfig } from "./apps/api/relayers/deploy/src/config"
-import { config as relayersRemoveConfig } from "./apps/api/relayers/remove/src/config"
+import { config as webhooksFindManyConfig } from "./apps/api/webhooks/find-many/src/config"
+import { config as webhooksFindOneConfig } from "./apps/api/webhooks/find-one/src/config"
+import { config as webhooksCreateConfig } from "./apps/api/webhooks/create/src/config"
+import { config as webhooksRemoveConfig } from "./apps/api/webhooks/remove/src/config"
 import type { AWS } from "@serverless/typescript"
 import { utils } from "@api/shared/utils"
 
@@ -27,14 +25,13 @@ const config: AWS = {
     individually: true,
   },
   functions: {
-    ...relayersFindManyConfig,
-    ...relayersFindOneConfig,
-    ...relayersCreateConfig,
-    ...relayersUpdateConfig,
-    ...relayersRemoveConfig,
-    ...relayersDeployConfig,
+    ...webhooksFindManyConfig,
+    ...webhooksFindOneConfig,
+    ...webhooksCreateConfig,
+    ...webhooksRemoveConfig,
   },
   plugins: [
+    // TODO: is localstack still needed?
     "serverless-localstack",
     "serverless-webpack",
     "serverless-offline",

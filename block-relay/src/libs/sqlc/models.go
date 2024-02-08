@@ -15,12 +15,6 @@ type BlockCache struct {
 	Block        []byte `json:"block"`
 }
 
-type BlockCursor struct {
-	ID           string `json:"id"`
-	BlockchainID string `json:"blockchainId"`
-	BlockHeight  int64  `json:"blockHeight"`
-}
-
 type Blockchain struct {
 	ID  string `json:"id"`
 	Url string `json:"url"`

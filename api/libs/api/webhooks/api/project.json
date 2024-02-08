@@ -1,0 +1,16 @@
+{
+  "name": "api-webhooks-api",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/webhooks/api/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/api/webhooks/api/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

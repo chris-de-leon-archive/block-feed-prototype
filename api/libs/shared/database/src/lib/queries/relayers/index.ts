@@ -1,6 +1,0 @@
-export * from "./find-many-by-deployment-id"
-export * from "./find-many"
-export * from "./find-one"
-export * from "./remove"
-export * from "./update"
-export * from "./create"

@@ -57,8 +57,16 @@ func (service *ReschedulingProcessor) ProcessMessage(ctx context.Context, msg re
 	// not exist in the database or find the job by its webhook ID instead of
 	// its actual ID. The latter approach works because each webhook job has a
 	// one-to-one relationship with its corresponding webhook in the database
-	// and webhook IDs are static UUIDs. In this design we use the latter approach.
+	// and webhook IDs are static UUIDs. In this design we use the latter approach
+	// since it is more reliable in the event that a webhook is deleted by the
+	// user.
 	dbJob, err := service.dbQueries.GetWebhookJobByWebhookID(ctx, webhookId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		if err = service.ack(ctx, msg); err != nil {
+			return err
+		}
+		return nil
+	}
 	if err != nil {
 		return err
 	}

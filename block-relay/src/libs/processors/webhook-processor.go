@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -53,6 +54,12 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 
 	// Queries the database for the extended job data
 	data, err := service.dbQueries.GetWebhookJob(ctx, msgData.JobID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		if err := service.ack(ctx, msg); err != nil {
+			return err
+		}
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -97,7 +104,7 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// code), then the client will receive the same request multiple times.
 
 	// Marks this entry as completed
-	if err = service.ack(ctx, msg, messaging.NewReschedulingMsg(
+	if err = service.ackAndReschedule(ctx, msg, messaging.NewReschedulingMsg(
 		msgData.JobID,
 		msgData.WebhookID,
 		msgData.XMaxRetries,
@@ -116,7 +123,7 @@ func (service *WebhookProcessor) ProcessFailedMessage(ctx context.Context, msg r
 		return err
 	}
 
-	return service.ack(ctx, msg,
+	return service.ackAndReschedule(ctx, msg,
 		messaging.NewReschedulingMsg(
 			msgData.JobID,
 			msgData.WebhookID,
@@ -126,7 +133,31 @@ func (service *WebhookProcessor) ProcessFailedMessage(ctx context.Context, msg r
 	)
 }
 
-func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage, data messaging.StreamMessage[messaging.ReschedulingMsgData]) error {
+func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage) error {
+	// Acknowledges the job and deletes it from the stream in one atomic operation
+	ackScript := redis.NewScript(`
+    local src_stream_name = KEYS[1]
+    local dst_stream_name = KEYS[2]
+    local consumer_group = KEYS[3]
+    local message_id = ARGV[1]
+    redis.call("XACK", src_stream_name, consumer_group, message_id)
+    redis.call("XDEL", src_stream_name, message_id)
+  `)
+
+	// Executes the script
+	scriptResult := ackScript.Run(ctx, service.redisClient,
+		[]string{constants.WEBHOOK_STREAM, constants.RESCHEDULER_STREAM, constants.WEBHOOK_CONSUMER_GROUP_NAME},
+		msg.ID,
+	)
+	if err := scriptResult.Err(); err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	}
+
+	// Returns nil if no errors occurred
+	return nil
+}
+
+func (service *WebhookProcessor) ackAndReschedule(ctx context.Context, msg redis.XMessage, data messaging.StreamMessage[messaging.ReschedulingMsgData]) error {
 	// Acknowledges the job, deletes it from the stream, and adds it to another stream in one atomic operation
 	ackScript := redis.NewScript(`
     local src_stream_name = KEYS[1]
