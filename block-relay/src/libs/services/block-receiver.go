@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -108,29 +107,13 @@ func (service *BlockReceiver) Run(ctx context.Context) error {
 
 		// Processes the backlog immediately upon startup (if this is not here, then
 		// the program will enter the for loop and wait unnecessarily for the timeout
-		// to expire or a postgres notification to arrive before processing a new data)
+		// to expire or a postgres notification to arrive before processing new data)
 		if err := service.addNewJobsToStream(ctx, nil); err != nil {
 			return err
 		}
 
-		// Creates a timer
-		timerDuration := time.Duration(service.opts.MaxWaitMs) * time.Millisecond
-		timer := time.NewTimer(timerDuration)
-		defer timer.Stop()
-
 		// Repeatedly processes new data from the database once a notification is received
-		// or the timeout expires
 		for {
-			// Suppose instead of a timer we used a 2-second ticker but it takes 3+ seconds
-			// to perform processing. If the ticker activates while data is being processed,
-			// then we'll immediately process the data again, which is not what we want.
-			// Instead, we either want to wait for a new postgres notification to arrive or
-			// wait another 2 seconds *from the time we finished processing the last postgres
-			// notification* before trying to process the data again. With that in mind a
-			// timer would be more appropriate here.
-			timer.Reset(timerDuration)
-
-			// Continuously process notifications until the context is cancelled
 			select {
 			case <-ctx.Done():
 				return nil
@@ -139,13 +122,6 @@ func (service *BlockReceiver) Run(ctx context.Context) error {
 					return nil
 				}
 				if err := service.addNewJobsToStream(ctx, n); err != nil {
-					return err
-				}
-			case _, ok := <-timer.C:
-				if !ok {
-					return nil
-				}
-				if err := service.addNewJobsToStream(ctx, nil); err != nil {
 					return err
 				}
 			}
