@@ -1,36 +1,31 @@
 set -e
 
 # Defines helper variables
-DB_URL="postgres://rootuser:password@host.docker.internal:5432/dev?sslmode=disable"
-CONTAINER_NAME=$(uuidgen)
-DB_SCHEMA="block_feed"
+DB_NAME="block_feed"
+DB_URL="mysql://root:password@host.docker.internal:3306/$DB_NAME"
+RANDM_UUID="$(uuidgen)"
 
 # Makes sure the container is destroyed once this script exits
-trap "docker stop $CONTAINER_NAME" EXIT
+trap "docker stop $RANDM_UUID" EXIT
 
-# Creates a postgres container
+# Creates a mysql container
 docker run --rm -d \
-	--name "$CONTAINER_NAME" \
-	-p 5432:5432 \
-	-e POSTGRES_USER=rootuser \
-	-e POSTGRES_PASSWORD=password \
-	-e POSTGRES_DB=dev \
-	postgres:16.1-alpine3.18
+	-e MYSQL_ROOT_PASSWORD="password" \
+	-e MYSQL_DATABASE="$DB_NAME" \
+	-e MYSQL_PASSWORD="password" \
+	-e MYSQL_USER="rootuser" \
+	-p 3306:3306 \
+	--name "$RANDM_UUID" \
+	"mysql:8.3.0"
 
-# Waits for postgres to come online
-sleep 2
+# Waits for mysql to come online
+sleep 15
 
 # Makes sure the database is clean before generating the migration
-atlas schema clean --url $DB_URL --auto-approve
-
-# Creates a database schema
-docker exec -i "$CONTAINER_NAME" psql $DB_URL \
-	--single-transaction \
-	-v ON_ERROR_STOP=1 \
-	-c "CREATE SCHEMA IF NOT EXISTS \"$DB_SCHEMA\";"
+atlas schema clean --url "$DB_URL" --auto-approve
 
 # Generates a new migration
 atlas migrate diff \
 	--dir "file://./migrations" \
 	--to "file://./schema.sql" \
-	--dev-url "$DB_URL&search_path=$DB_SCHEMA"
+	--dev-url "$DB_URL"

@@ -4,8 +4,9 @@ import (
 	"block-relay/src/libs/blockchains"
 	"block-relay/src/libs/common"
 	"block-relay/src/libs/constants"
-	"block-relay/src/libs/sqlc"
+	"block-relay/src/libs/messaging"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,77 +14,70 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"
 )
 
 type (
 	BlockPollerOpts struct {
-		Name                string
 		MaxInFlightRequests int
 		BatchSize           int
 		PollMs              int
 	}
 
 	BlockPollerParams struct {
-		DatabaseConnPool *pgxpool.Pool
-		Chain            blockchains.IBlockchain
-		Opts             BlockPollerOpts
+		RedisClient *redis.Client
+		Chain       blockchains.IBlockchain
+		Opts        BlockPollerOpts
 	}
 
 	BlockPoller struct {
-		chain      blockchains.IBlockchain
-		dbConnPool *pgxpool.Pool
-		dbQueries  *sqlc.Queries
-		logger     *log.Logger
-		opts       *BlockPollerOpts
+		chain       blockchains.IBlockchain
+		redisClient *redis.Client
+		logger      *log.Logger
+		opts        *BlockPollerOpts
 	}
 )
 
 // NOTE: only one instance of this needs to be running per chain - adding more than one is unnecessary and will cause performance issues
 func NewBlockPoller(params BlockPollerParams) *BlockPoller {
 	return &BlockPoller{
-		logger:     log.New(os.Stdout, fmt.Sprintf("[%s-poller] ", params.Chain.ID()), log.LstdFlags),
-		dbConnPool: params.DatabaseConnPool,
-		dbQueries:  sqlc.New(params.DatabaseConnPool),
-		chain:      params.Chain,
-		opts:       &params.Opts,
+		logger:      log.New(os.Stdout, fmt.Sprintf("[%s-poller] ", params.Chain.ID()), log.LstdFlags),
+		redisClient: params.RedisClient,
+		chain:       params.Chain,
+		opts:        &params.Opts,
 	}
 }
 
 func (service *BlockPoller) Run(ctx context.Context) error {
-	// Fetches info about the chain we're polling
-	chainOpts := service.chain.GetOpts()
+	// Defines helper variables
+	var lastProcessedBlockHeight *uint64 = nil
+	var lastCachedBlock *blockchains.Block = nil
 
-	// Registers the chain in the database if it doesn't already exist
-	if _, err := service.dbQueries.UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
-		ID:  string(chainOpts.ChainID),
-		Url: chainOpts.ChainUrl,
-	}); err != nil {
+	// Fetches the last block height that was pushed to redis if one exists
+	result, err := service.redisClient.ZRange(ctx, service.chain.ID(), -1, -1).Result()
+	if err != nil {
 		return err
 	}
-
-	// Stores the last recorded block height
-	var lastProcessedBlockHeight *uint64 = nil
-
-	// Fetches the last block height that was pushed to the database if one exists
-	lastCachedBlock, err := service.dbQueries.GetLatestCachedBlockHeight(ctx, service.chain.ID())
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return err
-	} else {
-		service.logger.Println("Successfully queried DB for block cursor")
+	if len(result) > 0 {
+		var decodedBlock blockchains.Block
+		if err := json.Unmarshal([]byte(result[0]), &decodedBlock); err != nil {
+			return err
+		} else {
+			lastCachedBlock = &decodedBlock
+		}
 	}
 
 	// If a block cursor exists for this chain, extract the last recorded block height
-	if lastCachedBlock != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if lastCachedBlock != nil {
 		lastProcessedBlockHeight = new(uint64)
-		*lastProcessedBlockHeight = uint64(lastCachedBlock.BlockHeight)
+		*lastProcessedBlockHeight = uint64(lastCachedBlock.Height)
 	}
 
 	// Defines a channel for processing block heights
-	jobChan := make(chan []*sqlc.CacheBlocksParams)
-	defer close(jobChan)
+	blockChan := make(chan []*blockchains.Block)
+	defer close(blockChan)
 
 	// Creates an errgroup
 	eg := new(errgroup.Group)
@@ -97,12 +91,12 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return nil
-			case job, ok := <-jobChan:
+			case block, ok := <-blockChan:
 				if !ok {
 					return nil
 				}
-				if err := service.cacheBlocks(ctx, job); err != nil {
-					// High chance that this is a non-recoverable database error
+				if err := service.pushBlocks(ctx, block); err != nil {
+					// High chance that this is a non-recoverable error
 					return err
 				}
 			}
@@ -119,7 +113,7 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 		// Processes a block immediately upon startup (if this is not here, then
 		// the program will enter the for loop and wait unnecessarily for the poll
 		// timeout to expire before processing a new block)
-		if err := service.pollBlocks(ctx, &lastProcessedBlockHeight, jobChan); err != nil {
+		if err := service.pollBlocks(ctx, &lastProcessedBlockHeight, blockChan); err != nil {
 			// High chance this is a network error - no need to panic
 			common.LogError(service.logger, err)
 		}
@@ -147,7 +141,7 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 				if !ok {
 					return nil
 				}
-				if err := service.pollBlocks(ctx, &lastProcessedBlockHeight, jobChan); err != nil {
+				if err := service.pollBlocks(ctx, &lastProcessedBlockHeight, blockChan); err != nil {
 					// High chance this is a network error - no need to panic
 					common.LogError(service.logger, err)
 				}
@@ -164,7 +158,7 @@ func (service *BlockPoller) Run(ctx context.Context) error {
 	return nil
 }
 
-func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHeight **uint64, jobChan chan []*sqlc.CacheBlocksParams) error {
+func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHeight **uint64, blockChan chan []*blockchains.Block) error {
 	// Stores the starting height of the block range we need to query
 	var startHeight uint64
 
@@ -207,22 +201,25 @@ func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHe
 	// slice should contain the blocks in ascending order (e.g. blocks[0] should be
 	// the block with the smallest height and blocks[len(blocks)-1] should be the
 	// block with the largest height)
-	blocks := make([]*sqlc.CacheBlocksParams, endHeight-startHeight+1)
+	blocks := make([]*blockchains.Block, endHeight-startHeight+1)
 	for h := startHeight; h <= endHeight; h++ {
 		height := h
 		eg.Go(func() error {
+			// Gets the block from the chain
 			b, err := service.chain.GetBlock(ctx, &height)
 			if err != nil {
 				return err
 			}
+
+			// Performs an overflow check before casting uint64 to int64
 			if b.Height > math.MaxInt64 {
 				return fmt.Errorf("cannot cast block height \"%d\" from a uint64 to an int64 without overflow", b.Height)
 			}
-			blocks[endHeight-height] = &sqlc.CacheBlocksParams{
-				BlockchainID: service.chain.ID(),
-				BlockHeight:  int64(b.Height),
-				Block:        b.Data,
-			}
+
+			// Adds the block to the slice
+			blocks[endHeight-height] = b
+
+			// Returns nil if no errors occurred
 			return nil
 		})
 	}
@@ -233,7 +230,7 @@ func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHe
 	}
 
 	// Flushes all the blocks to the channel
-	jobChan <- blocks
+	blockChan <- blocks
 
 	// Logs a success message
 	service.logger.Printf("Successfully scheduled %d block(s) for processing\n", len(blocks))
@@ -253,34 +250,49 @@ func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHe
 	return nil
 }
 
-func (service *BlockPoller) cacheBlocks(ctx context.Context, blocks []*sqlc.CacheBlocksParams) error {
-	// Begins a transaction
-	err := pgx.BeginFunc(ctx, service.dbConnPool, func(tx pgx.Tx) error {
-		// Ensures that the following queries are run in the transaction
-		qtx := service.dbQueries.WithTx(tx)
+func (service *BlockPoller) pushBlocks(ctx context.Context, blocks []*blockchains.Block) error {
+	// Prepares the blocks in the format: [score, member, score, member, ...]
+	blocksToCache := make([]any, len(blocks)*2)
+	for i, b := range blocks {
+		blocksToCache[i*2] = b.Height
+		blocksToCache[i*2+1] = b.Data
+	}
 
-		// Caches the blocks
-		if _, err := qtx.CacheBlocks(ctx, blocks); err != nil {
-			return err
-		}
+	// TODO: need to implement cache cleaning - we can do this by finding the job with the lowest
+	// block height and remove any cached blocks with a height less than this.
+	// Caches all the blocks and flushes all elements of the waitlist back into the webhook processing stream
+	pushAndFlushScript := redis.NewScript(`
+    local cache_name = KEYS[1]
+    local waitlist_name = KEYS[2]
+    local dst_stream_name = KEYS[3]
+    local dst_msg_data_field = KEYS[4]
 
-		// Sends a notification
-		_, err := tx.Exec(ctx, `SELECT pg_notify(@channelName, '');`, pgx.NamedArgs{
-			"channelName": constants.POSTGRES_BLOCK_CHANNEL_NAME,
-		})
-		if err != nil {
-			return err
-		}
+    redis.call("ZADD", cache_name, "NX", unpack(ARGV))
 
-		// Returns nil if no errors occurred
-		return nil
-	})
+    while true do
+      local element = redis.call('LPOP', waitlist_name)
+      if not element then
+        return
+      else 
+        redis.call('XADD', dst_stream_name, '*', dst_msg_data_field, element)
+      end
+    end
+  `)
 
-	// Handles any transaction errors
-	if err != nil {
+	// Executes the script
+	err := pushAndFlushScript.Run(ctx, service.redisClient,
+		[]string{
+			fmt.Sprintf(constants.CACHE_NAME_TEMPLATE, service.chain.ID()),
+			fmt.Sprintf(constants.WAITLIST_NAME_TEMPLATE, service.chain.ID()),
+			constants.WEBHOOK_STREAM,
+			messaging.GetDataField(),
+		},
+		blocksToCache...,
+	).Err()
+
+	// Handles any errors
+	if err != nil && !errors.Is(err, redis.Nil) {
 		return err
-	} else {
-		service.logger.Printf("Successfully cached block range: [%d, %d]\n", blocks[0].BlockHeight, blocks[len(blocks)-1].BlockHeight)
 	}
 
 	// Returns nil if no errors occurred

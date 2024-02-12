@@ -7,41 +7,36 @@ import (
 	"block-relay/src/libs/sqlc"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 )
 
 type (
-	WebhookProcessorOpts struct {
-		MaxReschedulingRetries int32
-	}
-
 	WebhookProcessorParams struct {
-		DatabaseConnPool *pgxpool.Pool
-		RedisClient      *redis.Client
-		Opts             *WebhookProcessorOpts
+		DatabaseClient *sql.DB
+		RedisClient    *redis.Client
 	}
 
 	WebhookProcessor struct {
 		redisClient *redis.Client
-		dbConnPool  *pgxpool.Pool
+		dbClient    *sql.DB
 		dbQueries   *sqlc.Queries
-		opts        *WebhookProcessorOpts
 	}
 )
 
 func NewWebhookProcessor(params WebhookProcessorParams) services.IStreamProcessor {
 	return &WebhookProcessor{
-		dbConnPool:  params.DatabaseConnPool,
-		dbQueries:   sqlc.New(params.DatabaseConnPool),
+		dbClient:    params.DatabaseClient,
+		dbQueries:   sqlc.New(params.DatabaseClient),
 		redisClient: params.RedisClient,
-		opts:        params.Opts,
 	}
 }
 
@@ -52,10 +47,11 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 		return err
 	}
 
-	// Queries the database for the extended job data
-	data, err := service.dbQueries.GetWebhookJob(ctx, msgData.JobID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		if err := service.ack(ctx, msg); err != nil {
+	// Gets the webhook data - if it is no longer in the database this
+	// stream entry will be deleted and we won't send the blocks
+	webhook, err := service.dbQueries.GetWebhook(ctx, msgData.WebhookID)
+	if errors.Is(err, sql.ErrNoRows) {
+		if err := service.ack(ctx, msg, nil); err != nil {
 			return err
 		}
 		return nil
@@ -64,16 +60,22 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 		return err
 	}
 
-	// Sends a request to the webhook endpoint only if there are blocks to send
-	if len(data.CachedBlocks) > 0 {
-		// Converts the cached blocks type from [][]byte to []string
-		parsedBlocks := make([]string, len(data.CachedBlocks))
-		for i, rawBlock := range data.CachedBlocks {
-			parsedBlocks[i] = string(rawBlock)
-		}
+	// Gets the cached blocks (range is inclusive)
+	blocks, err := service.redisClient.ZRangeByScore(ctx,
+		fmt.Sprintf(constants.CACHE_NAME_TEMPLATE, msgData.ChainID),
+		&redis.ZRangeBy{
+			Min: strconv.FormatUint(msgData.BlockHeight, 10),
+			Max: strconv.FormatUint(msgData.BlockHeight+uint64(webhook.MaxBlocks), 10),
+		},
+	).Result()
+	if err != nil {
+		return err
+	}
 
+	// Sends a request to the webhook endpoint only if there are blocks to send
+	if len(blocks) > 0 {
 		// JSON encodes all the block data
-		body, err := json.MarshalIndent(parsedBlocks, "", " ")
+		body, err := json.MarshalIndent(blocks, "", " ")
 		if err != nil {
 			return err
 		}
@@ -82,7 +84,7 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 		req, err := http.NewRequestWithContext(
 			ctx,
 			"POST",
-			data.WebhookUrl,
+			webhook.Url,
 			bytes.NewBuffer(body),
 		)
 		if err != nil {
@@ -92,9 +94,8 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 		}
 
 		// Sends a synchronous POST request to the webhook URL
-		httpClient := http.Client{Timeout: time.Duration(data.WebhookTimeoutMs) * time.Millisecond}
-		_, err = httpClient.Do(req)
-		if err != nil {
+		httpClient := http.Client{Timeout: time.Duration(webhook.TimeoutMs) * time.Millisecond}
+		if _, err := httpClient.Do(req); err != nil {
 			return err
 		}
 	}
@@ -104,11 +105,11 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// code), then the client will receive the same request multiple times.
 
 	// Marks this entry as completed
-	if err = service.ackAndReschedule(ctx, msg, messaging.NewReschedulingMsg(
-		msgData.JobID,
+	if err = service.ack(ctx, msg, messaging.NewWebhookMsg(
+		msgData.ChainID,
+		msgData.BlockHeight+uint64(len(blocks)),
 		msgData.WebhookID,
 		msgData.XMaxRetries,
-		len(data.CachedBlocks),
 	)); err != nil {
 		return err
 	}
@@ -123,61 +124,67 @@ func (service *WebhookProcessor) ProcessFailedMessage(ctx context.Context, msg r
 		return err
 	}
 
-	return service.ackAndReschedule(ctx, msg,
-		messaging.NewReschedulingMsg(
-			msgData.JobID,
+	// TODO: might be better to skip to the latest block, so that failed
+	// jobs don't make the cache too large
+	return service.ack(ctx, msg,
+		messaging.NewWebhookMsg(
+			msgData.ChainID,
+			msgData.BlockHeight+1, // if we could not process [h1, h2], try [h1+1, h2+1]
 			msgData.WebhookID,
-			service.opts.MaxReschedulingRetries,
-			1, // If we couldn't send blocks [b1, b2], try [b1+1, b2+1] on the next run
+			msgData.XMaxRetries,
 		),
 	)
 }
 
-func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage) error {
-	// Acknowledges the job and deletes it from the stream in one atomic operation
-	ackScript := redis.NewScript(`
-    local src_stream_name = KEYS[1]
-    local dst_stream_name = KEYS[2]
-    local consumer_group = KEYS[3]
-    local message_id = ARGV[1]
-    redis.call("XACK", src_stream_name, consumer_group, message_id)
-    redis.call("XDEL", src_stream_name, message_id)
-  `)
+func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.WebhookMsgData]) error {
+	if newMsg == nil {
+		// Acknowledges the job and deletes it from the stream in one atomic operation
+		ackScript := redis.NewScript(`
+      local stream_name = KEYS[1]
+      local consumer_group = KEYS[2]
+      local message_id = KEYS[3]
+      local message_data = ARGV[1]
+      redis.call("RPUSH", waitlist_name, message_data)
+      redis.call("XACK", stream_name, consumer_group, message_id)
+      redis.call("XDEL", stream_name, message_id)
+    `)
 
-	// Executes the script
-	scriptResult := ackScript.Run(ctx, service.redisClient,
-		[]string{constants.WEBHOOK_STREAM, constants.RESCHEDULER_STREAM, constants.WEBHOOK_CONSUMER_GROUP_NAME},
-		msg.ID,
-	)
-	if err := scriptResult.Err(); err != nil && !errors.Is(err, redis.Nil) {
-		return err
-	}
+		// Executes the script
+		if err := ackScript.Run(ctx, service.redisClient,
+			[]string{
+				constants.WEBHOOK_STREAM,
+				constants.WEBHOOK_CONSUMER_GROUP_NAME,
+				msg.ID,
+			},
+			newMsg,
+		).Err(); err != nil && !errors.Is(err, redis.Nil) {
+			return err
+		}
+	} else {
+		// Acknowledges the job, deletes it from the stream, and updates the waitlist in one atomic operation
+		ackScript := redis.NewScript(`
+      local waitlist_name = KEYS[1]
+      local stream_name = KEYS[2]
+      local consumer_group = KEYS[3]
+      local message_id = KEYS[4]
+      local message_data = ARGV[1]
+      redis.call("RPUSH", waitlist_name, message_data)
+      redis.call("XACK", stream_name, consumer_group, message_id)
+      redis.call("XDEL", stream_name, message_id)
+    `)
 
-	// Returns nil if no errors occurred
-	return nil
-}
-
-func (service *WebhookProcessor) ackAndReschedule(ctx context.Context, msg redis.XMessage, data messaging.StreamMessage[messaging.ReschedulingMsgData]) error {
-	// Acknowledges the job, deletes it from the stream, and adds it to another stream in one atomic operation
-	ackScript := redis.NewScript(`
-    local src_stream_name = KEYS[1]
-    local dst_stream_name = KEYS[2]
-    local consumer_group = KEYS[3]
-    local message_id = ARGV[1]
-    local msg_data_field = ARGV[2]
-    local msg_data_value = ARGV[3]
-    redis.call("XACK", src_stream_name, consumer_group, message_id)
-    redis.call("XDEL", src_stream_name, message_id)
-    redis.call("XADD", dst_stream_name, "*", msg_data_field, msg_data_value)
-  `)
-
-	// Executes the script
-	scriptResult := ackScript.Run(ctx, service.redisClient,
-		[]string{constants.WEBHOOK_STREAM, constants.RESCHEDULER_STREAM, constants.WEBHOOK_CONSUMER_GROUP_NAME},
-		append([]any{msg.ID}, messaging.GetDataField(), data),
-	)
-	if err := scriptResult.Err(); err != nil && !errors.Is(err, redis.Nil) {
-		return err
+		// Executes the script
+		if err := ackScript.Run(ctx, service.redisClient,
+			[]string{
+				fmt.Sprintf(constants.WAITLIST_NAME_TEMPLATE, newMsg.Data.ChainID),
+				constants.WEBHOOK_STREAM,
+				constants.WEBHOOK_CONSUMER_GROUP_NAME,
+				msg.ID,
+			},
+			newMsg,
+		).Err(); err != nil && !errors.Is(err, redis.Nil) {
+			return err
+		}
 	}
 
 	// Returns nil if no errors occurred

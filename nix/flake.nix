@@ -25,7 +25,6 @@
             pkgs.nodejs_20 # v20.10.0
             pkgs.awscli2 # v2.15.12
             pkgs.redis # v7.2.3
-            pkgs.postgresql_16 # v16.1
             pkgs.k3d # v5.6.0
             pkgs.kompose # v1.26.1
             pkgs.flow # v1.9.2

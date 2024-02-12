@@ -5,15 +5,8 @@
 package sqlc
 
 import (
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
-
-type BlockCache struct {
-	BlockchainID string `json:"blockchainId"`
-	BlockHeight  int64  `json:"blockHeight"`
-	Block        []byte `json:"block"`
-}
 
 type Blockchain struct {
 	ID  string `json:"id"`
@@ -21,24 +14,17 @@ type Blockchain struct {
 }
 
 type Customer struct {
-	ID        string             `json:"id"`
-	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type Webhook struct {
-	ID           uuid.UUID          `json:"id"`
-	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
-	Url          string             `json:"url"`
-	MaxBlocks    int32              `json:"maxBlocks"`
-	MaxRetries   int32              `json:"maxRetries"`
-	TimeoutMs    int32              `json:"timeoutMs"`
-	CustomerID   string             `json:"customerId"`
-	BlockchainID string             `json:"blockchainId"`
-}
-
-type WebhookJob struct {
-	ID          int64              `json:"id"`
-	CreatedAt   pgtype.Timestamptz `json:"createdAt"`
-	BlockHeight int64              `json:"blockHeight"`
-	WebhookID   uuid.UUID          `json:"webhookId"`
+	ID           string    `json:"id"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Url          string    `json:"url"`
+	MaxBlocks    int32     `json:"maxBlocks"`
+	MaxRetries   int32     `json:"maxRetries"`
+	TimeoutMs    int32     `json:"timeoutMs"`
+	CustomerID   string    `json:"customerId"`
+	BlockchainID string    `json:"blockchainId"`
 }

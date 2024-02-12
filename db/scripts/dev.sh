@@ -1,6 +1,6 @@
 set -e
 
-PG_VERSION="16.1-alpine3.18"
+MYSQL_VERSION="8.3.0"
 RANDM_UUID="$(uuidgen)"
 IMAGE_NAME="db:$RANDM_UUID"
 
@@ -13,16 +13,17 @@ trap cleanup EXIT
 
 docker build \
 	-t "$IMAGE_NAME" \
-	--build-arg POSTGRES_VERSION="$PG_VERSION" \
+	--build-arg MYSQL_VERSION="$MYSQL_VERSION" \
 	.
 
 docker run --rm -d \
-	-e POSTGRES_PASSWORD="password" \
-	-e POSTGRES_USER="rootuser" \
-	-e POSTGRES_DB="dev" \
-	-p 5432:5432 \
+	-e MYSQL_ROOT_PASSWORD="password" \
+	-e MYSQL_DATABASE="dev" \
+	-e MYSQL_PASSWORD="password" \
+	-e MYSQL_USER="rootuser" \
+	-p 3306:3306 \
 	--name "$RANDM_UUID" \
 	"$IMAGE_NAME"
 
 docker exec -it "$RANDM_UUID" /bin/bash \
-	-c 'sleep 2 && psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"'
+	-c 'sleep 15 && mysql --password="$MYSQL_ROOT_PASSWORD" --host="host.docker.internal" --port="3306" --user="root" "$MYSQL_DATABASE"'

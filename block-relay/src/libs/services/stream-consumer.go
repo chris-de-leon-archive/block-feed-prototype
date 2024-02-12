@@ -55,7 +55,7 @@ func NewStreamConsumer(params StreamConsumerParams) *StreamConsumer {
 
 func (service *StreamConsumer) Run(ctx context.Context) error {
 	// Creates a consumer group if one doesn't already exist
-	err := service.redisClient.XGroupCreateMkStream(ctx, service.opts.StreamName, service.opts.ConsumerGroupName, "$").Err()
+	err := service.redisClient.XGroupCreateMkStream(ctx, service.opts.StreamName, service.opts.ConsumerGroupName, "0-0").Err()
 	if err != nil && !errors.Is(err, redis.Nil) && !strings.Contains(err.Error(), "BUSYGROUP") {
 		return err
 	} else {
@@ -119,12 +119,17 @@ func (service *StreamConsumer) processNewStreamEntries(ctx context.Context, logg
 	msg, err := extractOneStreamMessage(streams, service.opts.StreamName)
 	if err != nil {
 		return err
+	}
+
+	// Exits if there are no more new messages
+	if msg == nil {
+		return nil
 	} else {
 		logger.Printf("Successfully received stream message with ID \"%s\"\n", msg.ID)
 	}
 
 	// Processes the message
-	if err := service.processor.ProcessMessage(ctx, msg); err != nil {
+	if err := service.processor.ProcessMessage(ctx, *msg); err != nil {
 		// TODO: we may want to store this error in the database for the client to see
 		common.LogError(service.logger, err)
 		return nil
@@ -138,17 +143,45 @@ func (service *StreamConsumer) processNewStreamEntries(ctx context.Context, logg
 
 func (service *StreamConsumer) processBacklog(ctx context.Context, logger *log.Logger, consumerName string) error {
 	// Defines a helper variable that keeps track of our position in the backlog
-	cursorId := "-"
+	cursorId := "0-0"
 
 	// Continuously processes items from the backlog until there's nothing left
 	for {
+		// Claims a backlog message (which should increment its retry count) - if a
+		// message is retryable (i.e. xMaxRetries is set in its metadata), then it is
+		// possible that the message will not be retried exactly xMaxRetries times. This
+		// can happen if the program crashes after we claim the message but before we
+		// are able to actually process it (i.e. after this chunk of code executes)
+		streams, err := service.redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
+			Streams:  []string{service.opts.StreamName, cursorId},
+			Group:    service.opts.ConsumerGroupName,
+			Consumer: consumerName,
+			Count:    1,
+		}).Result()
+		if err != nil {
+			return err
+		}
+
+		// Gets the message from the XREADGROUP result
+		msg, err := extractOneStreamMessage(streams, service.opts.StreamName)
+		if err != nil {
+			return err
+		}
+
+		// Exits if there are no more messages in the backlog
+		if msg == nil {
+			return nil
+		} else {
+			logger.Printf("Successfully received stream message with ID \"%s\"\n", msg.ID)
+		}
+
 		// Reads a maximum of 1 item from the backlog
 		pendingMsgs, err := service.redisClient.XPendingExt(ctx, &redis.XPendingExtArgs{
 			Stream:   service.opts.StreamName,
 			Group:    service.opts.ConsumerGroupName,
 			Consumer: consumerName,
-			Start:    cursorId,
-			End:      "+",
+			Start:    msg.ID,
+			End:      msg.ID,
 			Count:    1,
 		}).Result()
 		if err != nil {
@@ -168,30 +201,9 @@ func (service *StreamConsumer) processBacklog(ctx context.Context, logger *log.L
 			logger.Printf("Successfully retrieved backlog item with ID \"%s\"\n", pendingMsg.ID)
 		}
 
-		// Claims the message (which should increment its retry count) - if a message
-		// is retryable (i.e. xMaxRetries is set in its metadata), then it is possible
-		// that the message will not be retried exactly xMaxRetries times. This can
-		// happen if the program crashes after we claim the message but before we are
-		// able to actually process it (i.e. after this chunk of code executes)
-		claimedMsgs, err := service.redisClient.XClaim(ctx, &redis.XClaimArgs{
-			Stream:   service.opts.StreamName,
-			Group:    service.opts.ConsumerGroupName,
-			Consumer: consumerName,
-			Messages: []string{pendingMsg.ID},
-		}).Result()
-		if err != nil {
-			return err
-		}
-
-		// If we didn't get back exactly 1 message, then something is definitely wrong
-		if len(claimedMsgs) != 1 {
-			return fmt.Errorf("claimed an unexpected number of messages: %v", claimedMsgs)
-		}
-
 		// Checks that the message we claimed has the same ID as the pending message
-		claimedMsg := claimedMsgs[0]
-		if claimedMsg.ID != pendingMsg.ID {
-			return fmt.Errorf("claimed message ID \"%s\" differs from pending message ID \"%s\"", claimedMsg.ID, pendingMsg.ID)
+		if msg.ID != pendingMsg.ID {
+			return fmt.Errorf("claimed message ID \"%s\" differs from pending message ID \"%s\"", msg.ID, pendingMsg.ID)
 		}
 
 		// Checks if the message has a field called XMaxRetries - if this field
@@ -199,40 +211,42 @@ func (service *StreamConsumer) processBacklog(ctx context.Context, logger *log.L
 		// the handling of the failed message to the processor. If a parsing error
 		// occurs, the message is most likely not retryable so we'll move onto
 		// processing it again as a normal message
-		claimedMsgData, err := messaging.ParseMessage[messaging.RetryableMsgData](claimedMsg)
+		claimedMsgData, err := messaging.ParseMessage[messaging.RetryableMsgData](*msg)
 		if err == nil && pendingMsg.RetryCount >= int64(claimedMsgData.XMaxRetries) {
-			if err := service.processor.ProcessFailedMessage(ctx, claimedMsg); err != nil {
+			if err := service.processor.ProcessFailedMessage(ctx, *msg); err != nil {
 				return err
 			} else {
 				continue
 			}
 		} else {
-			logger.Printf("Successfully claimed stream message with ID \"%s\": %v\n", claimedMsg.ID, pendingMsg)
+			logger.Printf("Successfully claimed stream message with ID \"%s\": %v\n", msg.ID, pendingMsg)
 		}
 
 		// Processes the message
-		if err := service.processor.ProcessMessage(ctx, claimedMsg); err != nil {
+		if err := service.processor.ProcessMessage(ctx, *msg); err != nil {
 			// TODO: we may want to store this somewhere for the client to see
 			common.LogError(logger, err)
 			continue
 		} else {
-			logger.Printf("Successfully processed stream message with ID \"%s\"\n", claimedMsg.ID)
+			logger.Printf("Successfully processed stream message with ID \"%s\"\n", msg.ID)
 		}
 
 		// Moves onto the next backlog item
-		cursorId = fmt.Sprintf("(%s", pendingMsg.ID)
+		cursorId = msg.ID
 	}
 }
 
-func extractOneStreamMessage(streams []redis.XStream, streamName string) (redis.XMessage, error) {
+func extractOneStreamMessage(streams []redis.XStream, streamName string) (*redis.XMessage, error) {
 	for _, stream := range streams {
 		if stream.Stream == streamName {
-			if len(stream.Messages) != 1 {
-				return redis.XMessage{}, fmt.Errorf("received an unexpected number of messages from stream: %v", stream.Messages)
-			} else {
-				return stream.Messages[0], nil
+			if len(stream.Messages) == 0 {
+				return nil, nil
 			}
+			if len(stream.Messages) != 1 {
+				return nil, fmt.Errorf("received an unexpected number of messages from stream: %v", stream.Messages)
+			}
+			return &stream.Messages[0], nil
 		}
 	}
-	return redis.XMessage{}, fmt.Errorf("stream \"%s\" not found: %v", streamName, streams)
+	return nil, fmt.Errorf("stream \"%s\" not found: %v", streamName, streams)
 }

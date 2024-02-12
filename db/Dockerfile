@@ -1,7 +1,7 @@
 # For development/testing purposes only
 
-ARG POSTGRES_VERSION=latest
-FROM postgres:${POSTGRES_VERSION}
+ARG MYSQL_VERSION=latest
+FROM mysql:${MYSQL_VERSION}
 
 COPY ./docker/*.sh /docker-entrypoint-initdb.d
 COPY ./roles/*.sql /db/roles/

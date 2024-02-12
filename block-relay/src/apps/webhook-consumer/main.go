@@ -6,20 +6,22 @@ import (
 	"block-relay/src/libs/processors"
 	"block-relay/src/libs/services"
 	"context"
+	"database/sql"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 )
 
 type EnvVars struct {
-	DatabaseUrl            string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_DATABASE_URL,required"`
-	RedisStreamUrl         string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_REDIS_STREAM_URL,required"`
-	ConsumerName           string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
-	MaxPoolSize            int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MAX_POOL_SIZE,required"`
-	BlockTimeoutMs         int    `validate:"required,gte=0" env:"WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
-	MaxReschedulingRetries int    `validate:"required,gte=0" env:"WEBHOOK_CONSUMER_MAX_RESCHEDULING_RETRIES,required"`
+	DatabaseUrl      string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_DATABASE_URL,required"`
+	RedisStreamUrl   string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_REDIS_STREAM_URL,required"`
+	ConsumerName     string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
+	DatabasePoolSize int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_DATABASE_POOL_SIZE,required"`
+	MaxPoolSize      int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MAX_POOL_SIZE,required"`
+	BlockTimeoutMs   int    `validate:"required,gte=0" env:"WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
 }
 
 func main() {
@@ -45,22 +47,21 @@ func main() {
 	}()
 
 	// Creates a database connection pool
-	dbConnPool, err := pgxpool.New(ctx, envvars.DatabaseUrl)
+	db, err := sql.Open("mysql", envvars.DatabaseUrl)
 	if err != nil {
 		panic(err)
 	} else {
-		defer dbConnPool.Close()
+		defer db.Close()
+		db.SetConnMaxLifetime(time.Duration(30) * time.Second)
+		db.SetMaxOpenConns(envvars.DatabasePoolSize)
+		db.SetMaxIdleConns(envvars.DatabasePoolSize)
 	}
 
 	// Creates the consumer
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisStreamClient,
 		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			DatabaseConnPool: dbConnPool,
-			RedisClient:      redisStreamClient,
-			Opts: &processors.WebhookProcessorOpts{
-				MaxReschedulingRetries: int32(envvars.MaxReschedulingRetries),
-			},
+			RedisClient: redisStreamClient,
 		}),
 		Opts: &services.StreamConsumerOpts{
 			StreamName:        constants.WEBHOOK_STREAM,

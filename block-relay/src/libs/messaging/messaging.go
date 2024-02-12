@@ -60,15 +60,9 @@ type (
 
 	WebhookMsgData struct {
 		WebhookID   string
-		JobID       int64
+		ChainID     string
+		BlockHeight uint64
 		XMaxRetries int32
-	}
-
-	ReschedulingMsgData struct {
-		WebhookID   string
-		JobID       int64
-		XMaxRetries int32
-		BlocksSent  int
 	}
 )
 
@@ -86,23 +80,13 @@ func GetDataField() string {
 	return dataField
 }
 
-func NewWebhookMsg(jobID int64, webhookID string, xMaxRetries int32) StreamMessage[WebhookMsgData] {
-	return StreamMessage[WebhookMsgData]{
+func NewWebhookMsg(chainID string, blockHeight uint64, webhookID string, xMaxRetries int32) *StreamMessage[WebhookMsgData] {
+	return &StreamMessage[WebhookMsgData]{
 		Data: WebhookMsgData{
+			ChainID:     chainID,
 			XMaxRetries: xMaxRetries,
 			WebhookID:   webhookID,
-			JobID:       jobID,
-		},
-	}
-}
-
-func NewReschedulingMsg(jobID int64, webhookID string, xMaxRetries int32, blocksSent int) StreamMessage[ReschedulingMsgData] {
-	return StreamMessage[ReschedulingMsgData]{
-		Data: ReschedulingMsgData{
-			XMaxRetries: xMaxRetries,
-			WebhookID:   webhookID,
-			JobID:       jobID,
-			BlocksSent:  blocksSent,
+			BlockHeight: blockHeight,
 		},
 	}
 }

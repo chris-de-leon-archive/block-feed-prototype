@@ -9,8 +9,8 @@ require (
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.17.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.5.0
-	github.com/jackc/pgx/v5 v5.5.2
 	github.com/onflow/flow-go-sdk v0.44.0
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/testcontainers/testcontainers-go v0.27.0
@@ -51,9 +51,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect

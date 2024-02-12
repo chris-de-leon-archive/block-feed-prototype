@@ -14,12 +14,11 @@ import (
 )
 
 const (
-	DEFAULT_POSTGRES_PASSWORD = "password"
-	DEFAULT_POSTGRES_USERNAME = "rootuser"
-	DEFAULT_POSTGRES_DB       = "test"
-	DEFAULT_POSTGRES_SCHEMA   = "block_feed"
-	POSTGRES_PORT             = "5432/tcp"
-	REDIS_PORT                = "6379/tcp"
+	DEFAULT_MYSQL_ROOT_PASSWORD = "password"
+	DEFAULT_MYSQL_ROOT_USERNAME = "root"
+	DEFAULT_MYSQL_DB            = "test"
+	MYSQL_PORT                  = "3306/tcp"
+	REDIS_PORT                  = "6379/tcp"
 )
 
 type (
@@ -35,7 +34,7 @@ type (
 	}
 )
 
-func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
+func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
 	// Gets the directory that this file exists in
 	dir, err := GetCurrentDir()
 	if err != nil {
@@ -45,20 +44,18 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*C
 	// Creates the container
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			ExposedPorts: []string{POSTGRES_PORT},
+			ExposedPorts: []string{MYSQL_PORT},
 			WaitingFor:   wait.ForExposedPort(),
-			Cmd:          []string{"postgres", "-c", "log_statement=all"},
 			FromDockerfile: testcontainers.FromDockerfile{
 				Context:    path.Join(*dir, "..", "..", "..", "db"),
 				Dockerfile: path.Join("Dockerfile"),
 				BuildArgs: map[string]*string{
-					"POSTGRES_VERSION": &version,
+					"MYSQL_VERSION": &version,
 				},
 			},
 			Env: map[string]string{
-				"POSTGRES_PASSWORD": DEFAULT_POSTGRES_PASSWORD,
-				"POSTGRES_USER":     DEFAULT_POSTGRES_USERNAME,
-				"POSTGRES_DB":       DEFAULT_POSTGRES_DB,
+				"MYSQL_ROOT_PASSWORD": DEFAULT_MYSQL_ROOT_PASSWORD,
+				"MYSQL_DATABASE":      DEFAULT_MYSQL_DB,
 			},
 		},
 		Started: true,
@@ -72,13 +69,13 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, version string) (*C
 	}
 
 	// Gets the connection info of the container
-	conn, err := GetConnectionInfo(ctx, container, nat.Port(POSTGRES_PORT))
+	conn, err := GetConnectionInfo(ctx, container, nat.Port(MYSQL_PORT))
 	if err != nil {
 		return nil, err
 	}
 
 	// The default URL allows superuser access
-	conn.Url = PostgresUrl(*conn, DEFAULT_POSTGRES_USERNAME, DEFAULT_POSTGRES_PASSWORD)
+	conn.Url = MySqlUrl(*conn, DEFAULT_MYSQL_ROOT_USERNAME, DEFAULT_MYSQL_ROOT_PASSWORD)
 
 	// Returns the container info
 	return &ContainerWithConnectionInfo{
@@ -144,15 +141,14 @@ func RedisQueueCmd() []string {
 	}...)
 }
 
-func PostgresUrl(conn HostConnectionInfo, uname string, pword string) string {
+func MySqlUrl(conn HostConnectionInfo, uname string, pword string) string {
 	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		uname,
 		pword,
 		"host.docker.internal",
 		conn.Port.Port(),
-		DEFAULT_POSTGRES_DB,
-		DEFAULT_POSTGRES_SCHEMA,
+		DEFAULT_MYSQL_DB,
 	)
 }
 
