@@ -25,8 +25,8 @@ type (
 func SetupWebhook(
 	ctx context.Context,
 	t *testing.T,
-	dbClient *sql.DB,
-	blockchainOpts blockchains.BlockchainOpts,
+	mysqlClient *sql.DB,
+	chain blockchains.IBlockchain,
 	redisURL string,
 	serverURL string,
 	webhookMaxBlocks int32,
@@ -44,24 +44,8 @@ func SetupWebhook(
 		}
 	}()
 
-	// Gets a chain resolver (we only need this to get the latest block, so we can close this after this function executes)
-	chainResolver := NewChainResolver()
-	defer chainResolver.Close(func(err error) { fmt.Println(err) })
-
-	// Gets the chain's RPC client
-	chain, err := chainResolver.ResolveChain(&blockchainOpts)
-	if err != nil {
-		return err
-	}
-
-	// Gets the latest block on the chain
-	block, err := chain.GetBlock(ctx, nil)
-	if err != nil {
-		return err
-	}
-
 	// Starts a transaction
-	tx, err := dbClient.BeginTx(ctx, &sql.TxOptions{})
+	tx, err := mysqlClient.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	} else {
@@ -105,17 +89,17 @@ func SetupWebhook(
 	}
 
 	// Activates the webhook
-	if err := redisClient.XAdd(ctx, &redis.XAddArgs{
-		Stream: constants.WEBHOOK_STREAM,
-		Values: map[string]any{
-			messaging.GetDataField(): messaging.NewWebhookMsg(
-				chain.ID(),
-				block.Height,
+	if err := redisClient.ZAdd(ctx,
+		constants.PENDING_SET_KEY,
+		redis.Z{
+			Score: 0,
+			Member: messaging.NewWebhookStreamMsg(
+				0,
 				webhookId,
-				webhookMaxRetries,
+				true,
 			),
 		},
-	}).Err(); err != nil {
+	).Err(); err != nil {
 		return err
 	}
 
@@ -127,7 +111,7 @@ func SetupWebhooks(
 	ctx context.Context,
 	t *testing.T,
 	dbClient *sql.DB,
-	blockchainOpts blockchains.BlockchainOpts,
+	chain blockchains.IBlockchain,
 	redisURL string,
 	serverURLs []string,
 	webhookMaxBlocks int32,
@@ -145,20 +129,23 @@ func SetupWebhooks(
 		}
 	}()
 
-	// Gets a chain resolver (we only need this to get the latest block, so we can close this after this function executes)
-	chainResolver := NewChainResolver()
-	defer chainResolver.Close(func(err error) { fmt.Println(err) })
-
-	// Gets the chain's RPC client
-	chain, err := chainResolver.ResolveChain(&blockchainOpts)
-	if err != nil {
-		return err
-	}
-
-	// Gets the latest block on the chain
-	block, err := chain.GetBlock(ctx, nil)
-	if err != nil {
-		return err
+	// Prepares for a batch insert
+	const valCount = 7
+	customerId := uuid.New().String()
+	webhookIDs := make([]string, len(serverURLs))
+	templates := make([]string, len(serverURLs))
+	values := make([]any, valCount*len(serverURLs))
+	for i, serverUrl := range serverURLs {
+		webhookId := uuid.New().String()
+		webhookIDs[i] = webhookId
+		templates[i] = "(?, DEFAULT, ?, ?, ?, ?, ?, ?)"
+		values[i*valCount+0] = webhookId
+		values[i*valCount+1] = serverUrl
+		values[i*valCount+2] = webhookMaxBlocks
+		values[i*valCount+3] = webhookMaxRetries
+		values[i*valCount+4] = webhookTimeoutMs
+		values[i*valCount+5] = customerId
+		values[i*valCount+6] = chain.ID()
 	}
 
 	// Starts a transaction
@@ -174,30 +161,11 @@ func SetupWebhooks(
 	}
 
 	// Inserts a new customer
-	customerId := uuid.New().String()
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO customer(id, created_at) VALUES (?, DEFAULT)`,
 		customerId,
 	); err != nil {
 		return err
-	}
-
-	// Prepares for a batch insert
-	const valCount = 7
-	webhookIDs := make([]string, len(serverURLs))
-	templates := make([]string, len(serverURLs))
-	values := make([]any, valCount*len(serverURLs))
-	for i, serverUrl := range serverURLs {
-		webhookId := uuid.New().String()
-		webhookIDs[i] = webhookId
-		templates[i] = "(?, DEFAULT, ?, ?, ?, ?, ?, ?)"
-		values[i*valCount+0] = webhookId
-		values[i*valCount+1] = serverUrl
-		values[i*valCount+2] = webhookMaxBlocks
-		values[i*valCount+3] = webhookMaxRetries
-		values[i*valCount+4] = webhookTimeoutMs
-		values[i*valCount+5] = customerId
-		values[i*valCount+6] = chain.ID()
 	}
 
 	// Inserts the webhooks
@@ -216,30 +184,23 @@ func SetupWebhooks(
 		return err
 	}
 
-	// Prepares for bulk XADD
-	msgs := make([]any, len(webhookIDs))
+	// Prepares for bulk ZADD
+	elems := make([]redis.Z, len(webhookIDs))
 	for i, wid := range webhookIDs {
-		msgs[i] = messaging.NewWebhookMsg(
-			chain.ID(),
-			block.Height,
-			wid,
-			webhookMaxRetries,
-		)
+		elems[i] = redis.Z{
+			Score: 0,
+			Member: messaging.NewWebhookStreamMsg(
+				0,
+				wid,
+				true,
+			),
+		}
 	}
 
 	// Activates the webhooks
-	bulkXAdd := redis.NewScript(`
-    local stream_name = KEYS[1]
-    local msg_data_field = KEYS[2]
-    for i = 1, #ARGV do
-      redis.call("XADD", stream_name, "*", msg_data_field, ARGV[i])
-    end
-  `)
-
-	// Executes the script
-	err = bulkXAdd.Run(ctx, redisClient,
-		[]string{constants.WEBHOOK_STREAM, messaging.GetDataField()},
-		msgs...,
+	err = redisClient.ZAdd(ctx,
+		constants.PENDING_SET_KEY,
+		elems...,
 	).Err()
 
 	// Handles script errors

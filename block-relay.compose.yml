@@ -3,6 +3,7 @@ version: "3"
 services:
   block-poller-flow-testnet:
     image: block-poller-flow-testnet:${TAG}
+    restart: always
     labels:
       - kompose.service.type=headless
     build:
@@ -11,31 +12,39 @@ services:
       args:
         BUILD_PATH: "./src/apps/block-poller/flow/main.go"
     environment:
-      BLOCK_POLLER_DATABASE_URL: "postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed"
+      BLOCK_POLLER_MYSQL_URL: "block_relay_role:password@tcp(mysql:3306)/dev?parseTime=true"
+      BLOCK_POLLER_REDIS_URL: "block-poller-redis:6379"
       BLOCK_POLLER_BLOCKCHAIN_URL: "access.devnet.nodes.onflow.org:9000"
       BLOCK_POLLER_BLOCKCHAIN_ID: "flow-testnet"
-      BLOCK_POLLER_NAME: "flow-testnet-poller"
       BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS: "10"
+      BLOCK_POLLER_BLOCK_TIMEOUT_MS: "60000"
       BLOCK_POLLER_BATCH_SIZE: "10"
       BLOCK_POLLER_POLL_MS: "1000"
+    depends_on:
+      - block-poller-redis
+      - mysql
 
-  block-receiver:
-    image: block-receiver:${TAG}
+  block-flusher:
+    image: block-flusher:${TAG}
+    restart: always
     labels:
       - kompose.service.type=headless
     build:
       dockerfile: ./Dockerfile
       context: ./block-relay
       args:
-        BUILD_PATH: "./src/apps/block-receiver/main.go"
+        BUILD_PATH: "./src/apps/block-flusher/main.go"
     environment:
-      BLOCK_RECEIVER_DATABASE_URL: "postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed"
-      BLOCK_RECEIVER_REDIS_STREAM_URL: "flow-testnet"
-      BLOCK_RECEIVER_BATCH_SIZE: "1000"
-      BLOCK_RECEIVER_MAX_WAIT_MS: "1000"
+      BLOCK_FLUSHER_REDIS_WEBHOOK_STREAM_URL: "webhook-redis:6380"
+      BLOCK_FLUSHER_REDIS_BLOCK_STREAM_URL: "block-poller-redis:6379"
+      BLOCK_FLUSHER_BLOCK_TIMEOUT_MS: "60000"
+    depends_on:
+      - block-poller-redis
+      - webhook-redis
 
   webhook-consumer:
     image: webhook-consumer:${TAG}
+    restart: always
     labels:
       - kompose.service.type=headless
     deploy:
@@ -47,11 +56,13 @@ services:
       args:
         BUILD_PATH: "./src/apps/webhook-consumer/main.go"
     environment:
-      WEBHOOK_CONSUMER_DATABASE_URL: "postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed"
-      WEBHOOK_CONSUMER_REDIS_STREAM_URL: "redis:6379"
-      WEBHOOK_CONSUMER_MAX_POOL_SIZE: 3
-      WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS: 60000
-      WEBHOOK_CONSUMER_MAX_RESCHEDULING_RETRIES: 3
+      WEBHOOK_CONSUMER_MONGO_URL: "mongodb://readonly:password@mongodb:27017/?compressors=zlib&replicaSet=rs0"
+      WEBHOOK_CONSUMER_MONGO_DATABASE_NAME: "block-feed"
+      WEBHOOK_CONSUMER_MYSQL_URL: "block_relay_role:password@tcp(mysql:3306)/dev?parseTime=true"
+      WEBHOOK_CONSUMER_REDIS_URL: "webhook-redis:6380"
+      WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE: "10"
+      WEBHOOK_CONSUMER_POOL_SIZE: "5"
+      WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS: "60000"
       #
       # NOTE: these env variables should be added to the deployment file generated
       # by kompose so that each consumer replica gets a unique name for Rabbit MQ.
@@ -69,24 +80,27 @@ services:
       #         fieldPath: metadata.name
       #
       WEBHOOK_CONSUMER_NAME: "$$(POD_NAMESPACE)-$$(POD_NAME)"
+    depends_on:
+      - webhook-redis
+      - mongodb
+      - mysql
 
-  rescheduling-consumer:
-    image: rescheduling-consumer:${TAG}
+  caching-consumer:
+    image: caching-consumer:${TAG}
+    restart: always
     labels:
       - kompose.service.type=headless
-    deploy:
-      mode: "replicated"
-      replicas: 2
     build:
       dockerfile: ./Dockerfile
       context: ./block-relay
       args:
-        BUILD_PATH: "./src/apps/rescheduling-consumer/main.go"
+        BUILD_PATH: "./src/apps/caching-consumer/main.go"
     environment:
-      RESCHEDULING_CONSUMER_DATABASE_URL: "postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed"
-      RESCHEDULING_CONSUMER_REDIS_STREAM_URL: "redis:6379"
-      RESCHEDULING_CONSUMER_MAX_POOL_SIZE: 3
-      RESCHEDULING_CONSUMER_BLOCK_TIMEOUT_MS: 60000
+      CACHING_CONSUMER_MONGO_URL: "mongodb://readwrite:password@mongodb:27017/?compressors=zlib&replicaSet=rs0"
+      CACHING_CONSUMER_MONGO_DATABASE_NAME: "block-feed"
+      CACHING_CONSUMER_REDIS_URL: "block-poller-redis:6379"
+      CACHING_CONSUMER_BLOCKCHAIN_ID: "flow-testnet"
+      CACHING_CONSUMER_BLOCK_TIMEOUT_MS: "60000"
       #
       # NOTE: these env variables should be added to the deployment file generated
       # by kompose so that each consumer replica gets a unique name for Rabbit MQ.
@@ -103,29 +117,60 @@ services:
       #       fieldRef:
       #         fieldPath: metadata.name
       #
-      RESCHEDULING_CONSUMER_NAME: "$$(POD_NAMESPACE)-$$(POD_NAME)"
+      CACHING_CONSUMER_NAME: "$$(POD_NAMESPACE)-$$(POD_NAME)"
+    depends_on:
+      - block-poller-redis
+      - mongodb
+      - mysql
 
-  redis:
+  block-poller-redis:
+    container_name: "block-poller-redis"
     image: docker.io/redis:7.2.1-alpine3.18
     labels:
       - kompose.service.type=headless
-    command: ["redis-server", "--port", "6379", "--loglevel", "debug"]
+    command: ["--port", "6379", "--loglevel", "debug"]
     ports:
       - "6379:6379"
 
-  db:
-    image: db:${TAG}
+  webhook-redis:
+    container_name: "webhook-redis"
+    image: docker.io/redis:7.2.1-alpine3.18
+    labels:
+      - kompose.service.type=headless
+    command: ["--port", "6380", "--loglevel", "debug"]
+    ports:
+      - "6380:6380"
+
+  mongodb:
+    container_name: "mongodb"
+    image: mongo-dev:${TAG}
     labels:
       - kompose.service.type=headless
     build:
       dockerfile: ./Dockerfile
-      context: ./db
+      context: ./vendor/mongodb
       args:
-        POSTGRES_VERSION: "16.1-alpine3.18"
-    command: ["postgres", "-c", "log_statement=all"]
+        MONGO_VERSION: "7.0.5"
     environment:
-      POSTGRES_PASSWORD: "password"
-      POSTGRES_USER: "rootuser"
-      POSTGRES_DB: "dev"
+      MONGO_AUTO_INIT: "true"
+      MONGO_DB: "block-feed"
     ports:
-      - "5432:5432"
+      - "27017:27017"
+
+  mysql:
+    container_name: "mysql"
+    image: mysql-dev:${TAG}
+    labels:
+      - kompose.service.type=headless
+    build:
+      dockerfile: ./Dockerfile
+      context: ./vendor/mysql
+      args:
+        MYSQL_VERSION: "8.3.0"
+    environment:
+      MYSQL_ROOT_PASSWORD: "password"
+      MYSQL_DATABASE: "dev"
+      MYSQL_PASSWORD: "password"
+      MYSQL_USER: "rootuser"
+    ports:
+      - "3306:3306"

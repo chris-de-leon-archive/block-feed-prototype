@@ -86,26 +86,24 @@ func (blockchain *FlowBlockchain) GetBlock(ctx context.Context, height *uint64) 
 
 func mapifyTransactions(txs []*flow.Transaction) []map[string]any {
 	result := make([]map[string]any, len(txs))
-	for i := range result {
-		tx := txs[i]
-
+	for i, tx := range txs {
 		args := make([]string, len(tx.Arguments))
-		for j := range tx.Arguments {
+		for j := 0; j < len(tx.Arguments); j++ {
 			args[j] = string(tx.Arguments[j])
 		}
 
 		authorizers := make([]string, len(tx.Authorizers))
-		for j := range tx.Authorizers {
+		for j := 0; j < len(tx.Authorizers); j++ {
 			authorizers[j] = tx.Authorizers[j].String()
 		}
 
 		envSigs := make([]map[string]any, len(tx.EnvelopeSignatures))
-		for j := range tx.EnvelopeSignatures {
+		for j := 0; j < len(tx.EnvelopeSignatures); j++ {
 			envSigs[j] = mapifyTransactionSignature(tx.EnvelopeSignatures[j])
 		}
 
 		payloadSigs := make([]map[string]any, len(tx.PayloadSignatures))
-		for j := range tx.PayloadSignatures {
+		for j := 0; j < len(tx.PayloadSignatures); j++ {
 			envSigs[j] = mapifyTransactionSignature(tx.PayloadSignatures[j])
 		}
 

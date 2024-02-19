@@ -3,6 +3,7 @@ package main
 import (
 	"block-relay/src/libs/blockchains"
 	"block-relay/src/libs/common"
+	"block-relay/src/libs/config"
 	"block-relay/src/libs/services"
 	"block-relay/src/libs/sqlc"
 	"context"
@@ -10,14 +11,20 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/redis/go-redis/v9"
 )
 
 type EnvVars struct {
-	DatabaseUrl   string `validate:"required,gt=0" env:"BLOCK_POLLER_DATABASE_URL,required"`
-	BlockchainUrl string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_URL,required"`
-	BlockchainId  string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_ID,required"`
-	BatchSize     int    `validate:"required,gt=0" env:"BLOCK_POLLER_BATCH_SIZE,required"`
-	PollMs        int    `validate:"required,gt=0" env:"BLOCK_POLLER_POLL_MS,required"`
+	MySqlUrl            string `validate:"required,gt=0" env:"BLOCK_POLLER_MYSQL_URL,required"`
+	RedisUrl            string `validate:"required,gt=0" env:"BLOCK_POLLER_REDIS_URL,required"`
+	BlockchainUrl       string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_URL,required"`
+	BlockchainId        string `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCKCHAIN_ID,required"`
+	BatchSize           int    `validate:"required,gt=0" env:"BLOCK_POLLER_BATCH_SIZE,required"`
+	MaxInFlightRequests int    `validate:"required,gt=0" env:"BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS,required"`
+	BlockTimeoutMs      int    `validate:"required,gt=0" env:"BLOCK_POLLER_BLOCK_TIMEOUT_MS,required"`
+	PollMs              int    `validate:"required,gt=0" env:"BLOCK_POLLER_POLL_MS,required"`
 }
 
 func main() {
@@ -26,7 +33,7 @@ func main() {
 	defer cancel()
 
 	// Loads env variables into a struct and validates them
-	envvars, err := common.LoadEnvVars[EnvVars]()
+	envvars, err := config.LoadEnvVars[EnvVars]()
 	if err != nil {
 		panic(err)
 	}
@@ -48,17 +55,21 @@ func main() {
 
 	// Makes sure the blockchain exists in the database
 	func() {
-		db, err := sql.Open("mysql", envvars.DatabaseUrl)
+		mysqlClient, err := sql.Open("mysql", envvars.MySqlUrl)
 		if err != nil {
 			panic(err)
 		} else {
-			defer db.Close()
-			db.SetConnMaxLifetime(time.Duration(30) * time.Second)
-			db.SetMaxOpenConns(1)
-			db.SetMaxIdleConns(1)
+			defer func() {
+				if err := mysqlClient.Close(); err != nil {
+					common.LogError(nil, err)
+				}
+			}()
+			mysqlClient.SetConnMaxLifetime(time.Duration(30) * time.Second)
+			mysqlClient.SetMaxOpenConns(1)
+			mysqlClient.SetMaxIdleConns(1)
 		}
 
-		if _, err := sqlc.New(db).UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
+		if _, err := sqlc.New(mysqlClient).UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
 			ID:  chain.ID(),
 			Url: chain.GetOpts().ChainUrl,
 		}); err != nil {
@@ -66,18 +77,31 @@ func main() {
 		}
 	}()
 
+	// Creates a redis client
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:                  envvars.RedisUrl,
+		ContextTimeoutEnabled: true,
+	})
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			common.LogError(nil, err)
+		}
+	}()
+
 	// Creates the service
 	service := services.NewBlockPoller(services.BlockPollerParams{
-		Chain: chain,
+		RedisClient: redisClient,
+		Chain:       chain,
 		Opts: services.BlockPollerOpts{
-			BatchSize: envvars.BatchSize,
-			PollMs:    envvars.PollMs,
+			MaxInFlightRequests: envvars.MaxInFlightRequests,
+			BlockTimeoutMs:      envvars.BlockTimeoutMs,
+			BatchSize:           envvars.BatchSize,
+			PollMs:              envvars.PollMs,
 		},
 	})
 
 	// Runs the service until the context is cancelled
-	err = service.Run(ctx)
-	if err != nil {
+	if err = service.Run(ctx); err != nil {
 		common.LogError(nil, err)
 		panic(err)
 	}

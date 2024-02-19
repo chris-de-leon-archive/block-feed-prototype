@@ -2,65 +2,25 @@ package testutils
 
 import (
 	"block-relay/src/libs/blockchains"
+	"block-relay/src/libs/blockstore"
 	"block-relay/src/libs/constants"
 	"block-relay/src/libs/processors"
 	"block-relay/src/libs/services"
-	"block-relay/src/libs/sqlc"
 	"context"
-	"database/sql"
 	"testing"
-	"time"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/redis/go-redis/v9"
 )
 
 func NewBlockPoller(
 	t *testing.T,
-	ctx context.Context,
 	redisUrl string,
-	dbUrl string,
-	blockchainOpts blockchains.BlockchainOpts,
+	chain blockchains.IBlockchain,
 	blockPollerOpts services.BlockPollerOpts,
 ) (*services.BlockPoller, error) {
 	// Creates a redis client
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:                  redisUrl,
-		ContextTimeoutEnabled: true,
-	})
-	t.Cleanup(func() {
-		if err := redisClient.Close(); err != nil {
-			t.Log(err)
-		}
-	})
-
-	// Creates a blockchain client
-	resolver := NewChainResolver()
-	t.Cleanup(func() { resolver.Close(func(err error) { t.Logf("error: %v\n", err) }) })
-	chain, err := resolver.ResolveChain(&blockchainOpts)
+	redisClient, err := GetRedisClient(t, redisUrl)
 	if err != nil {
 		return nil, err
 	}
-
-	// Makes sure the blockchain exists in the database
-	func() {
-		db, err := sql.Open("mysql", dbUrl)
-		if err != nil {
-			panic(err)
-		} else {
-			defer db.Close()
-			db.SetConnMaxLifetime(time.Duration(30) * time.Second)
-			db.SetMaxOpenConns(1)
-			db.SetMaxIdleConns(1)
-		}
-
-		if _, err := sqlc.New(db).UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
-			ID:  chain.ID(),
-			Url: chain.GetOpts().ChainUrl,
-		}); err != nil {
-			panic(err)
-		}
-	}()
 
 	// Creates the service
 	return services.NewBlockPoller(services.BlockPollerParams{
@@ -70,43 +30,109 @@ func NewBlockPoller(
 	}), nil
 }
 
+func NewBlockFlusher(
+	t *testing.T,
+	webhookRedisUrl string,
+	blockPollerRedisUrl string,
+	blockFlusherOpts services.BlockFlusherOpts,
+) (*services.BlockFlusher, error) {
+	// Creates a client for the redis instance where webhook processing takes place
+	webhookRedisClient, err := GetRedisClient(t, webhookRedisUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates a client for the redis instance where where block processing takes place
+	blockPollerRedisClient, err := GetRedisClient(t, blockPollerRedisUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates the service
+	return services.NewBlockFlusher(services.BlockFlusherParams{
+		WebhookStreamRedisClient: webhookRedisClient,
+		BlockStreamRedisClient:   blockPollerRedisClient,
+		Opts:                     &blockFlusherOpts,
+	}), nil
+}
+
 func NewWebhookConsumer(
 	t *testing.T,
+	ctx context.Context,
 	redisUrl string,
-	dbUrl string,
+	mysqlUrl string,
+	storeUrl string,
 	streamConsumerOpts services.StreamConsumerOpts,
 ) (*services.StreamConsumer, error) {
 	// Creates a redis client
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:                  redisUrl,
-		ContextTimeoutEnabled: true,
-	})
-	t.Cleanup(func() {
-		if err := redisClient.Close(); err != nil {
-			t.Log(err)
-		}
-	})
-
-	// Creates a database connection pool
-	db, err := sql.Open("mysql", dbUrl)
+	redisClient, err := GetRedisClient(t, redisUrl)
 	if err != nil {
 		return nil, err
-	} else {
-		t.Cleanup(func() { db.Close() })
+	}
+
+	// Creates a database connection pool
+	mysqlClient, err := GetMySqlClient(t, mysqlUrl, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates a cache client
+	mongoClient, err := GetMongoClient(t, ctx, storeUrl)
+	if err != nil {
+		return nil, err
 	}
 
 	// Creates the service
 	return services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			DatabaseClient: db,
+			BlockStore:     blockstore.NewMongoBlockStore(mongoClient, MONGO_DB),
+			DatabaseClient: mysqlClient,
 			RedisClient:    redisClient,
 		}),
 		Opts: &services.StreamConsumerOpts{
 			StreamName:        constants.WEBHOOK_STREAM,
-			ConsumerGroupName: constants.WEBHOOK_CONSUMER_GROUP_NAME,
+			ConsumerGroupName: constants.WEBHOOK_STREAM_CONSUMER_GROUP_NAME,
 			ConsumerName:      streamConsumerOpts.ConsumerName,
-			MaxPoolSize:       streamConsumerOpts.MaxPoolSize,
+			ConsumerPoolSize:  streamConsumerOpts.ConsumerPoolSize,
+			BlockTimeoutMs:    streamConsumerOpts.BlockTimeoutMs,
+		},
+	}), nil
+}
+
+func NewBlockCacheConsumer(
+	t *testing.T,
+	ctx context.Context,
+	redisUrl string,
+	storeUrl string,
+	streamConsumerOpts services.StreamConsumerOpts,
+	cachingProcessorOpts processors.CachingProcessorOpts,
+) (*services.StreamConsumer, error) {
+	// Creates a redis client
+	redisClient, err := GetRedisClient(t, redisUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates a cache client
+	mongoClient, err := GetMongoClient(t, ctx, storeUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates the service
+	return services.NewStreamConsumer(services.StreamConsumerParams{
+		RedisClient: redisClient,
+		Processor: processors.NewCachingProcessor(processors.CachingProcessorParams{
+			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, MONGO_DB),
+			RedisClient: redisClient,
+			Opts:        &cachingProcessorOpts,
+		}),
+		Opts: &services.StreamConsumerOpts{
+			StreamName:        constants.BLOCK_CACHE_STREAM,
+			ConsumerGroupName: constants.BLOCK_CACHE_STREAM_CONSUMER_GROUP_NAME,
+			ConsumerName:      streamConsumerOpts.ConsumerName,
+			ConsumerPoolSize:  streamConsumerOpts.ConsumerPoolSize,
 			BlockTimeoutMs:    streamConsumerOpts.BlockTimeoutMs,
 		},
 	}), nil

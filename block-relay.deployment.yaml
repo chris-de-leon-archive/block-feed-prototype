@@ -9,6 +9,27 @@ items:
         kompose.version: 1.26.1 (HEAD)
       creationTimestamp: null
       labels:
+        io.kompose.service: block-flusher
+      name: block-flusher
+    spec:
+      clusterIP: None
+      ports:
+        - name: headless
+          port: 55555
+          targetPort: 0
+      selector:
+        io.kompose.service: block-flusher
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
         io.kompose.service: block-poller-flow-testnet
       name: block-poller-flow-testnet
     spec:
@@ -30,51 +51,8 @@ items:
         kompose.version: 1.26.1 (HEAD)
       creationTimestamp: null
       labels:
-        io.kompose.service: block-receiver
-      name: block-receiver
-    spec:
-      clusterIP: None
-      ports:
-        - name: headless
-          port: 55555
-          targetPort: 0
-      selector:
-        io.kompose.service: block-receiver
-    status:
-      loadBalancer: {}
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-        kompose.service.type: headless
-        kompose.version: 1.26.1 (HEAD)
-      creationTimestamp: null
-      labels:
-        io.kompose.service: db
-      name: db
-    spec:
-      clusterIP: None
-      ports:
-        - name: "5432"
-          port: 5432
-          targetPort: 5432
-      selector:
-        io.kompose.service: db
-      type: ClusterIP
-    status:
-      loadBalancer: {}
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-        kompose.service.type: headless
-        kompose.version: 1.26.1 (HEAD)
-      creationTimestamp: null
-      labels:
-        io.kompose.service: redis
-      name: redis
+        io.kompose.service: block-poller-redis
+      name: block-poller-redis
     spec:
       clusterIP: None
       ports:
@@ -82,7 +60,7 @@ items:
           port: 6379
           targetPort: 6379
       selector:
-        io.kompose.service: redis
+        io.kompose.service: block-poller-redis
       type: ClusterIP
     status:
       loadBalancer: {}
@@ -95,8 +73,8 @@ items:
         kompose.version: 1.26.1 (HEAD)
       creationTimestamp: null
       labels:
-        io.kompose.service: rescheduling-consumer
-      name: rescheduling-consumer
+        io.kompose.service: caching-consumer
+      name: caching-consumer
     spec:
       clusterIP: None
       ports:
@@ -104,7 +82,51 @@ items:
           port: 55555
           targetPort: 0
       selector:
-        io.kompose.service: rescheduling-consumer
+        io.kompose.service: caching-consumer
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: mongodb
+      name: mongodb
+    spec:
+      clusterIP: None
+      ports:
+        - name: "27017"
+          port: 27017
+          targetPort: 27017
+      selector:
+        io.kompose.service: mongodb
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: mysql
+      name: mysql
+    spec:
+      clusterIP: None
+      ports:
+        - name: "3306"
+          port: 3306
+          targetPort: 3306
+      selector:
+        io.kompose.service: mysql
+      type: ClusterIP
     status:
       loadBalancer: {}
   - apiVersion: v1
@@ -128,6 +150,68 @@ items:
         io.kompose.service: webhook-consumer
     status:
       loadBalancer: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: webhook-redis
+      name: webhook-redis
+    spec:
+      clusterIP: None
+      ports:
+        - name: "6380"
+          port: 6380
+          targetPort: 6380
+      selector:
+        io.kompose.service: webhook-redis
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: block-flusher
+      name: block-flusher
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: block-flusher
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: block-flusher
+        spec:
+          containers:
+            - env:
+                - name: BLOCK_FLUSHER_BLOCK_TIMEOUT_MS
+                  value: "60000"
+                - name: BLOCK_FLUSHER_REDIS_BLOCK_STREAM_URL
+                  value: block-poller-redis:6379
+                - name: BLOCK_FLUSHER_REDIS_WEBHOOK_STREAM_URL
+                  value: webhook-redis:6380
+              image: block-flusher:1.0.0
+              name: block-flusher
+              resources: {}
+          restartPolicy: Always
+    status: {}
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -163,14 +247,16 @@ items:
                   value: flow-testnet
                 - name: BLOCK_POLLER_BLOCKCHAIN_URL
                   value: access.devnet.nodes.onflow.org:9000
-                - name: BLOCK_POLLER_DATABASE_URL
-                  value: postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed
+                - name: BLOCK_POLLER_BLOCK_TIMEOUT_MS
+                  value: "60000"
                 - name: BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS
                   value: "10"
-                - name: BLOCK_POLLER_NAME
-                  value: flow-testnet-poller
+                - name: BLOCK_POLLER_MYSQL_URL
+                  value: block_relay_role:password@tcp(mysql:3306)/dev?parseTime=true
                 - name: BLOCK_POLLER_POLL_MS
                   value: "1000"
+                - name: BLOCK_POLLER_REDIS_URL
+                  value: block-poller-redis:6379
               image: block-poller-flow-testnet:1.0.0
               name: block-poller-flow-testnet
               resources: {}
@@ -185,13 +271,13 @@ items:
         kompose.version: 1.26.1 (HEAD)
       creationTimestamp: null
       labels:
-        io.kompose.service: block-receiver
-      name: block-receiver
+        io.kompose.service: block-poller-redis
+      name: block-poller-redis
     spec:
       replicas: 1
       selector:
         matchLabels:
-          io.kompose.service: block-receiver
+          io.kompose.service: block-poller-redis
       strategy: {}
       template:
         metadata:
@@ -201,105 +287,16 @@ items:
             kompose.version: 1.26.1 (HEAD)
           creationTimestamp: null
           labels:
-            io.kompose.service: block-receiver
-        spec:
-          containers:
-            - env:
-                - name: BLOCK_RECEIVER_BATCH_SIZE
-                  value: "1000"
-                - name: BLOCK_RECEIVER_DATABASE_URL
-                  value: postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed
-                - name: BLOCK_RECEIVER_MAX_WAIT_MS
-                  value: "1000"
-                - name: BLOCK_RECEIVER_REDIS_STREAM_URL
-                  value: flow-testnet
-              image: block-receiver:1.0.0
-              name: block-receiver
-              resources: {}
-          restartPolicy: Always
-    status: {}
-  - apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-        kompose.service.type: headless
-        kompose.version: 1.26.1 (HEAD)
-      creationTimestamp: null
-      labels:
-        io.kompose.service: db
-      name: db
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          io.kompose.service: db
-      strategy: {}
-      template:
-        metadata:
-          annotations:
-            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-            kompose.service.type: headless
-            kompose.version: 1.26.1 (HEAD)
-          creationTimestamp: null
-          labels:
-            io.kompose.service: db
+            io.kompose.service: block-poller-redis
         spec:
           containers:
             - args:
-                - postgres
-                - -c
-                - log_statement=all
-              env:
-                - name: POSTGRES_DB
-                  value: dev
-                - name: POSTGRES_PASSWORD
-                  value: password
-                - name: POSTGRES_USER
-                  value: rootuser
-              image: db:1.0.0
-              name: db
-              ports:
-                - containerPort: 5432
-              resources: {}
-          restartPolicy: Always
-    status: {}
-  - apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-        kompose.service.type: headless
-        kompose.version: 1.26.1 (HEAD)
-      creationTimestamp: null
-      labels:
-        io.kompose.service: redis
-      name: redis
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          io.kompose.service: redis
-      strategy: {}
-      template:
-        metadata:
-          annotations:
-            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
-            kompose.service.type: headless
-            kompose.version: 1.26.1 (HEAD)
-          creationTimestamp: null
-          labels:
-            io.kompose.service: redis
-        spec:
-          containers:
-            - args:
-                - redis-server
                 - --port
                 - "6379"
                 - --loglevel
                 - debug
               image: docker.io/redis:7.2.1-alpine3.18
-              name: redis
+              name: block-poller-redis
               ports:
                 - containerPort: 6379
               resources: {}
@@ -314,13 +311,13 @@ items:
         kompose.version: 1.26.1 (HEAD)
       creationTimestamp: null
       labels:
-        io.kompose.service: rescheduling-consumer
-      name: rescheduling-consumer
+        io.kompose.service: caching-consumer
+      name: caching-consumer
     spec:
-      replicas: 2
+      replicas: 1
       selector:
         matchLabels:
-          io.kompose.service: rescheduling-consumer
+          io.kompose.service: caching-consumer
       strategy: {}
       template:
         metadata:
@@ -330,7 +327,7 @@ items:
             kompose.version: 1.26.1 (HEAD)
           creationTimestamp: null
           labels:
-            io.kompose.service: rescheduling-consumer
+            io.kompose.service: caching-consumer
         spec:
           containers:
             - env:
@@ -342,18 +339,104 @@ items:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                - name: RESCHEDULING_CONSUMER_BLOCK_TIMEOUT_MS
+                - name: CACHING_CONSUMER_BLOCKCHAIN_ID
+                  value: flow-testnet
+                - name: CACHING_CONSUMER_BLOCK_TIMEOUT_MS
                   value: "60000"
-                - name: RESCHEDULING_CONSUMER_DATABASE_URL
-                  value: postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed
-                - name: RESCHEDULING_CONSUMER_MAX_POOL_SIZE
-                  value: "3"
-                - name: RESCHEDULING_CONSUMER_NAME
+                - name: CACHING_CONSUMER_MONGO_DATABASE_NAME
+                  value: block-feed
+                - name: CACHING_CONSUMER_MONGO_URL
+                  value: mongodb://readwrite:password@mongodb:27017/?compressors=zlib&replicaSet=rs0
+                - name: CACHING_CONSUMER_NAME
                   value: $(POD_NAMESPACE)-$(POD_NAME)
-                - name: RESCHEDULING_CONSUMER_REDIS_STREAM_URL
-                  value: redis:6379
-              image: rescheduling-consumer:1.0.0
-              name: rescheduling-consumer
+                - name: CACHING_CONSUMER_REDIS_URL
+                  value: block-poller-redis:6379
+              image: caching-consumer:1.0.0
+              name: caching-consumer
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: mongodb
+      name: mongodb
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: mongodb
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: mongodb
+        spec:
+          containers:
+            - env:
+                - name: MONGO_AUTO_INIT
+                  value: "true"
+                - name: MONGO_DB
+                  value: block-feed
+              image: mongo-dev:1.0.0
+              name: mongodb
+              ports:
+                - containerPort: 27017
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: mysql
+      name: mysql
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: mysql
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: mysql
+        spec:
+          containers:
+            - env:
+                - name: MYSQL_DATABASE
+                  value: dev
+                - name: MYSQL_PASSWORD
+                  value: password
+                - name: MYSQL_ROOT_PASSWORD
+                  value: password
+                - name: MYSQL_USER
+                  value: rootuser
+              image: mysql-dev:1.0.0
+              name: mysql
+              ports:
+                - containerPort: 3306
               resources: {}
           restartPolicy: Always
     status: {}
@@ -396,18 +479,62 @@ items:
                       fieldPath: metadata.name
                 - name: WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS
                   value: "60000"
-                - name: WEBHOOK_CONSUMER_DATABASE_URL
-                  value: postgres://rootuser:password@db:5432/dev?sslmode=disable&search_path=block_feed
-                - name: WEBHOOK_CONSUMER_MAX_POOL_SIZE
-                  value: "3"
-                - name: WEBHOOK_CONSUMER_MAX_RESCHEDULING_RETRIES
-                  value: "3"
+                - name: WEBHOOK_CONSUMER_MONGO_DATABASE_NAME
+                  value: block-feed
+                - name: WEBHOOK_CONSUMER_MONGO_URL
+                  value: mongodb://readonly:password@mongodb:27017/?compressors=zlib&replicaSet=rs0
+                - name: WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE
+                  value: "10"
+                - name: WEBHOOK_CONSUMER_MYSQL_URL
+                  value: block_relay_role:password@tcp(mysql:3306)/dev?parseTime=true
                 - name: WEBHOOK_CONSUMER_NAME
                   value: $(POD_NAMESPACE)-$(POD_NAME)
-                - name: WEBHOOK_CONSUMER_REDIS_STREAM_URL
-                  value: redis:6379
+                - name: WEBHOOK_CONSUMER_POOL_SIZE
+                  value: "5"
+                - name: WEBHOOK_CONSUMER_REDIS_URL
+                  value: webhook-redis:6380
               image: webhook-consumer:1.0.0
               name: webhook-consumer
+              resources: {}
+          restartPolicy: Always
+    status: {}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+        kompose.service.type: headless
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: webhook-redis
+      name: webhook-redis
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: webhook-redis
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f block-relay.compose.yml --out block-relay.deployment.yaml
+            kompose.service.type: headless
+            kompose.version: 1.26.1 (HEAD)
+          creationTimestamp: null
+          labels:
+            io.kompose.service: webhook-redis
+        spec:
+          containers:
+            - args:
+                - --port
+                - "6380"
+                - --loglevel
+                - debug
+              image: docker.io/redis:7.2.1-alpine3.18
+              name: webhook-redis
+              ports:
+                - containerPort: 6380
               resources: {}
           restartPolicy: Always
     status: {}

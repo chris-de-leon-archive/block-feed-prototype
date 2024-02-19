@@ -10,11 +10,11 @@ HUB_TOKEN=$(
 )
 
 REPO_NAMES=(
-	"block-feed-block-relay-rescheduling-consumer"
+	"block-feed-block-relay-block-flusher"
 	"block-feed-block-relay-webhook-consumer"
+	"block-feed-block-relay-caching-consumer"
 	"block-feed-block-relay-block-poller-flow"
 	"block-feed-block-relay-block-poller-eth"
-	"block-feed-block-relay-block-receiver"
 )
 
 for repo in "${REPO_NAMES[@]}"; do

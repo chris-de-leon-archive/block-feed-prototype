@@ -1,6 +1,7 @@
 package messaging
 
 import (
+	"block-relay/src/libs/blockstore"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -54,15 +55,21 @@ type (
 		Data T `json:"Data"`
 	}
 
-	RetryableMsgData struct {
-		XMaxRetries int32
+	WebhookStreamMsgData struct {
+		WebhookID   string
+		BlockHeight uint64
+		IsNew       bool
 	}
 
-	WebhookMsgData struct {
-		WebhookID   string
-		ChainID     string
-		BlockHeight uint64
-		XMaxRetries int32
+	BlockCacheStreamMsgData struct {
+		ChainID string
+		Blocks  []blockstore.BlockDocument
+	}
+
+	BlockFlushStreamMsgData struct {
+		ChainID           string
+		LatestBlockHeight uint64
+		IsBlockStoreEmpty bool
 	}
 )
 
@@ -80,13 +87,31 @@ func GetDataField() string {
 	return dataField
 }
 
-func NewWebhookMsg(chainID string, blockHeight uint64, webhookID string, xMaxRetries int32) *StreamMessage[WebhookMsgData] {
-	return &StreamMessage[WebhookMsgData]{
-		Data: WebhookMsgData{
-			ChainID:     chainID,
-			XMaxRetries: xMaxRetries,
+func NewWebhookStreamMsg(blockHeight uint64, webhookID string, isNew bool) *StreamMessage[WebhookStreamMsgData] {
+	return &StreamMessage[WebhookStreamMsgData]{
+		Data: WebhookStreamMsgData{
 			WebhookID:   webhookID,
 			BlockHeight: blockHeight,
+			IsNew:       isNew,
+		},
+	}
+}
+
+func NewBlockCacheStreamMsg(chainID string, blocks []blockstore.BlockDocument) *StreamMessage[BlockCacheStreamMsgData] {
+	return &StreamMessage[BlockCacheStreamMsgData]{
+		Data: BlockCacheStreamMsgData{
+			ChainID: chainID,
+			Blocks:  blocks,
+		},
+	}
+}
+
+func NewBlockFlushStreamMsg(chainID string, latestBlockHeight uint64, isBlockStoreEmpty bool) *StreamMessage[BlockFlushStreamMsgData] {
+	return &StreamMessage[BlockFlushStreamMsgData]{
+		Data: BlockFlushStreamMsgData{
+			ChainID:           chainID,
+			LatestBlockHeight: latestBlockHeight,
+			IsBlockStoreEmpty: isBlockStoreEmpty,
 		},
 	}
 }

@@ -8,10 +8,8 @@ import (
 	"block-relay/src/libs/processors"
 	"block-relay/src/libs/services"
 	"context"
-	"database/sql"
 	"os/signal"
 	"syscall"
-	"time"
 
 	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
 	_ "compress/zlib"
@@ -22,14 +20,12 @@ import (
 )
 
 type EnvVars struct {
-	MongoUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MONGO_URL,required"`
-	MongoDatabaseName       string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MONGO_DATABASE_NAME,required"`
-	MySqlUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_URL,required"`
-	RedisUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_REDIS_URL,required"`
-	ConsumerName            string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
-	MySqlConnectionPoolSize int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE,required"`
-	ConsumerPoolSize        int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_POOL_SIZE,required"`
-	BlockTimeoutMs          int    `validate:"required,gte=0" env:"WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
+	MongoUrl          string `validate:"required,gt=0" env:"CACHING_CONSUMER_MONGO_URL,required"`
+	MongoDatabaseName string `validate:"required,gt=0" env:"CACHING_CONSUMER_MONGO_DATABASE_NAME,required"`
+	RedisUrl          string `validate:"required,gt=0" env:"CACHING_CONSUMER_REDIS_URL,required"`
+	BlockchainId      string `validate:"required,gt=0" env:"CACHING_CONSUMER_BLOCKCHAIN_ID,required"`
+	ConsumerName      string `validate:"required,gt=0" env:"CACHING_CONSUMER_NAME,required"`
+	BlockTimeoutMs    int    `validate:"required,gte=0" env:"CACHING_CONSUMER_BLOCK_TIMEOUT_MS,required"`
 }
 
 func main() {
@@ -54,7 +50,7 @@ func main() {
 		}
 	}()
 
-	// Creates a mongodb client
+	// Creates a database connection pool
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(envvars.MongoUrl))
 	if err != nil {
 		panic(err)
@@ -65,35 +61,22 @@ func main() {
 		}
 	}()
 
-	// Creates a mysql client
-	mysqlClient, err := sql.Open("mysql", envvars.MySqlUrl)
-	if err != nil {
-		panic(err)
-	} else {
-		defer func() {
-			if err := mysqlClient.Close(); err != nil {
-				common.LogError(nil, err)
-			}
-		}()
-		mysqlClient.SetConnMaxLifetime(time.Duration(30) * time.Second)
-		mysqlClient.SetMaxOpenConns(envvars.MySqlConnectionPoolSize)
-		mysqlClient.SetMaxIdleConns(envvars.MySqlConnectionPoolSize)
-	}
-
 	// Creates the consumer
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
-		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			BlockStore:     blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
-			DatabaseClient: mysqlClient,
-			RedisClient:    redisClient,
+		Processor: processors.NewCachingProcessor(processors.CachingProcessorParams{
+			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
+			RedisClient: redisClient,
+			Opts: &processors.CachingProcessorOpts{
+				ChainID: envvars.BlockchainId,
+			},
 		}),
 		Opts: &services.StreamConsumerOpts{
-			StreamName:        constants.WEBHOOK_STREAM,
-			ConsumerGroupName: constants.WEBHOOK_STREAM_CONSUMER_GROUP_NAME,
+			StreamName:        constants.BLOCK_CACHE_STREAM,
+			ConsumerGroupName: constants.BLOCK_CACHE_STREAM_CONSUMER_GROUP_NAME,
 			ConsumerName:      envvars.ConsumerName,
-			ConsumerPoolSize:  envvars.ConsumerPoolSize,
 			BlockTimeoutMs:    envvars.BlockTimeoutMs,
+			ConsumerPoolSize:  1,
 		},
 	})
 

@@ -6,4 +6,3 @@ INSERT IGNORE INTO `blockchain` (`id`, `url`)
 VALUES (sqlc.arg('id'), sqlc.arg('url'))
 ON DUPLICATE KEY UPDATE `url` = VALUES(`url`);
 
-

@@ -1,3 +1,4 @@
+# Custom
 api/libs/shared/testing/src/lib/core/openapi
 api/env/prod/**/*.env
 api/env/stag/**/*.env
@@ -7,3 +8,6 @@ api/.generated
 api/test.http
 api/ignore
 ignore
+
+# Node.JS
+node_modules

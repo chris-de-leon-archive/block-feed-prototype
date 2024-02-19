@@ -3,7 +3,7 @@ version: "2"
 sql:
   - engine: "mysql"
     queries: "./queries.sql"
-    schema: "../db/schema.sql"
+    schema: "../vendor/mysql/schema.sql"
     gen:
       go:
         package: "sqlc"
