@@ -1,6 +1,6 @@
 import { Context, OPERATIONS } from "./constants"
 import { createSelectSchema } from "drizzle-zod"
-import { database } from "@api/shared/database"
+import { db } from "@api/shared/database"
 import { TRPCError } from "@trpc/server"
 import { trpc } from "@api/shared/trpc"
 import { api } from "@api/api/core"
@@ -10,7 +10,7 @@ export const FindOneInput = z.object({
   id: z.string().uuid(),
 })
 
-export const FindOneOutput = createSelectSchema(database.schema.webhook)
+export const FindOneOutput = createSelectSchema(db.schema.webhook)
 
 export const findOne = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
   t.procedure
@@ -25,7 +25,7 @@ export const findOne = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
     .output(FindOneOutput)
     .use(t.middleware(api.middleware.requireAuth))
     .query(async (params) => {
-      const result = await database.queries.webhooks.findOne(
+      const result = await db.queries.webhooks.findOne(
         params.ctx.database.drizzle,
         {
           where: {

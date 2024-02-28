@@ -27,6 +27,6 @@ export const remove = async (db: TDatabaseLike, args: RemoveInput) => {
         eq(webhook.customerId, inputs.placeholders.customerId),
       ),
     )
-    .prepare("webhook:remove")
+    .prepare()
     .execute(inputs.values)
 }

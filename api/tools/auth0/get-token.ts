@@ -7,7 +7,7 @@ const input = createInterface({
 })
 
 const main = async () => {
-  const client = auth0.createClient()
+  const client = auth0.core.createClient(auth0.core.zAuthEnv.parse(process.env))
 
   const email = await new Promise<string>((res) => {
     input.question("Auth0 Email: ", (answer) => {

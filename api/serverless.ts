@@ -1,7 +1,9 @@
 import { config as webhooksFindManyConfig } from "./apps/api/webhooks/find-many/src/config"
+import { config as webhooksActivateConfig } from "./apps/api/webhooks/activate/src/config"
 import { config as webhooksFindOneConfig } from "./apps/api/webhooks/find-one/src/config"
 import { config as webhooksCreateConfig } from "./apps/api/webhooks/create/src/config"
 import { config as webhooksRemoveConfig } from "./apps/api/webhooks/remove/src/config"
+import { config as webhooksUpdateConfig } from "./apps/api/webhooks/update/src/config"
 import type { AWS } from "@serverless/typescript"
 import { utils } from "@api/shared/utils"
 
@@ -25,10 +27,12 @@ const config: AWS = {
     individually: true,
   },
   functions: {
+    ...webhooksActivateConfig,
     ...webhooksFindManyConfig,
     ...webhooksFindOneConfig,
     ...webhooksCreateConfig,
     ...webhooksRemoveConfig,
+    ...webhooksUpdateConfig,
   },
   plugins: [
     // TODO: is localstack still needed?

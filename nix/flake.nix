@@ -25,8 +25,6 @@
             pkgs.nodejs_20 # v20.10.0
             pkgs.awscli2 # v2.15.12
             pkgs.redis # v7.2.3
-            pkgs.k3d # v5.6.0
-            pkgs.kompose # v1.26.1
             pkgs.flow # v1.9.2
             pkgs.jdk20 # v20
             pkgs.go_1_21 #v1.21.5
@@ -34,6 +32,10 @@
             pkgs.sqlc # v1.25.0
             pkgs.atlas # v0.18.0
           ];
+
+          shellHook = ''
+            corepack enable pnpm
+          '';
         };
       }
     );

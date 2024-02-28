@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"strings"
 )
 
 func GetCurrentDir() (*string, error) {
@@ -39,4 +41,35 @@ func JsonStringify(data any) ([]byte, error) {
 		return []byte{}, err
 	}
 	return bytes, nil
+}
+
+func GetBulkInsertQuery[T any](tableName string, rows []T) (string, []any) {
+	var empty T
+	rowMeta := reflect.TypeOf(empty)
+	numCols := rowMeta.NumField()
+
+	sqlTemplates := make([]string, len(rows))
+	sqlVals := make([]any, len(rows)*numCols)
+	for i, r := range rows {
+		sqlTemplates[i] = fmt.Sprintf("(%s)", strings.Repeat("?, ", numCols-1)+"?")
+		for j := 0; j < numCols; j++ {
+			sqlVals[i*numCols+j] = reflect.
+				ValueOf(&r).
+				Elem().
+				FieldByName(
+					reflect.
+						TypeOf(r).
+						Field(j).
+						Name,
+				).
+				Interface()
+		}
+	}
+
+	return fmt.Sprintf(
+			"INSERT INTO `%s` VALUES %s",
+			tableName,
+			strings.Join(sqlTemplates, ","),
+		),
+		sqlVals
 }

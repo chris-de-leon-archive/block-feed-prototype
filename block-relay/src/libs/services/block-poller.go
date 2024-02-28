@@ -7,7 +7,6 @@ import (
 	"block-relay/src/libs/constants"
 	"block-relay/src/libs/messaging"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -241,12 +240,7 @@ func (service *BlockPoller) pollBlocks(ctx context.Context, lastProcessedBlockHe
 
 func (service *BlockPoller) pushBlocks(ctx context.Context, blocks []blockstore.BlockDocument) error {
 	// JSON encodes the data
-	data, err := json.Marshal(
-		messaging.NewBlockCacheStreamMsg(
-			service.chain.ID(),
-			blocks,
-		).Data,
-	)
+	data, err := messaging.NewBlockCacheStreamMsg(service.chain.ID(), blocks).MarshalBinary()
 	if err != nil {
 		return err
 	}

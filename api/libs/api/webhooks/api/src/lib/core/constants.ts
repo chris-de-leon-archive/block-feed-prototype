@@ -1,13 +1,13 @@
-import { database } from "@api/shared/database"
 import { auth0 } from "@api/shared/auth0"
+import { db } from "@api/shared/database"
 
-export const ENV_FILES = ["auth0.env", "node.env", "db.env"]
+export const ENV_FILES = ["webhooks.env", "auth0.env", "node.env", "db.env"]
 
 export const NAMESPACE = "webhooks"
 
 export type Context = Readonly<{
-  database: ReturnType<typeof database.core.createClient>
-  auth0: ReturnType<typeof auth0.createClient>
+  database: ReturnType<typeof db.core.createClient>
+  auth0: ReturnType<typeof auth0.core.createClient>
 }>
 
 export const CONSTANTS = {
@@ -34,7 +34,7 @@ export const CONSTANTS = {
   OFFSET: {
     MIN: 0,
   },
-}
+} as const
 
 export const OPERATIONS = {
   CREATE: (() => {
@@ -82,8 +82,8 @@ export const OPERATIONS = {
       PATH: `/${NAMESPACE}.${name}`,
     } as const
   })(),
-  DEPLOY: (() => {
-    const name = "Deploy" as const
+  ACTIVATE: (() => {
+    const name = "Activate" as const
     return {
       ID: `${NAMESPACE}${name}`,
       METHOD: "POST",

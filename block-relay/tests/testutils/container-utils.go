@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
+	_ "compress/zlib"
+
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -25,10 +28,12 @@ const (
 	MONGO_DB               = "test"
 	MONGO_PORT             = "27017/tcp"
 
-	DEFAULT_MYSQL_ROOT_PASSWORD = "password"
-	DEFAULT_MYSQL_ROOT_USERNAME = "root"
-	DEFAULT_MYSQL_DB            = "test"
-	MYSQL_PORT                  = "3306/tcp"
+	MYSQL_BLOCK_RELAY_UNAME = "block_relay_user"
+	MYSQL_BLOCK_RELAY_PWORD = "password"
+	MYSQL_ROOT_PASSWORD     = "password"
+	MYSQL_ROOT_USERNAME     = "root"
+	MYSQL_DB                = "test"
+	MYSQL_PORT              = "3306/tcp"
 
 	REDIS_PORT = "6379/tcp"
 )
@@ -68,8 +73,8 @@ func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*Cont
 				},
 			},
 			Env: map[string]string{
-				"MYSQL_ROOT_PASSWORD": DEFAULT_MYSQL_ROOT_PASSWORD,
-				"MYSQL_DATABASE":      DEFAULT_MYSQL_DB,
+				"MYSQL_ROOT_PASSWORD": MYSQL_ROOT_PASSWORD,
+				"MYSQL_DATABASE":      MYSQL_DB,
 			},
 		},
 		Started: true,
@@ -89,7 +94,7 @@ func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*Cont
 	}
 
 	// The default URL allows superuser access
-	conn.Url = MySqlUrl(*conn, DEFAULT_MYSQL_ROOT_USERNAME, DEFAULT_MYSQL_ROOT_PASSWORD)
+	conn.Url = MySqlUrl(*conn, MYSQL_ROOT_USERNAME, MYSQL_ROOT_PASSWORD)
 
 	// Returns the container info
 	return &ContainerWithConnectionInfo{
@@ -160,6 +165,7 @@ func NewMongoContainer(ctx context.Context, t *testing.T, version string, debug 
 		}
 	}
 
+	// Example of running additional commands:
 	// // Creates a root user
 	// output, err = Dexec(ctx, container, []string{
 	// 	"mongosh",
@@ -253,7 +259,7 @@ func MySqlUrl(conn HostConnectionInfo, uname string, pword string) string {
 		pword,
 		"host.docker.internal",
 		conn.Port.Port(),
-		DEFAULT_MYSQL_DB,
+		MYSQL_DB,
 	)
 }
 

@@ -5,15 +5,16 @@ import { webhook } from "../../schema"
 import { sql } from "drizzle-orm"
 
 export type CreateInput = Readonly<{
-  data: Readonly<InferInsertModel<typeof webhook>>
+  data: Readonly<Omit<InferInsertModel<typeof webhook>, "id">>
 }>
 
 export const create = async (db: TDatabaseLike, args: CreateInput) => {
-  const id = args.data.id ?? randomUUID()
+  const id = randomUUID()
 
   const inputs = {
     placeholders: {
       id: sql.placeholder(webhook.id.name).getSQL(),
+      isActive: sql.placeholder(webhook.isActive.name).getSQL(),
       url: sql.placeholder(webhook.url.name).getSQL(),
       maxBlocks: sql.placeholder(webhook.maxBlocks.name).getSQL(),
       maxRetries: sql.placeholder(webhook.maxRetries.name).getSQL(),
@@ -23,6 +24,7 @@ export const create = async (db: TDatabaseLike, args: CreateInput) => {
     },
     values: {
       [webhook.id.name]: id,
+      [webhook.isActive.name]: args.data.isActive,
       [webhook.url.name]: args.data.url,
       [webhook.maxBlocks.name]: args.data.maxBlocks,
       [webhook.maxRetries.name]: args.data.maxRetries,
@@ -34,6 +36,7 @@ export const create = async (db: TDatabaseLike, args: CreateInput) => {
 
   const query = db.insert(webhook).values({
     id: inputs.placeholders.id,
+    isActive: inputs.placeholders.isActive,
     url: inputs.placeholders.url,
     maxBlocks: inputs.placeholders.maxBlocks,
     maxRetries: inputs.placeholders.maxRetries,
@@ -43,18 +46,18 @@ export const create = async (db: TDatabaseLike, args: CreateInput) => {
   })
 
   return await query
-    .prepare("webhook:create")
+    .prepare()
     .execute(inputs.values)
-    .then((result) => {
-      if (result.rowCount == null || result.rowCount === 0) {
+    .then(([result]) => {
+      if (result.affectedRows === 0) {
         return {
           id: null,
-          data: result.rowCount ?? 0,
+          data: result,
         }
       }
       return {
         id,
-        data: result.rowCount,
+        data: result,
       }
     })
 }

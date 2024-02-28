@@ -5,9 +5,60 @@ api/env/stag/**/*.env
 api/env/dev/auth0.env
 api/env/dev/aws.env
 api/.generated
-api/test.http
-api/ignore
 ignore
 
 # Node.JS
 node_modules
+
+# Serverless directories
+.serverless
+.esbuild
+.build
+
+# OpenAPI Generator
+.openapi-generator-ignore
+.openapi-generator
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+*.terraform.lock.hcl
+.terraform/
+
+# Compiled output
+dist
+tmp
+/out-tsc
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+.nx/cache

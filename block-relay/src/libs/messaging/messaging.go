@@ -55,6 +55,14 @@ type (
 		Data T `json:"Data"`
 	}
 
+	WebhookLoadBalancerStreamMsgData struct {
+		WebhookID string
+	}
+
+	WebhookActivationStreamMsgData struct {
+		WebhookID string
+	}
+
 	WebhookStreamMsgData struct {
 		WebhookID   string
 		BlockHeight uint64
@@ -97,6 +105,22 @@ func NewWebhookStreamMsg(blockHeight uint64, webhookID string, isNew bool) *Stre
 	}
 }
 
+func NewWebhookLoadBalancerStreamMsg(webhookID string) *StreamMessage[WebhookLoadBalancerStreamMsgData] {
+	return &StreamMessage[WebhookLoadBalancerStreamMsgData]{
+		Data: WebhookLoadBalancerStreamMsgData{
+			WebhookID: webhookID,
+		},
+	}
+}
+
+func NewWebhookActivationStreamMsg(webhookID string) *StreamMessage[WebhookActivationStreamMsgData] {
+	return &StreamMessage[WebhookActivationStreamMsgData]{
+		Data: WebhookActivationStreamMsgData{
+			WebhookID: webhookID,
+		},
+	}
+}
+
 func NewBlockCacheStreamMsg(chainID string, blocks []blockstore.BlockDocument) *StreamMessage[BlockCacheStreamMsgData] {
 	return &StreamMessage[BlockCacheStreamMsgData]{
 		Data: BlockCacheStreamMsgData{
@@ -118,13 +142,13 @@ func NewBlockFlushStreamMsg(chainID string, latestBlockHeight uint64, isBlockSto
 
 func ParseMessage[T any](msg redis.XMessage) (*T, error) {
 	values := msg.Values
-	var parsedMsg T
 
 	rawData, exists := values[dataField]
 	if !exists {
 		return nil, fmt.Errorf("key \"%s\" does not exist in map: %v", dataField, values)
 	}
 
+	var parsedMsg T
 	if err := json.Unmarshal([]byte(fmt.Sprint(rawData)), &parsedMsg); err != nil {
 		return nil, err
 	}

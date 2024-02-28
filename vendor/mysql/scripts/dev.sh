@@ -1,5 +1,3 @@
-set -e
-
 MYSQL_VERSION="8.3.0"
 RANDM_UUID="$(uuidgen)"
 IMAGE_NAME="db:$RANDM_UUID"
@@ -10,6 +8,8 @@ cleanup() {
 }
 
 trap cleanup EXIT
+
+set -e
 
 docker build \
 	-t "$IMAGE_NAME" \

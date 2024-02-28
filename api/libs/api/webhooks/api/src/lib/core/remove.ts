@@ -1,5 +1,5 @@
 import { Context, OPERATIONS } from "./constants"
-import { database } from "@api/shared/database"
+import { db } from "@api/shared/database"
 import { trpc } from "@api/shared/trpc"
 import { api } from "@api/api/core"
 import { z } from "zod"
@@ -9,7 +9,7 @@ export const RemoveInput = z.object({
 })
 
 export const RemoveOutput = z.object({
-  count: z.number().nullable(),
+  count: z.number(),
 })
 
 export const remove = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
@@ -25,12 +25,12 @@ export const remove = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
     .output(RemoveOutput)
     .use(t.middleware(api.middleware.requireAuth))
     .mutation(async (params) => {
-      return await database.queries.webhooks
+      return await db.queries.webhooks
         .remove(params.ctx.database.drizzle, {
           where: {
             id: params.input.id,
             customerId: params.ctx.user.sub,
           },
         })
-        .then((result) => ({ count: result.rowCount ?? 0 }))
+        .then(([result]) => ({ count: result.affectedRows }))
     })

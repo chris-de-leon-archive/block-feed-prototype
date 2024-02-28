@@ -10,6 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+const (
+	ETH_TESTNET_SEPOLIA ChainID = "eth-testnet-sepolia"
+	ETH_TESTNET_GOERLI  ChainID = "eth-testnet-goerli"
+	ETH_MAINNET         ChainID = "eth-mainnet"
+)
+
 type EthereumBlockchain struct {
 	client *ethclient.Client
 	opts   *BlockchainOpts

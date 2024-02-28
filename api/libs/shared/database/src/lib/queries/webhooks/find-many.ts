@@ -35,6 +35,6 @@ export const findMany = async (db: TDatabaseLike, args: FindManyInput) => {
         return [operators.desc(fields.createdAt), operators.desc(fields.id)]
       },
     })
-    .prepare("webhook:find-many")
+    .prepare()
     .execute(inputs.values)
 }

@@ -1,5 +1,7 @@
 export * from "./constants"
 export * from "./find-many"
+export * from "./activate"
 export * from "./find-one"
 export * from "./create"
+export * from "./update"
 export * from "./remove"

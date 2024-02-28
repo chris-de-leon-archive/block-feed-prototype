@@ -1,63 +1,87 @@
-import { pgTable, pgSchema, text, foreignKey, uuid, timestamp, integer, unique, bigint, bigserial, primaryKey, jsonb } from "drizzle-orm/pg-core"
-  import { sql } from "drizzle-orm"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, datetime, index, foreignKey, tinyint, int, unique } from "drizzle-orm/mysql-core"
+import { sql } from "drizzle-orm"
 
 
-export const blockFeed = pgSchema("block_feed");
-
-export const blockchain = blockFeed.table("blockchain", {
-	id: text("id").primaryKey().notNull(),
-	url: text("url").notNull(),
-});
-
-export const webhook = blockFeed.table("webhook", {
-	id: uuid("id").default(sql`block_feed.uuid_generate_v4()`).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	url: text("url").notNull(),
-	maxBlocks: integer("max_blocks").notNull(),
-	maxRetries: integer("max_retries").notNull(),
-	timeoutMs: integer("timeout_ms").notNull(),
-	customerId: text("customer_id").notNull().references(() => customer.id),
-	blockchainId: text("blockchain_id").notNull().references(() => blockchain.id),
-});
-
-export const blockCursor = blockFeed.table("block_cursor", {
-	id: text("id").primaryKey().notNull(),
-	blockchainId: text("blockchain_id").notNull().references(() => blockchain.id),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	blockHeight: bigint("block_height", { mode: "number" }).notNull(),
+export const blockchain = mysqlTable("blockchain", {
+	id: varchar("id", { length: 255 }).notNull(),
+	url: varchar("url", { length: 255 }).notNull(),
 },
 (table) => {
 	return {
-		uniqueBlockHeightPerChain: unique("unique_block_height_per_chain").on(table.blockchainId, table.blockHeight),
+		blockchainId: primaryKey({ columns: [table.id], name: "blockchain_id"}),
 	}
 });
 
-export const customer = blockFeed.table("customer", {
-	id: text("id").primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-});
-
-export const webhookJob = blockFeed.table("webhook_job", {
-	id: bigserial("id", { mode: "bigint" }).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	blockHeight: bigint("block_height", { mode: "number" }).notNull(),
-	webhookId: uuid("webhook_id").notNull().references(() => webhook.id, { onDelete: "cascade" } ),
+export const customer = mysqlTable("customer", {
+	id: varchar("id", { length: 255 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
 },
 (table) => {
 	return {
-		webhookJobWebhookIdKey: unique("webhook_job_webhook_id_key").on(table.webhookId),
+		customerId: primaryKey({ columns: [table.id], name: "customer_id"}),
 	}
 });
 
-export const blockCache = blockFeed.table("block_cache", {
-	blockchainId: text("blockchain_id").notNull().references(() => blockchain.id),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	blockHeight: bigint("block_height", { mode: "number" }).notNull(),
-	block: jsonb("block").notNull(),
+export const webhook = mysqlTable("webhook", {
+	id: varchar("id", { length: 36 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	isActive: tinyint("is_active").notNull(),
+	url: varchar("url", { length: 255 }).notNull(),
+	maxBlocks: int("max_blocks").notNull(),
+	maxRetries: int("max_retries").notNull(),
+	timeoutMs: int("timeout_ms").notNull(),
+	customerId: varchar("customer_id", { length: 255 }).notNull().references(() => customer.id),
+	blockchainId: varchar("blockchain_id", { length: 255 }).notNull().references(() => blockchain.id),
 },
 (table) => {
 	return {
-		blockCachePkey: primaryKey({ columns: [table.blockchainId, table.blockHeight], name: "block_cache_pkey"})
+		blockchainId: index("blockchain_id").on(table.blockchainId),
+		customerId: index("customer_id").on(table.customerId),
+		webhookId: primaryKey({ columns: [table.id], name: "webhook_id"}),
+	}
+});
+
+export const webhookClaim = mysqlTable("webhook_claim", {
+	id: varchar("id", { length: 36 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	claimedBy: varchar("claimed_by", { length: 255 }).notNull(),
+	webhookId: varchar("webhook_id", { length: 36 }).notNull().references(() => webhook.id, { onDelete: "cascade" } ),
+},
+(table) => {
+	return {
+		webhookClaimId: primaryKey({ columns: [table.id], name: "webhook_claim_id"}),
+		webhookId: unique("webhook_id").on(table.webhookId),
+	}
+});
+
+export const webhookLocation = mysqlTable("webhook_location", {
+	id: varchar("id", { length: 36 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	webhookClaimId: varchar("webhook_claim_id", { length: 36 }).notNull().references(() => webhookClaim.id, { onDelete: "cascade" } ),
+	webhookNodeId: varchar("webhook_node_id", { length: 36 }).notNull().references(() => webhookNode.id, { onDelete: "cascade" } ),
+	webhookId: varchar("webhook_id", { length: 36 }).notNull().references(() => webhook.id, { onDelete: "cascade" } ),
+},
+(table) => {
+	return {
+		webhookClaimId: index("webhook_claim_id").on(table.webhookClaimId),
+		webhookNodeId: index("webhook_node_id").on(table.webhookNodeId),
+		webhookLocationId: primaryKey({ columns: [table.id], name: "webhook_location_id"}),
+		webhookId: unique("webhook_id").on(table.webhookId),
+		webhookId2: unique("webhook_id_2").on(table.webhookId, table.webhookNodeId),
+	}
+});
+
+export const webhookNode = mysqlTable("webhook_node", {
+	id: varchar("id", { length: 36 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	url: varchar("url", { length: 255 }).notNull(),
+	blockchainId: varchar("blockchain_id", { length: 255 }).notNull().references(() => blockchain.id),
+},
+(table) => {
+	return {
+		blockchainId: index("blockchain_id").on(table.blockchainId),
+		webhookNodeId: primaryKey({ columns: [table.id], name: "webhook_node_id"}),
+		url: unique("url").on(table.url),
+		url2: unique("url_2").on(table.url, table.blockchainId),
 	}
 });

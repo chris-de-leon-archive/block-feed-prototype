@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"block-relay/src/libs/common"
 	"context"
 	"database/sql"
 	"testing"
@@ -49,6 +50,27 @@ func GetMySqlClient(t *testing.T, url string, dbConnPoolSize int) (*sql.DB, erro
 	return db, nil
 }
 
+func GetTempMySqlClient[T any](url string, dbConnPoolSize int, cb func(client *sql.DB) (T, error)) (T, error) {
+	var empty T
+
+	client, err := sql.Open("mysql", url)
+	if err != nil {
+		return empty, err
+	} else {
+		client.SetConnMaxLifetime(time.Duration(30) * time.Second)
+		client.SetMaxOpenConns(dbConnPoolSize)
+		client.SetMaxIdleConns(dbConnPoolSize)
+	}
+
+	defer func() {
+		if err := client.Close(); err != nil {
+			common.LogError(nil, err)
+		}
+	}()
+
+	return cb(client)
+}
+
 func GetRedisClient(t *testing.T, url string) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:                  url,
@@ -62,4 +84,19 @@ func GetRedisClient(t *testing.T, url string) (*redis.Client, error) {
 	})
 
 	return client, nil
+}
+
+func GetTempRedisClient[T any](url string, cb func(client *redis.Client) (T, error)) (T, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:                  url,
+		ContextTimeoutEnabled: true,
+	})
+
+	defer func() {
+		if err := client.Close(); err != nil {
+			common.LogError(nil, err)
+		}
+	}()
+
+	return cb(client)
 }

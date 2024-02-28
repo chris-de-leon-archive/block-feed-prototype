@@ -1,4 +1,4 @@
-import { database } from "@api/shared/database"
+import { db } from "@api/shared/database"
 import { MiddlewareOpts } from "../types"
 import { auth0 } from "@api/shared/auth0"
 import { TRPCError } from "@trpc/server"
@@ -7,8 +7,8 @@ import { sql } from "drizzle-orm"
 export const requireAuth = async (
   opts: MiddlewareOpts<
     Readonly<{
-      database: ReturnType<typeof database.core.createClient>
-      auth0: ReturnType<typeof auth0.createClient>
+      database: ReturnType<typeof db.core.createClient>
+      auth0: ReturnType<typeof auth0.core.createClient>
     }>
   >,
 ) => {
@@ -61,21 +61,21 @@ export const requireAuth = async (
   // Prepares insert parameters
   const inputs = {
     placeholders: {
-      id: sql.placeholder(database.schema.customer.id.name),
+      id: sql.placeholder(db.schema.customer.id.name),
     },
     values: {
-      [database.schema.customer.id.name]: profile.sub,
+      [db.schema.customer.id.name]: profile.sub,
     },
   }
 
   // Inserts the user (or ignores if one already exists)
   await opts.ctx.database.drizzle
-    .insert(database.schema.customer)
+    .insert(db.schema.customer)
     .values({ id: inputs.placeholders.id })
-    .onConflictDoNothing({
-      target: database.schema.customer.id,
+    .onDuplicateKeyUpdate({
+      set: { id: sql`id` },
     })
-    .prepare("customer:upsert")
+    .prepare()
     .execute(inputs.values)
 
   // Adds the auth0 profile info to the context

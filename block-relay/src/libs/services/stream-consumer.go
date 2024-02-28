@@ -178,7 +178,7 @@ func (service *StreamConsumer) processNewMsg(ctx context.Context, logger *log.Lo
 		ConsumerName:      consumerName,
 	}); err != nil {
 		// TODO: we may want to store this error in the database for the client to see
-		common.LogError(service.logger, err)
+		common.LogError(logger, err)
 		return nil
 	} else {
 		logger.Printf("Successfully processed stream message with ID \"%s\"\n", msg.ID)
@@ -217,7 +217,12 @@ func (service *StreamConsumer) processBacklogMsgs(ctx context.Context, logger *l
 
 		// Exits if there are no more messages in the backlog
 		if msg == nil {
-			return nil
+			if cursorId == "0-0" {
+				return nil
+			} else {
+				cursorId = "0-0"
+				continue
+			}
 		} else {
 			logger.Printf("Successfully received stream message with ID \"%s\"\n", msg.ID)
 		}

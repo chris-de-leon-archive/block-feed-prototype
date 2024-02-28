@@ -1,28 +1,23 @@
-import { drizzle } from "drizzle-orm/node-postgres"
-import { getEnvVars } from "./get-env-vars"
+import { drizzle } from "drizzle-orm/mysql2"
 import * as schema from "../schema"
-import { readFileSync } from "fs"
-import { Pool } from "pg"
+import * as mysql from "mysql2"
+import { z } from "zod"
 
-export const createClient = (
-  opts: Partial<ReturnType<typeof getEnvVars>> = {},
-) => {
-  const env = getEnvVars()
+export const zDatabaseEnv = z.object({
+  DB_LOGGING: z.boolean().default(false),
+  DB_MODE: z.enum(["default", "planetscale"]),
+  DB_URL: z.string().url(),
+})
 
-  const pool = new Pool({
-    connectionString: opts.DB_URL ?? env.DB_URL,
-    // TODO: make sure this is included in the final serverless build
-    ssl:
-      process.env["NODE_ENV"] === "production"
-        ? {
-            ca: readFileSync("/root/.postgresql/root.crt"),
-          }
-        : undefined,
+export const createClient = (env: z.infer<typeof zDatabaseEnv>) => {
+  const pool = mysql.createPool({
+    uri: env.DB_URL,
   })
 
   return {
     drizzle: drizzle<typeof schema>(pool, {
-      logger: opts.DB_LOGGING ?? env.DB_LOGGING,
+      logger: env.DB_LOGGING,
+      mode: env.DB_MODE,
       schema,
     }),
     pool,

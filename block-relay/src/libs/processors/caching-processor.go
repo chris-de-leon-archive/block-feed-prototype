@@ -142,56 +142,45 @@ func (service *CachingProcessor) ProcessMessage(ctx context.Context, msg redis.X
 }
 
 func (service *CachingProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.BlockFlushStreamMsgData], metadata services.ProcessMessageMetadata) error {
+	// Acknowledges the job and deletes it from the stream in one atomic operation
+	// if there is no new message to add
 	if newMsg == nil {
-		// Acknowledges the job and deletes it from the stream in one atomic operation
-		ackScript := redis.NewScript(`
-      local block_cache_stream_key = KEYS[1]
-      local block_cache_stream_cg_key = KEYS[2]
-      local block_cache_stream_msg_id = KEYS[3]
-      redis.call("XACK", block_cache_stream_key, block_cache_stream_cg_key, block_cache_stream_msg_id)
-      redis.call("XDEL", block_cache_stream_key, block_cache_stream_msg_id)
-    `)
-
-		// Executes the script
-		if err := ackScript.Run(ctx, service.redisClient,
-			[]string{
-				metadata.StreamName,
-				metadata.ConsumerGroupName,
-				msg.ID,
-			},
-			[]any{},
-		).Err(); err != nil && !errors.Is(err, redis.Nil) {
-			return err
-		}
-	} else {
-		// Acknowledges the job, deletes it from the stream, and moves it to another stream in one atomic operation
-		ackScript := redis.NewScript(`
-      local block_cache_stream_key = KEYS[1]
-      local block_cache_stream_cg_key = KEYS[2]
-      local block_cache_stream_msg_id = KEYS[3]
-      local block_flush_stream_key = KEYS[4]
-      local block_flush_stream_msg_data_field = KEYS[5]
-      local block_flush_stream_msg_data = ARGV[1]
-      redis.call("XACK", block_cache_stream_key, block_cache_stream_cg_key, block_cache_stream_msg_id)
-      redis.call("XDEL", block_cache_stream_key, block_cache_stream_msg_id)
-      redis.call("XADD", block_flush_stream_key, "MAXLEN", "=", "1", "*", block_flush_stream_msg_data_field, block_flush_stream_msg_data)
-    `)
-
-		// Executes the script
-		if err := ackScript.Run(ctx, service.redisClient,
-			[]string{
-				metadata.StreamName,
-				metadata.ConsumerGroupName,
-				msg.ID,
-				constants.BLOCK_FLUSH_STREAM,
-				messaging.GetDataField(),
-			},
-			[]any{newMsg},
-		).Err(); err != nil && !errors.Is(err, redis.Nil) {
-			return err
-		}
+		return xAckDel(
+			ctx,
+			service.redisClient,
+			metadata.StreamName,
+			metadata.ConsumerGroupName,
+			msg.ID,
+		)
 	}
 
-	// Returns nil if no errors occurred
-	return nil
+	// Acknowledges the job, deletes it from the stream, and moves it to another stream in one atomic operation
+	ackScript := redis.NewScript(`
+    local block_cache_stream_key = KEYS[1]
+    local block_cache_stream_cg_key = KEYS[2]
+    local block_cache_stream_msg_id = KEYS[3]
+    local block_flush_stream_key = KEYS[4]
+    local block_flush_stream_msg_data_field = KEYS[5]
+    local block_flush_stream_msg_data = ARGV[1]
+
+    redis.call("XACK", block_cache_stream_key, block_cache_stream_cg_key, block_cache_stream_msg_id)
+    redis.call("XDEL", block_cache_stream_key, block_cache_stream_msg_id)
+    redis.call("XADD", block_flush_stream_key, "MAXLEN", "=", "1", "*", block_flush_stream_msg_data_field, block_flush_stream_msg_data)
+  `)
+
+	// Executes the script
+	if err := ackScript.Run(ctx, service.redisClient,
+		[]string{
+			metadata.StreamName,
+			metadata.ConsumerGroupName,
+			msg.ID,
+			constants.BLOCK_FLUSH_STREAM,
+			messaging.GetDataField(),
+		},
+		[]any{newMsg},
+	).Err(); err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	} else {
+		return nil
+	}
 }

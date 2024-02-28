@@ -1,1 +1,1 @@
-export * as database from "./lib"
+export * as db from "./lib"

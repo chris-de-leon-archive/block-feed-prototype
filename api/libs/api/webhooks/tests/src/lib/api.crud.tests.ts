@@ -1,89 +1,107 @@
 import { after, before, describe, it } from "node:test"
 import { WebhooksAPI } from "@api/api/webhooks/api"
 import * as testcontainers from "testcontainers"
-import { database } from "@api/shared/database"
 import { testutils } from "@api/shared/testing"
+import { redis } from "@api/shared/redis"
+import { db } from "@api/shared/database"
 import { auth0 } from "@api/shared/auth0"
+import { randomUUID } from "node:crypto"
 import { trpc } from "@api/shared/trpc"
+import { AxiosError } from "axios"
 import assert from "node:assert"
-import {
-  getAdminRoleUrl,
-  getApiRoleUrl,
-} from "libs/shared/testing/src/lib/core"
 
-const t = trpc.createTRPC<WebhooksAPI.Context>()
+const t = trpc.createTRPC<any>()
 
 const router = t.router({
   [WebhooksAPI.NAMESPACE]: t.router({
     [WebhooksAPI.OPERATIONS.FIND_MANY.NAME]: WebhooksAPI.findMany(t),
+    [WebhooksAPI.OPERATIONS.ACTIVATE.NAME]: WebhooksAPI.activate(t),
     [WebhooksAPI.OPERATIONS.FIND_ONE.NAME]: WebhooksAPI.findOne(t),
     [WebhooksAPI.OPERATIONS.CREATE.NAME]: WebhooksAPI.create(t),
     [WebhooksAPI.OPERATIONS.REMOVE.NAME]: WebhooksAPI.remove(t),
+    [WebhooksAPI.OPERATIONS.UPDATE.NAME]: WebhooksAPI.update(t),
   }),
 })
 
 describe("CRUD Tests", () => {
-  const verboseDatabaseLogging = true
+  const webhookStreamName = "webhook-lb-stream"
   const blockchainId = "fake-blockchain"
+  const verbose = {
+    database: true,
+    errors: false,
+    container: {
+      errors: true,
+      data: false,
+    },
+  }
 
   let auth0User: Awaited<ReturnType<typeof testutils.createAuth0User>>
   let appServer: Awaited<ReturnType<typeof testutils.createAsyncServer>>
   let databaseC: testcontainers.StartedTestContainer
-  let ctx: WebhooksAPI.Context
+  let redisC: testcontainers.StartedTestContainer
+  let ctx: WebhooksAPI.ActivateContext & WebhooksAPI.Context
   let adminDbUrl: string
   let apiDbUrl: string
+  let redisUrl: string
   let headers = {}
 
   before(async () => {
-    // Creates a database container
-    process.stdout.write("Starting postgres container... ")
-    databaseC = await testutils.spawnDB()
+    // Creates containers
+    process.stdout.write("Starting containers... ")
+    ;[redisC, databaseC] = await Promise.all([
+      testutils.containers.redis.spawn(verbose.container),
+      testutils.containers.db.spawn(verbose.container),
+    ])
     console.log("done!")
 
     // Assigns database urls
-    adminDbUrl = getAdminRoleUrl(databaseC)
-    apiDbUrl = getApiRoleUrl(databaseC)
+    adminDbUrl = testutils.containers.db.getRootRoleUrl(databaseC)
+    apiDbUrl = testutils.containers.db.getApiRoleUrl(databaseC)
+    redisUrl = testutils.containers.redis.getRedisUrl(redisC)
 
     // Creates a TRPC context
     ctx = {
-      auth0: auth0.createClient(),
-      database: database.core.createClient({
-        DB_LOGGING: verboseDatabaseLogging,
+      auth0: auth0.core.createClient(auth0.core.zAuthEnv.parse(process.env)),
+      redis: redis.core.createClient({ REDIS_URL: redisUrl }),
+      database: db.core.createClient({
+        DB_LOGGING: verbose.database,
+        DB_MODE: "default",
         DB_URL: apiDbUrl,
       }),
+      env: {
+        WEBHOOK_REDIS_STREAM_NAME: webhookStreamName,
+      },
     }
 
     // Creates an Auth0 user
     process.stdout.write("Creating Auth0 user... ")
     auth0User = await testutils.createAuth0User(ctx.auth0)
-    headers = {
-      Authorization: `bearer ${auth0User.accessToken}`,
-    }
+    headers = { Authorization: `bearer ${auth0User.accessToken}` }
     console.log("done!")
 
     // Seeds the database with some fake data
-    await testutils.withDatabaseConn(adminDbUrl, async ({ db }) => {
-      await db.transaction(async (tx) => {
-        // NOTE: there's no need to add the auth0 user to the database
-        // The middleware will take care of that automatically
-        await tx.insert(database.schema.blockchain).values({
-          id: blockchainId,
-          url: "http://does-not-matter.com",
+    await testutils.containers.db.withDatabaseConn(
+      adminDbUrl,
+      async ({ conn }) => {
+        await conn.transaction(async (tx) => {
+          // NOTE: there's no need to add the auth0 user to the database
+          // The middleware will take care of that automatically
+          await tx.insert(db.schema.blockchain).values({
+            id: blockchainId,
+            url: "http://does-not-matter.com",
+          })
         })
-        await tx.insert(database.schema.blockCache).values({
-          blockchainId: blockchainId,
-          blockHeight: 1000,
-          block: JSON.stringify([{ fake: "block data" }]),
-        })
-      })
-    })
+      },
+    )
 
     // Creates a mock API server from the context
     appServer = await testutils.createAsyncServer(
       testutils.createMockApiServer(ctx, {
         router,
         onError: (opts) => {
-          console.error(opts)
+          if (verbose.errors) {
+            console.error(opts)
+          }
         },
       }),
     )
@@ -93,8 +111,17 @@ describe("CRUD Tests", () => {
     await testutils.runPromisesInOrder(
       [
         appServer.close(),
-        ctx.database.pool.end(),
+        new Promise((res, rej) => {
+          ctx.database.pool.end((err) => {
+            if (err != null) {
+              rej(err)
+            }
+            res(null)
+          })
+        }),
+        ctx.redis.client.quit(),
         databaseC.stop(),
+        redisC.stop(),
         auth0User?.cleanUp(),
       ],
       (err) => {
@@ -112,18 +139,18 @@ describe("CRUD Tests", () => {
       basePath: appServer.url,
     })
 
+    // Defines fake data
+    const data = {
+      url: "http://fakeurl.com",
+      maxRetries: 10,
+      maxBlocks: 10,
+      timeoutMs: 1000,
+      blockchainId: blockchainId,
+    }
+
     // Creates an item in the database
     const id = await sdk
-      .webhooksCreate(
-        {
-          url: "http://fakeurl.com",
-          maxRetries: 10,
-          maxBlocks: 10,
-          timeoutMs: 1000,
-          blockchainId: blockchainId,
-        },
-        { headers },
-      )
+      .webhooksCreate(data, { headers })
       .then((result) => {
         const id = result.data.id
         if (id == null) {
@@ -133,51 +160,73 @@ describe("CRUD Tests", () => {
       })
       .catch(testutils.handleAxiosError)
 
-    // The created item should exist
+    // Updates the item
+    const newMaxBlocks = 1
+    await sdk
+      .webhooksUpdate(
+        {
+          ...data,
+          id: id,
+          maxBlocks: newMaxBlocks,
+        },
+        { headers },
+      )
+      .then((result) => {
+        const count = result.data.count
+        if (count === 0) {
+          assert.fail("update failed")
+        }
+      })
+      .catch(testutils.handleAxiosError)
+
+    // The created item should exist and be updated
     await sdk
       .webhooksFindOne(id, { headers })
       .then((result) => {
         assert.equal(result.data.id, id)
+        assert.equal(result.data.isActive, 0)
+        assert.equal(result.data.maxBlocks, newMaxBlocks)
       })
       .catch(testutils.handleAxiosError)
 
-    // A webhook job should also be created with the webhook
-    await testutils
-      .withDatabaseConn(adminDbUrl, async ({ db }) => {
-        return await db.query.webhookJob.findFirst({
-          where(fields, operators) {
-            return operators.eq(fields.webhookId, id)
-          },
-        })
+    // Activates the webhook
+    await sdk
+      .webhooksActivate(
+        {
+          id: id,
+        },
+        { headers },
+      )
+      .then((result) => {
+        assert.equal(result.data.queued, true)
       })
-      .then((webhookJob) => {
-        if (webhookJob == null) {
-          assert.fail("corresponding webhook job was not created")
+      .catch(testutils.handleAxiosError)
+
+    // Should not be able to activate a nonexistent webhook
+    await sdk
+      .webhooksActivate(
+        {
+          id: randomUUID(),
+        },
+        { headers },
+      )
+      .catch((err) => {
+        if (err instanceof AxiosError) {
+          assert.equal(err.response?.status, 400)
+          assert.equal(err.response?.data.message, "webhook does not exist")
+        } else {
+          console.error(err)
+          assert.fail()
         }
       })
 
-    // The webhhok should be removed
+    // Removes the webhook
     await sdk
       .webhooksRemove({ id }, { headers })
       .then((result) => {
         assert.equal(result.data.count, 1)
       })
       .catch(testutils.handleAxiosError)
-
-    // The webhook job should also be removed
-    await testutils
-      .withDatabaseConn(adminDbUrl, async ({ db }) => {
-        return await db.query.webhookJob.findFirst({
-          where(fields, operators) {
-            return operators.eq(fields.webhookId, id)
-          },
-        })
-      })
-      .then((webhookJob) => {
-        if (webhookJob != null) {
-          assert.fail("corresponding webhook job was not removed")
-        }
-      })
 
     // No results should be returned
     await sdk

@@ -11,7 +11,7 @@ const createUserInfo = () => {
 }
 
 export const createAuth0User = async (
-  client: ReturnType<typeof auth0.createClient>,
+  client: ReturnType<typeof auth0.core.createClient>,
 ) => {
   const info = createUserInfo()
 

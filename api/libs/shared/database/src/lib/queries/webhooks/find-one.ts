@@ -28,6 +28,6 @@ export const findOne = async (db: TDatabaseLike, args: FindOneInput) => {
         )
       },
     })
-    .prepare("webhook:find-one")
+    .prepare()
     .execute(inputs.values)
 }

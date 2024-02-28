@@ -1,7 +1,7 @@
 import { auth0 } from "@api/shared/auth0"
 
 const main = async () => {
-  const client = auth0.createClient()
+  const client = auth0.core.createClient(auth0.core.zAuthEnv.parse(process.env))
 
   while (true) {
     process.stdout.write("\nFetching a batch users... ")

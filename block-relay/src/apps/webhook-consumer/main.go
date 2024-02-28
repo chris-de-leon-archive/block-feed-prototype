@@ -16,6 +16,7 @@ import (
 	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
 	_ "compress/zlib"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -84,9 +85,9 @@ func main() {
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			BlockStore:     blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
-			DatabaseClient: mysqlClient,
-			RedisClient:    redisClient,
+			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
+			MySqlClient: mysqlClient,
+			RedisClient: redisClient,
 		}),
 		Opts: &services.StreamConsumerOpts{
 			StreamName:        constants.WEBHOOK_STREAM,

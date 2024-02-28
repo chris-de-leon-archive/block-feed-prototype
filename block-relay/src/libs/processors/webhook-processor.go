@@ -15,32 +15,31 @@ import (
 	"net/http"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 )
 
 type (
 	WebhookProcessorParams struct {
-		BlockStore     blockstore.IBlockStore
-		DatabaseClient *sql.DB
-		RedisClient    *redis.Client
+		BlockStore  blockstore.IBlockStore
+		RedisClient *redis.Client
+		MySqlClient *sql.DB
 	}
 
 	WebhookProcessor struct {
-		blockStore  blockstore.IBlockStore
-		redisClient *redis.Client
-		dbClient    *sql.DB
-		dbQueries   *sqlc.Queries
+		blockStore   blockstore.IBlockStore
+		redisClient  *redis.Client
+		mysqlClient  *sql.DB
+		mysqlQueries *sqlc.Queries
 	}
 )
 
 // NOTE: multiple replicas of this service can be created
 func NewWebhookProcessor(params WebhookProcessorParams) services.IStreamProcessor {
 	return &WebhookProcessor{
-		redisClient: params.RedisClient,
-		blockStore:  params.BlockStore,
-		dbClient:    params.DatabaseClient,
-		dbQueries:   sqlc.New(params.DatabaseClient),
+		redisClient:  params.RedisClient,
+		blockStore:   params.BlockStore,
+		mysqlClient:  params.MySqlClient,
+		mysqlQueries: sqlc.New(params.MySqlClient),
 	}
 }
 
@@ -67,7 +66,7 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 
 	// Gets the webhook data - if it is no longer in the database then this
 	// stream entry will be ACK'd + deleted and we can exit early
-	webhook, err := service.dbQueries.GetWebhook(ctx, msgData.WebhookID)
+	webhook, err := service.mysqlQueries.GetWebhook(ctx, msgData.WebhookID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return service.ack(ctx, msg, nil, metadata)
 	}
@@ -214,76 +213,63 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 }
 
 func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.WebhookStreamMsgData], metadata services.ProcessMessageMetadata) error {
+	// Acknowledges the job and deletes it from the stream in one atomic operation
+	// if there is no new message to add
 	if newMsg == nil {
-		// Acknowledges the job and deletes it from the stream in one atomic operation
-		ackScript := redis.NewScript(`
-      local webhook_stream_key = KEYS[1]
-      local webhook_stream_cg_key = KEYS[2]
-      local webhook_stream_old_msg_id = KEYS[3]
-
-      redis.call("XACK", webhook_stream_key, webhook_stream_cg_key, webhook_stream_old_msg_id)
-      redis.call("XDEL", webhook_stream_key, webhook_stream_old_msg_id)
-    `)
-
-		// Executes the script
-		if err := ackScript.Run(ctx, service.redisClient,
-			[]string{
-				metadata.StreamName,
-				metadata.ConsumerGroupName,
-				msg.ID,
-			},
-			[]any{},
-		).Err(); err != nil && !errors.Is(err, redis.Nil) {
-			return err
-		}
-	} else {
-		// Acknowledges the job, deletes it from the stream, and either reschedules
-		// the job or adds it to the pending set in one atomic operation
-		ackScript := redis.NewScript(`
-      local latest_block_height_key = KEYS[1]
-      local pending_set_key = KEYS[2]
-      local webhook_stream_key = KEYS[3]
-      local webhook_stream_cg_key = KEYS[4]
-      local webhook_stream_msg_data_field = KEYS[5]
-      local webhook_stream_old_msg_id = KEYS[6]
-      local new_block_height = tonumber(ARGV[1])
-      local webhook_stream_new_msg_data = ARGV[2]
-
-      redis.call("XACK", webhook_stream_key, webhook_stream_cg_key, webhook_stream_old_msg_id)
-      redis.call("XDEL", webhook_stream_key, webhook_stream_old_msg_id)
-
-      local latest_block_height = redis.call("GET", latest_block_height_key)
-      if latest_block_height == false then
-        redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
-        return
-      end
-
-      if new_block_height >= tonumber(latest_block_height) then
-        redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
-      else
-        redis.call("XADD", webhook_stream_key, "*", webhook_stream_msg_data_field, webhook_stream_new_msg_data)
-      end
-    `)
-
-		// Executes the script
-		if err := ackScript.Run(ctx, service.redisClient,
-			[]string{
-				constants.LATEST_BLOCK_HEIGHT_KEY,
-				constants.PENDING_SET_KEY,
-				metadata.StreamName,
-				metadata.ConsumerGroupName,
-				messaging.GetDataField(),
-				msg.ID,
-			},
-			[]any{
-				newMsg.Data.BlockHeight,
-				newMsg,
-			},
-		).Err(); err != nil && !errors.Is(err, redis.Nil) {
-			return err
-		}
+		return xAckDel(
+			ctx,
+			service.redisClient,
+			metadata.StreamName,
+			metadata.ConsumerGroupName,
+			msg.ID,
+		)
 	}
 
-	// Returns nil if no errors occurred
-	return nil
+	// Acknowledges the job, deletes it from the stream, and either reschedules
+	// the job or adds it to the pending set in one atomic operation
+	ackScript := redis.NewScript(`
+    local latest_block_height_key = KEYS[1]
+    local pending_set_key = KEYS[2]
+    local webhook_stream_key = KEYS[3]
+    local webhook_stream_cg_key = KEYS[4]
+    local webhook_stream_msg_data_field = KEYS[5]
+    local webhook_stream_old_msg_id = KEYS[6]
+    local new_block_height = tonumber(ARGV[1])
+    local webhook_stream_new_msg_data = ARGV[2]
+
+    redis.call("XACK", webhook_stream_key, webhook_stream_cg_key, webhook_stream_old_msg_id)
+    redis.call("XDEL", webhook_stream_key, webhook_stream_old_msg_id)
+
+    local latest_block_height = redis.call("GET", latest_block_height_key)
+    if latest_block_height == false then
+      redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
+      return
+    end
+
+    if new_block_height >= tonumber(latest_block_height) then
+      redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
+    else
+      redis.call("XADD", webhook_stream_key, "*", webhook_stream_msg_data_field, webhook_stream_new_msg_data)
+    end
+  `)
+
+	// Executes the script
+	if err := ackScript.Run(ctx, service.redisClient,
+		[]string{
+			constants.LATEST_BLOCK_HEIGHT_KEY,
+			constants.PENDING_SET_KEY,
+			metadata.StreamName,
+			metadata.ConsumerGroupName,
+			messaging.GetDataField(),
+			msg.ID,
+		},
+		[]any{
+			newMsg.Data.BlockHeight,
+			newMsg,
+		},
+	).Err(); err != nil && !errors.Is(err, redis.Nil) {
+		return err
+	} else {
+		return nil
+	}
 }

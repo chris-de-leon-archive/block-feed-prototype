@@ -1,5 +1,5 @@
 import { CONSTANTS, Context, OPERATIONS } from "./constants"
-import { database } from "@api/shared/database"
+import { db } from "@api/shared/database"
 import { TRPCError } from "@trpc/server"
 import { trpc } from "@api/shared/trpc"
 import { api } from "@api/api/core"
@@ -16,7 +16,7 @@ export const CreateInput = z.object({
     .number()
     .int()
     .min(CONSTANTS.MAX_RETRIES.MIN)
-    .max(CONSTANTS.MAX_BLOCKS.MAX),
+    .max(CONSTANTS.MAX_RETRIES.MAX),
   timeoutMs: z
     .number()
     .int()
@@ -45,7 +45,7 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
     .output(CreateOutput)
     .use(t.middleware(api.middleware.requireAuth))
     .mutation(async (params) => {
-      const blockchainExists = await database.queries.blockchains.findOne(
+      const blockchainExists = await db.queries.blockchains.findOne(
         params.ctx.database.drizzle,
         {
           where: {
@@ -60,28 +60,11 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
         })
       }
 
-      // TODO: cache clean up may cause no blocks to be found
-      // for a particular chain. We may want to leave at least
-      // the latest block  in the cache in these scenarios
-      const latestCachedBlock =
-        await database.queries.blockCache.findLatestBlock(
-          params.ctx.database.drizzle,
-          {
-            where: {
-              blockchainId: params.input.blockchainId,
-            },
-          },
-        )
-      if (latestCachedBlock == null) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "blockchain is not available",
-        })
-      }
-
-      return await params.ctx.database.drizzle.transaction(async (tx) => {
-        const webhook = await database.queries.webhooks.create(tx, {
+      const webhook = await db.queries.webhooks.create(
+        params.ctx.database.drizzle,
+        {
           data: {
+            isActive: 0,
             url: params.input.url,
             maxBlocks: params.input.maxBlocks,
             maxRetries: params.input.maxRetries,
@@ -89,29 +72,14 @@ export const create = (t: ReturnType<typeof trpc.createTRPC<Context>>) =>
             customerId: params.ctx.user.sub,
             blockchainId: params.input.blockchainId,
           },
+        },
+      )
+      if (webhook.id == null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "failed to create webhook",
         })
+      }
 
-        if (webhook.id == null) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "failed to create webhook",
-          })
-        }
-
-        const webhookJob = await database.queries.webhookJob.create(tx, {
-          data: {
-            blockHeight: latestCachedBlock.blockHeight,
-            webhookId: webhook.id,
-          },
-        })
-
-        if (webhookJob.data === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "failed to activate webhook",
-          })
-        }
-
-        return { id: webhook.id }
-      })
+      return { id: webhook.id }
     })

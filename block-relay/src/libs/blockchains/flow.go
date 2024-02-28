@@ -11,6 +11,11 @@ import (
 	"github.com/onflow/flow-go-sdk/access/grpc"
 )
 
+const (
+	FLOW_MAINNET ChainID = "flow-mainnet"
+	FLOW_TESTNET ChainID = "flow-testnet"
+)
+
 type (
 	FlowBlockchain struct {
 		client access.Client

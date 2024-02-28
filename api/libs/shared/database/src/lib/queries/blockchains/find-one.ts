@@ -23,6 +23,6 @@ export const findOne = async (db: TDatabaseLike, args: FindOneInput) => {
         return operators.eq(fields.id, inputs.placeholders.id)
       },
     })
-    .prepare("blockchain:find-one")
+    .prepare()
     .execute(inputs.values)
 }

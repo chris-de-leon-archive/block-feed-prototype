@@ -1,0 +1,45 @@
+{
+  "name": "api-webhooks-activate",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/webhooks/activate/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api/webhooks/activate",
+        "main": "apps/api/webhooks/activate/src/main.ts",
+        "tsConfig": "apps/api/webhooks/activate/tsconfig.app.json",
+        "assets": ["apps/api/webhooks/activate/src/assets"],
+        "webpackConfig": "apps/api/webhooks/activate/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "api-webhooks-activate:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "api-webhooks-activate:build:development"
+        },
+        "production": {
+          "buildTarget": "api-webhooks-activate:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  },
+  "tags": []
+}
