@@ -163,7 +163,7 @@ func TestBlockRelayPerformance(t *testing.T) {
 	}
 
 	// Creates a block cache consumer service
-	blockCacheConsumer, err := testutils.NewBlockCacheConsumer(t, ctx,
+	blockCacheConsumer, err := testutils.NewBlockConsumer(t, ctx,
 		cBlockPollerRedis.Conn.Url,
 		testutils.MongoUrl(*cMongoDB.Conn,
 			testutils.MONGO_READWRITE_UNAME,
@@ -174,7 +174,7 @@ func TestBlockRelayPerformance(t *testing.T) {
 			ConsumerPoolSize: BLOCK_CACHE_POOL_SIZE,
 			BlockTimeoutMs:   BLOCK_CACHE_BLOCK_TIMEOUT_MS,
 		},
-		processors.CachingProcessorOpts{
+		processors.BlockProcessorOpts{
 			ChainID: string(blockchainOpts.ChainID),
 		},
 	)

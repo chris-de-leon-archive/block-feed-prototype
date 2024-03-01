@@ -26,7 +26,7 @@ resource "docker_image" "webhook_lb_consumer" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/webhook-load-balancer-consumer/main.go"
+      BUILD_PATH = "./src/apps/load-balancing/webhook-load-balancer-consumer/main.go"
     }
   }
 }

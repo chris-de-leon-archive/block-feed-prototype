@@ -14,33 +14,33 @@ import (
 )
 
 type (
-	CachingProcessorOpts struct {
+	BlockProcessorOpts struct {
 		ChainID string
 	}
 
-	CachingProcessorParams struct {
+	BlockProcessorParams struct {
 		BlockStore  blockstore.IBlockStore
 		RedisClient *redis.Client
-		Opts        *CachingProcessorOpts
+		Opts        *BlockProcessorOpts
 	}
 
-	CachingProcessor struct {
+	BlockProcessor struct {
 		blockStore  blockstore.IBlockStore
 		redisClient *redis.Client
-		opts        *CachingProcessorOpts
+		opts        *BlockProcessorOpts
 	}
 )
 
 // NOTE: exactly one replica of this service is needed
-func NewCachingProcessor(params CachingProcessorParams) services.IStreamProcessor {
-	return &CachingProcessor{
+func NewBlockProcessor(params BlockProcessorParams) services.IStreamProcessor {
+	return &BlockProcessor{
 		redisClient: params.RedisClient,
 		blockStore:  params.BlockStore,
 		opts:        params.Opts,
 	}
 }
 
-func (service *CachingProcessor) OnStartup(ctx context.Context, metadata services.OnStartupMetadata) error {
+func (service *BlockProcessor) OnStartup(ctx context.Context, metadata services.OnStartupMetadata) error {
 	// Validates the pool size
 	if metadata.ConsumerPoolSize != 1 {
 		return fmt.Errorf("consumer pool size must be 1 (got %d)", metadata.ConsumerPoolSize)
@@ -95,7 +95,7 @@ func (service *CachingProcessor) OnStartup(ctx context.Context, metadata service
 	}).Err()
 }
 
-func (service *CachingProcessor) ProcessMessage(ctx context.Context, msg redis.XMessage, isBacklogMsg bool, metadata services.ProcessMessageMetadata) error {
+func (service *BlockProcessor) ProcessMessage(ctx context.Context, msg redis.XMessage, isBacklogMsg bool, metadata services.ProcessMessageMetadata) error {
 	// Converts the incoming stream data to a strongly typed struct
 	msgData, err := messaging.ParseMessage[messaging.BlockCacheStreamMsgData](msg)
 	if err != nil {
@@ -141,7 +141,7 @@ func (service *CachingProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	)
 }
 
-func (service *CachingProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.BlockFlushStreamMsgData], metadata services.ProcessMessageMetadata) error {
+func (service *BlockProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.BlockFlushStreamMsgData], metadata services.ProcessMessageMetadata) error {
 	// Acknowledges the job and deletes it from the stream in one atomic operation
 	// if there is no new message to add
 	if newMsg == nil {

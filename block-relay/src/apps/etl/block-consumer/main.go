@@ -20,12 +20,12 @@ import (
 )
 
 type EnvVars struct {
-	MongoUrl          string `validate:"required,gt=0" env:"CACHING_CONSUMER_MONGO_URL,required"`
-	MongoDatabaseName string `validate:"required,gt=0" env:"CACHING_CONSUMER_MONGO_DATABASE_NAME,required"`
-	RedisUrl          string `validate:"required,gt=0" env:"CACHING_CONSUMER_REDIS_URL,required"`
-	BlockchainId      string `validate:"required,gt=0" env:"CACHING_CONSUMER_BLOCKCHAIN_ID,required"`
-	ConsumerName      string `validate:"required,gt=0" env:"CACHING_CONSUMER_NAME,required"`
-	BlockTimeoutMs    int    `validate:"required,gte=0" env:"CACHING_CONSUMER_BLOCK_TIMEOUT_MS,required"`
+	MongoUrl          string `validate:"required,gt=0" env:"BLOCK_CONSUMER_MONGO_URL,required"`
+	MongoDatabaseName string `validate:"required,gt=0" env:"BLOCK_CONSUMER_MONGO_DATABASE_NAME,required"`
+	RedisUrl          string `validate:"required,gt=0" env:"BLOCK_CONSUMER_REDIS_URL,required"`
+	BlockchainId      string `validate:"required,gt=0" env:"BLOCK_CONSUMER_BLOCKCHAIN_ID,required"`
+	ConsumerName      string `validate:"required,gt=0" env:"BLOCK_CONSUMER_NAME,required"`
+	BlockTimeoutMs    int    `validate:"required,gte=0" env:"BLOCK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
 }
 
 func main() {
@@ -64,10 +64,10 @@ func main() {
 	// Creates the consumer
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
-		Processor: processors.NewCachingProcessor(processors.CachingProcessorParams{
+		Processor: processors.NewBlockProcessor(processors.BlockProcessorParams{
 			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
 			RedisClient: redisClient,
-			Opts: &processors.CachingProcessorOpts{
+			Opts: &processors.BlockProcessorOpts{
 				ChainID: envvars.BlockchainId,
 			},
 		}),

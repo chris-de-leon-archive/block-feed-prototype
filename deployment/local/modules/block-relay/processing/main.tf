@@ -42,7 +42,7 @@ resource "docker_image" "block_flusher" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/block-flusher/main.go"
+      BUILD_PATH = "./src/apps/processing/block-flusher/main.go"
     }
   }
 }
@@ -69,7 +69,7 @@ resource "docker_image" "webhook_activation_consumer" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/webhook-activation-consumer/main.go"
+      BUILD_PATH = "./src/apps/processing/webhook-activation-consumer/main.go"
     }
   }
 }
@@ -99,7 +99,7 @@ resource "docker_image" "webhook_consumer" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/webhook-consumer/main.go"
+      BUILD_PATH = "./src/apps/processing/webhook-consumer/main.go"
     }
   }
 }

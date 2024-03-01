@@ -27,7 +27,7 @@ resource "docker_image" "block_poller" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/block-poller/${var.chain_name}/main.go"
+      BUILD_PATH = "./src/apps/etl/block-pollers/${var.chain_name}/main.go"
     }
   }
 }
@@ -58,7 +58,7 @@ resource "docker_image" "caching_consumer" {
     context    = "${path.cwd}/block-relay"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/caching-consumer/main.go"
+      BUILD_PATH = "./src/apps/etl/block-consumer/main.go"
     }
   }
 }
@@ -68,12 +68,12 @@ resource "docker_container" "caching_consumer" {
   image   = docker_image.caching_consumer.name
   restart = "always"
   env = [
-    "CACHING_CONSUMER_MONGO_URL=${var.mongo_readwrite_url}",
-    "CACHING_CONSUMER_MONGO_DATABASE_NAME=${var.mongo_db_name}",
-    "CACHING_CONSUMER_REDIS_URL=${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}",
-    "CACHING_CONSUMER_BLOCKCHAIN_ID=${var.chain_id}",
-    "CACHING_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
-    "CACHING_CONSUMER_NAME=${var.chain_id}-caching-consumer"
+    "BLOCK_CONSUMER_MONGO_URL=${var.mongo_readwrite_url}",
+    "BLOCK_CONSUMER_MONGO_DATABASE_NAME=${var.mongo_db_name}",
+    "BLOCK_CONSUMER_REDIS_URL=${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}",
+    "BLOCK_CONSUMER_BLOCKCHAIN_ID=${var.chain_id}",
+    "BLOCK_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
+    "BLOCK_CONSUMER_NAME=${var.chain_id}-caching-consumer"
   ]
   networks_advanced {
     name = var.network_name

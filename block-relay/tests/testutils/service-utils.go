@@ -102,13 +102,13 @@ func NewWebhookConsumer(
 	}), nil
 }
 
-func NewBlockCacheConsumer(
+func NewBlockConsumer(
 	t *testing.T,
 	ctx context.Context,
 	redisUrl string,
 	storeUrl string,
 	streamConsumerOpts services.StreamConsumerOpts,
-	cachingProcessorOpts processors.CachingProcessorOpts,
+	cachingProcessorOpts processors.BlockProcessorOpts,
 ) (*services.StreamConsumer, error) {
 	// Creates a redis client
 	redisClient, err := GetRedisClient(t, redisUrl)
@@ -125,7 +125,7 @@ func NewBlockCacheConsumer(
 	// Creates the service
 	return services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
-		Processor: processors.NewCachingProcessor(processors.CachingProcessorParams{
+		Processor: processors.NewBlockProcessor(processors.BlockProcessorParams{
 			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, MONGO_DB),
 			RedisClient: redisClient,
 			Opts:        &cachingProcessorOpts,
