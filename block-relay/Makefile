@@ -1,7 +1,9 @@
+# make test-all
 test-all:
 	@sqlc generate
 	@go test ./tests/e2e... -v
 
+# make test NAME=<...>
 test:
 	@sqlc generate
 	@go test ./tests/e2e/$(NAME)_test.go -v
@@ -9,7 +11,6 @@ test:
 # make docker-push-all-images TAG=<...>
 docker-push-all-images:
 	@bash ./scripts/docker-push-all-images.sh $(TAG)
-
 
 # make docker-build-all-images TAG=<...>
 docker-build-all-images:

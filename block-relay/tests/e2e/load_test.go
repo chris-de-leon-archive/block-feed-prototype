@@ -32,6 +32,9 @@ import (
 // 1000 webhooks to process, this can be split 50/50 so that one redis node gets 500
 // webhooks and the other node gets the other 500.
 //
+// This test is run against a live network for simplicity - in the future these test
+// cases will be run against a local devnet
+//
 // =
 func TestBlockRelayPerformance(t *testing.T) {
 	// Defines helper constants

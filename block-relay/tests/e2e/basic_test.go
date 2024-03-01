@@ -23,22 +23,25 @@ import (
 //	fault tolerance (all)
 //	add timing test (i.e. what is the average time it takes for a block to be sent to a webhook once it is sealed on the chain?)
 
-// This test case goes through the end to end process of:
+// # This test case performs the following:
 //
-//  1. A single webhook being added and duplicated to the load balancer stream
+//  1. It adds the same webhook to the load balancer stream multiple times
 //
-//  2. Multiple load balancer consumers:
-//     - filtering out the duplicate webhooks
-//     - claiming the webhooks
-//     - distributing them to webhook activation streams on other nodes
+//  2. It lets multiple load balancer consumers filter out the duplicate webhooks so that only the original one remains
 //
-//  3. Multiple webhook activation consumers activating the webhook and moving it to the pending set for processing
+//  3. It tests what happens when multiple load balancer consumers try to claim the same webhook (only one should be able to claim it)
 //
-//  4. Multiple webhook consumers delivering data to the webhook
+//  4. It tests that the load blanacer consumer that claimed the webhook was able to distribute it to the activation stream on a different redis node
 //
-//  5. Block data collection and storage in Mongo DB
+//  5. It tests that the webhook activation consumers receive the webhook and move it to the pending set for processing
 //
-// =
+//  6. It tests that the block flusher is correctly flushing the latest block
+//
+//  7. It tests that multiple webhook consumers are able to deliver the block data to the webhook URL when the block flusher updates the latest block height
+//
+//  8. Then finally, it tests that block data collection and storage in Mongo DB are working properly
+//
+// # This test is run against a live network for simplicity - in the future these test cases will be run against a local devnet
 func TestBlockRelayLoadBalancerActivation(t *testing.T) {
 	// Defines helper constants
 	const (
