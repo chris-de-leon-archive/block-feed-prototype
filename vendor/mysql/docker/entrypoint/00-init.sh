@@ -5,13 +5,13 @@ set -e
 TRIGGERS_FILE="/db/triggers.sql"
 SCHEMA_FILE="/db/schema.sql"
 
-BLOCK_RELAY_RFILE="/db/users/block-relay.user.sql"
-BLOCK_RELAY_UNAME="block_relay_user"
-BLOCK_RELAY_PWORD="password"
+BACKEND_RFILE="/db/users/backend.user.sql"
+BACKEND_UNAME="backend_user"
+BACKEND_PWORD="password"
 
-API_RFILE="/db/users/api.user.sql"
-API_UNAME="api_user"
-API_PWORD="password"
+FRONTEND_RFILE="/db/users/frontend.user.sql"
+FRONTEND_UNAME="frontend_user"
+FRONTEND_PWORD="password"
 
 mysql \
 	--password="$MYSQL_ROOT_PASSWORD" \
@@ -29,10 +29,10 @@ mysql \
 	--password="$MYSQL_ROOT_PASSWORD" \
 	--user="root" \
 	"$MYSQL_DATABASE" \
-	-e"set @db='$MYSQL_DATABASE'; set @uname='$BLOCK_RELAY_UNAME'; set @pword='$BLOCK_RELAY_PWORD'; $(cat $BLOCK_RELAY_RFILE)"
+	-e"set @db='$MYSQL_DATABASE'; set @uname='$BACKEND_UNAME'; set @pword='$BACKEND_PWORD'; $(cat $BACKEND_RFILE)"
 
 mysql \
 	--password="$MYSQL_ROOT_PASSWORD" \
 	--user="root" \
 	"$MYSQL_DATABASE" \
-	-e"set @db='$MYSQL_DATABASE'; set @uname='$API_UNAME'; set @pword='$API_PWORD'; $(cat $API_RFILE)"
+	-e"set @db='$MYSQL_DATABASE'; set @uname='$FRONTEND_UNAME'; set @pword='$FRONTEND_PWORD'; $(cat $FRONTEND_RFILE)"

@@ -19,8 +19,8 @@ resource "docker_network" "block_feed_net" {
   name = "block_feed_net"
 }
 
-module "block_relay_storage" {
-  source        = "./modules/block-relay-storage"
+module "block_feed_storage" {
+  source        = "./modules/storage"
   network_name  = docker_network.block_feed_net.name
   tag           = var.tag
   mongo_version = var.mongo_version
@@ -29,15 +29,15 @@ module "block_relay_storage" {
   mysql_db_name = var.mysql_db_name
 }
 
-// module "flow_mainnet_block_relay" {
-//   source                         = "./modules/block-relay"
+// module "block_feed_flow_mainnet" {
+//   source                         = "./modules/backend/block-feed"
 //   network_name                   = docker_network.block_feed_net.name
 //   tag                            = var.tag
 //   redis_image                    = docker_image.redis.name
-//   mongo_readwrite_url            = module.block_relay_storage.mongo_readwrite_url
-//   mongo_readonly_url             = module.block_relay_storage.mongo_readonly_url
+//   mongo_readwrite_url            = module.block_feed_storage.mongo_readwrite_url
+//   mongo_readonly_url             = module.block_feed_storage.mongo_readonly_url
 //   mongo_db_name                  = var.mongo_db_name
-//   mysql_url                      = module.block_relay_storage.mysql_url
+//   mysql_url                      = module.block_feed_storage.mysql_backend_url
 //   chain_url                      = "access.mainnet.nodes.onflow.org:9000"
 //   chain_id                       = "flow-mainnet"
 //   chain_name                     = "flow"
@@ -53,18 +53,18 @@ module "block_relay_storage" {
 //   activators_per_shard           = 1
 //   consumers_per_activator        = 3
 //   mysql_activator_conn_pool_size = 3
-//   depends_on                     = [module.block_relay_storage]
+//   depends_on                     = [module.block_feed_storage]
 // }
 
-module "eth_mainnet_block_relay" {
-  source                         = "./modules/block-relay"
+module "block_feed_eth_mainnet" {
+  source                         = "./modules/backend/block-feed"
   network_name                   = docker_network.block_feed_net.name
   tag                            = var.tag
   redis_image                    = docker_image.redis.name
-  mongo_readwrite_url            = module.block_relay_storage.mongo_readwrite_url
-  mongo_readonly_url             = module.block_relay_storage.mongo_readonly_url
+  mongo_readwrite_url            = module.block_feed_storage.mongo_readwrite_url
+  mongo_readonly_url             = module.block_feed_storage.mongo_readonly_url
   mongo_db_name                  = var.mongo_db_name
-  mysql_url                      = module.block_relay_storage.mysql_url
+  mysql_url                      = module.block_feed_storage.mysql_backend_url
   chain_url                      = "https://eth-mainnet.public.blastapi.io"
   chain_id                       = "eth-mainnet"
   chain_name                     = "eth"
@@ -80,20 +80,20 @@ module "eth_mainnet_block_relay" {
   activators_per_shard           = 1
   consumers_per_activator        = 3
   mysql_activator_conn_pool_size = 3
-  depends_on                     = [module.block_relay_storage]
+  depends_on                     = [module.block_feed_storage]
 }
 
-module "block_relay_lb" {
-  source       = "./modules/block-relay-lb"
+module "block_feed_lb" {
+  source       = "./modules/backend/block-feed-lb"
   tag          = var.tag
   network_name = docker_network.block_feed_net.name
   redis_image  = docker_image.redis.name
-  mysql_url    = module.block_relay_storage.mysql_url
+  mysql_url    = module.block_feed_storage.mysql_backend_url
   port         = 6379
   replicas     = 1
   depends_on = [
-    module.block_relay_storage,
-    module.eth_mainnet_block_relay,
+    module.block_feed_storage,
+    module.block_feed_eth_mainnet,
   ]
 }
 

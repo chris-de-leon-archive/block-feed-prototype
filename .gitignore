@@ -1,12 +1,6 @@
 # Custom
-api/libs/shared/testing/src/lib/core/openapi
-frontend/tests/utils/openapi
-frontend/.env
-api/env/prod/**/*.env
-api/env/stag/**/*.env
-api/env/dev/auth0.env
-api/env/dev/aws.env
-api/.generated
+apps/frontend/tests/utils/openapi
+apps/frontend/.env
 ignore
 
 # Node.JS
