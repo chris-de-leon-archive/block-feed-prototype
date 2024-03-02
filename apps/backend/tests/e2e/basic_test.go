@@ -200,7 +200,7 @@ func TestBasic(t *testing.T) {
 	}
 
 	// Instead of using superuser credentials, use a role with limited permissions
-	mysqlBlockRelayUrl := testutils.MySqlUrl(*cMySql.Conn, testutils.MYSQL_BACKEND_USER_UNAME, testutils.MYSQL_BACKEND_USER_PWORD)
+	backendUserMySqlUrl := testutils.MySqlUrl(*cMySql.Conn, testutils.MYSQL_BACKEND_USER_UNAME, testutils.MYSQL_BACKEND_USER_PWORD)
 
 	// Creates a block poller service
 	blockPoller, err := testutils.NewBlockPoller(t,
@@ -251,7 +251,7 @@ func TestBasic(t *testing.T) {
 	// Creates a webhook consumer service
 	webhookConsumer, err := testutils.NewWebhookConsumer(t, ctx,
 		cWebhookRedis.Conn.Url,
-		mysqlBlockRelayUrl,
+		backendUserMySqlUrl,
 		testutils.MongoUrl(*cMongoDB.Conn,
 			testutils.MONGO_READONLY_USER_UNAME,
 			testutils.MONGO_READONLY_USER_PWORD,
@@ -268,7 +268,7 @@ func TestBasic(t *testing.T) {
 	// Creates a webhook load balancer consumer service
 	webhookLoadBalancerConsumer, err := testutils.NewWebhookLoadBalancerConsumer(t,
 		cLoadBalancerRedis.Conn.Url,
-		mysqlBlockRelayUrl,
+		backendUserMySqlUrl,
 		services.StreamConsumerOpts{
 			ConsumerName:     WEBHOOK_LB_CONSUMER_NAME,
 			ConsumerPoolSize: WEBHOOK_LB_POOL_SIZE,
@@ -287,7 +287,7 @@ func TestBasic(t *testing.T) {
 	// Creates a webhook activation consumer service
 	webhookActivationConsumer, err := testutils.NewWebhookActivationConsumer(t,
 		cWebhookRedis.Conn.Url,
-		mysqlBlockRelayUrl,
+		backendUserMySqlUrl,
 		services.StreamConsumerOpts{
 			ConsumerName:     WEBHOOK_ACTIVATION_CONSUMER_NAME,
 			ConsumerPoolSize: WEBHOOK_ACTIVATION_POOL_SIZE,
