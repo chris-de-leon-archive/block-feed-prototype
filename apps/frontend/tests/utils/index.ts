@@ -1,5 +1,5 @@
 export * as containers from "./containers"
 export * from "./servers"
-export * from "./openapi"
 export * from "./auth0"
 export * from "./utils"
+export * from "./api"

@@ -15,12 +15,17 @@ export const createAuth0User = async (
 ) => {
   const info = createUserInfo()
 
-  const payload = await client.management.users.create({
-    connection: "Username-Password-Authentication",
-    username: info.username,
-    email: info.email,
-    password: info.password,
-  })
+  const payload = await client.management.users
+    .create({
+      connection: "Username-Password-Authentication",
+      username: info.username,
+      email: info.email,
+      password: info.password,
+    })
+    .catch((err) => {
+      console.error(err)
+      throw err
+    })
 
   const grant = await client.oauth
     .passwordGrant({
@@ -28,6 +33,10 @@ export const createAuth0User = async (
       password: info.password,
     })
     .then(({ data }) => data)
+    .catch((err) => {
+      console.error(err)
+      throw err
+    })
 
   return {
     id: payload.data.user_id,

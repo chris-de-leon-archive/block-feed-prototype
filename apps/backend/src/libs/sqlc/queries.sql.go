@@ -84,7 +84,7 @@ func (q *Queries) CountWebhookNodes(ctx context.Context) (int64, error) {
 }
 
 const FindClaimedWebhook = `-- name: FindClaimedWebhook :one
-SELECT webhook_claim.id, webhook_claim.created_at, webhook_claim.claimed_by, webhook_claim.webhook_id, webhook.id, webhook.created_at, webhook.is_active, webhook.url, webhook.max_blocks, webhook.max_retries, webhook.timeout_ms, webhook.customer_id, webhook.blockchain_id
+SELECT webhook_claim.id, webhook_claim.created_at, webhook_claim.claimed_by, webhook_claim.webhook_id, webhook.id, webhook.created_at, webhook.is_queued, webhook.is_active, webhook.url, webhook.max_blocks, webhook.max_retries, webhook.timeout_ms, webhook.customer_id, webhook.blockchain_id
 FROM ` + "`" + `webhook_claim` + "`" + ` 
 LEFT JOIN ` + "`" + `webhook` + "`" + ` ON ` + "`" + `webhook` + "`" + `.` + "`" + `id` + "`" + ` = ` + "`" + `webhook_claim` + "`" + `.` + "`" + `webhook_id` + "`" + `
 WHERE ` + "`" + `webhook_id` + "`" + ` = ? 
@@ -98,7 +98,7 @@ type FindClaimedWebhookRow struct {
 
 // FindClaimedWebhook
 //
-//	SELECT webhook_claim.id, webhook_claim.created_at, webhook_claim.claimed_by, webhook_claim.webhook_id, webhook.id, webhook.created_at, webhook.is_active, webhook.url, webhook.max_blocks, webhook.max_retries, webhook.timeout_ms, webhook.customer_id, webhook.blockchain_id
+//	SELECT webhook_claim.id, webhook_claim.created_at, webhook_claim.claimed_by, webhook_claim.webhook_id, webhook.id, webhook.created_at, webhook.is_queued, webhook.is_active, webhook.url, webhook.max_blocks, webhook.max_retries, webhook.timeout_ms, webhook.customer_id, webhook.blockchain_id
 //	FROM `webhook_claim`
 //	LEFT JOIN `webhook` ON `webhook`.`id` = `webhook_claim`.`webhook_id`
 //	WHERE `webhook_id` = ?
@@ -113,6 +113,7 @@ func (q *Queries) FindClaimedWebhook(ctx context.Context, webhookID string) (*Fi
 		&i.WebhookClaim.WebhookID,
 		&i.Webhook.ID,
 		&i.Webhook.CreatedAt,
+		&i.Webhook.IsQueued,
 		&i.Webhook.IsActive,
 		&i.Webhook.Url,
 		&i.Webhook.MaxBlocks,
@@ -125,18 +126,19 @@ func (q *Queries) FindClaimedWebhook(ctx context.Context, webhookID string) (*Fi
 }
 
 const GetWebhook = `-- name: GetWebhook :one
-SELECT id, created_at, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM ` + "`" + `webhook` + "`" + ` WHERE ` + "`" + `id` + "`" + ` = ?
+SELECT id, created_at, is_queued, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM ` + "`" + `webhook` + "`" + ` WHERE ` + "`" + `id` + "`" + ` = ?
 `
 
 // GetWebhook
 //
-//	SELECT id, created_at, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM `webhook` WHERE `id` = ?
+//	SELECT id, created_at, is_queued, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM `webhook` WHERE `id` = ?
 func (q *Queries) GetWebhook(ctx context.Context, id string) (*Webhook, error) {
 	row := q.db.QueryRowContext(ctx, GetWebhook, id)
 	var i Webhook
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
+		&i.IsQueued,
 		&i.IsActive,
 		&i.Url,
 		&i.MaxBlocks,
@@ -189,18 +191,19 @@ func (q *Queries) LocateWebhook(ctx context.Context, arg *LocateWebhookParams) (
 }
 
 const LockWebhook = `-- name: LockWebhook :one
-SELECT id, created_at, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM ` + "`" + `webhook` + "`" + ` WHERE ` + "`" + `id` + "`" + ` = ? FOR UPDATE SKIP LOCKED
+SELECT id, created_at, is_queued, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM ` + "`" + `webhook` + "`" + ` WHERE ` + "`" + `id` + "`" + ` = ? FOR UPDATE SKIP LOCKED
 `
 
 // LockWebhook
 //
-//	SELECT id, created_at, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM `webhook` WHERE `id` = ? FOR UPDATE SKIP LOCKED
+//	SELECT id, created_at, is_queued, is_active, url, max_blocks, max_retries, timeout_ms, customer_id, blockchain_id FROM `webhook` WHERE `id` = ? FOR UPDATE SKIP LOCKED
 func (q *Queries) LockWebhook(ctx context.Context, id string) (*Webhook, error) {
 	row := q.db.QueryRowContext(ctx, LockWebhook, id)
 	var i Webhook
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
+		&i.IsQueued,
 		&i.IsActive,
 		&i.Url,
 		&i.MaxBlocks,

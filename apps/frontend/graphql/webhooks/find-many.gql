@@ -1,0 +1,23 @@
+query Webhooks(
+  $filters: WebhookFiltersInput!
+  $pagination: CursorPaginationInput!
+) {
+  webhooks(filters: $filters, pagination: $pagination) {
+    payload {
+      id
+      createdAt
+      url
+      customerId
+      blockchainId
+      isActive
+      isQueued
+      maxBlocks
+      maxRetries
+      timeoutMs
+    }
+    pagination {
+      hasNext
+      hasPrev
+    }
+  }
+}

@@ -1,12 +1,38 @@
-import { Redis } from "ioredis"
+import { Callback, Redis, Result } from "ioredis"
 import { z } from "zod"
 
+// https://github.com/redis/ioredis/blob/ec42c82ceab1957db00c5175dfe37348f1856a93/examples/typescript/scripts.ts#L12
+declare module "ioredis" {
+  interface RedisCommander<Context> {
+    xaddbatch(
+      streamName: string,
+      dataField: string,
+      ...argv: string[]
+    ): Result<string, Context>
+  }
+}
+
 export const zEnv = z.object({
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.string().url().optional(),
 })
 
 export const create = (env: z.infer<typeof zEnv>) => {
-  const redis = new Redis(env.REDIS_URL)
+  if (env.REDIS_URL == null) {
+    throw new Error("REDIS_URL is not defined")
+  }
+
+  const redis = new Redis(env.REDIS_URL, {
+    scripts: {
+      xaddbatch: {
+        numberOfKeys: 2,
+        lua: `
+          for i = 1, #ARGV do
+            redis.call('XADD', KEYS[1], '*', KEYS[2], ARGV[i])
+          end 
+        `,
+      },
+    },
+  })
 
   return {
     client: redis,

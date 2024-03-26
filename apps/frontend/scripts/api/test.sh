@@ -16,8 +16,8 @@ if [ ! -z $1 ]; then
 	printf "\n\nGenerating Drizzle schema...\n\n"
 	pnpm run db:introspect
 
-	printf "\n\nGenerating Open API SDK...\n\n"
-	pnpm run api:sdk
+	printf "\n\nGenerating GraphQL SDK...\n\n"
+	pnpm run codegen
 fi
 
 printf "\n\nRunning tests...\n\n"
@@ -27,5 +27,6 @@ find ./tests -type f -name '*.tests.ts' |
 		--require ts-node/register \
 		--require tsconfig-paths/register \
 		--test \
+		--test-concurrency 1 \
 		--test-reporter \
 		spec

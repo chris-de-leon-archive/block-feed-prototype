@@ -11,7 +11,8 @@ CREATE TABLE `blockchain` (
 CREATE TABLE `webhook` (
   `id` VARCHAR(36) PRIMARY KEY,
 	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `is_active` BOOLEAN NOT NULL,
+  `is_queued` BOOLEAN NOT NULL, -- mainly for frontend rendering, has no significance on the backend
+  `is_active` BOOLEAN NOT NULL, 
 	`url` VARCHAR(255) NOT NULL,
   `max_blocks` INT NOT NULL,
   `max_retries` INT NOT NULL,
@@ -20,7 +21,8 @@ CREATE TABLE `webhook` (
   `blockchain_id` VARCHAR(255) NOT NULL,
 
   FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`),
-  FOREIGN KEY (`blockchain_id`) REFERENCES `blockchain` (`id`)
+  FOREIGN KEY (`blockchain_id`) REFERENCES `blockchain` (`id`),
+  UNIQUE KEY (`id`, `created_at`)
 );
 
 CREATE TABLE `webhook_node` (

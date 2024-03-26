@@ -26,13 +26,14 @@ func (q *Queries) CreateCustomer(ctx context.Context, id string) (int64, error) 
 }
 
 const CreateWebhook = `-- name: CreateWebhook :execrows
-INSERT INTO ` + "`" + `webhook` + "`" + ` (` + "`" + `id` + "`" + `, ` + "`" + `created_at` + "`" + `, ` + "`" + `is_active` + "`" + `, ` + "`" + `url` + "`" + `, ` + "`" + `max_blocks` + "`" + `, ` + "`" + `max_retries` + "`" + `, ` + "`" + `timeout_ms` + "`" + `, ` + "`" + `customer_id` + "`" + `, ` + "`" + `blockchain_id` + "`" + `)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO ` + "`" + `webhook` + "`" + ` (` + "`" + `id` + "`" + `, ` + "`" + `created_at` + "`" + `, ` + "`" + `is_queued` + "`" + `, ` + "`" + `is_active` + "`" + `, ` + "`" + `url` + "`" + `, ` + "`" + `max_blocks` + "`" + `, ` + "`" + `max_retries` + "`" + `, ` + "`" + `timeout_ms` + "`" + `, ` + "`" + `customer_id` + "`" + `, ` + "`" + `blockchain_id` + "`" + `)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateWebhookParams struct {
 	ID           string    `json:"id"`
 	CreatedAt    time.Time `json:"createdAt"`
+	IsQueued     bool      `json:"isQueued"`
 	IsActive     bool      `json:"isActive"`
 	Url          string    `json:"url"`
 	MaxBlocks    int32     `json:"maxBlocks"`
@@ -44,12 +45,13 @@ type CreateWebhookParams struct {
 
 // CreateWebhook
 //
-//	INSERT INTO `webhook` (`id`, `created_at`, `is_active`, `url`, `max_blocks`, `max_retries`, `timeout_ms`, `customer_id`, `blockchain_id`)
-//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	INSERT INTO `webhook` (`id`, `created_at`, `is_queued`, `is_active`, `url`, `max_blocks`, `max_retries`, `timeout_ms`, `customer_id`, `blockchain_id`)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 func (q *Queries) CreateWebhook(ctx context.Context, arg *CreateWebhookParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, CreateWebhook,
 		arg.ID,
 		arg.CreatedAt,
+		arg.IsQueued,
 		arg.IsActive,
 		arg.Url,
 		arg.MaxBlocks,

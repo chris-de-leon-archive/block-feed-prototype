@@ -1,6 +1,6 @@
-import { db } from "@block-feed/server/vendor/database"
 import { MySql2Database } from "drizzle-orm/mysql2"
 import * as testcontainers from "testcontainers"
+import * as schema from "@block-feed/drizzle"
 import { drizzle } from "drizzle-orm/mysql2"
 import { VerboseOptions } from "./utils"
 import * as mysql from "mysql2/promise"
@@ -57,7 +57,7 @@ export const withDatabaseConn = async <T>(
   url: string,
   cb: (
     ctx: Readonly<{
-      conn: MySql2Database<typeof db.schema>
+      conn: MySql2Database<typeof schema>
     }>,
   ) => Promise<T> | T,
 ) => {
@@ -65,7 +65,7 @@ export const withDatabaseConn = async <T>(
   try {
     return await cb({
       conn: drizzle(conn, {
-        schema: db.schema,
+        schema: schema,
         mode: "default",
       }),
     })

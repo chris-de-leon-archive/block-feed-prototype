@@ -32,7 +32,7 @@ PREPARE stmt FROM @query;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @query = CONCAT("GRANT SELECT, INSERT, DELETE, UPDATE(`url`, `max_blocks`, `max_retries`, `timeout_ms`) ON TABLE webhook TO ", @uname);
+SET @query = CONCAT("GRANT SELECT, INSERT, DELETE, UPDATE(`url`, `max_blocks`, `max_retries`, `timeout_ms`, `is_queued`) ON TABLE webhook TO ", @uname);
 PREPARE stmt FROM @query;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;

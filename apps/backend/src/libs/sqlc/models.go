@@ -21,6 +21,7 @@ type Customer struct {
 type Webhook struct {
 	ID           string    `json:"id"`
 	CreatedAt    time.Time `json:"createdAt"`
+	IsQueued     bool      `json:"isQueued"`
 	IsActive     bool      `json:"isActive"`
 	Url          string    `json:"url"`
 	MaxBlocks    int32     `json:"maxBlocks"`

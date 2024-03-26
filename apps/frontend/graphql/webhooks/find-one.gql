@@ -1,0 +1,14 @@
+query Webhook($id: String!) {
+  webhook(id: $id) {
+    id
+    createdAt
+    url
+    customerId
+    blockchainId
+    isActive
+    isQueued
+    maxBlocks
+    maxRetries
+    timeoutMs
+  }
+}
