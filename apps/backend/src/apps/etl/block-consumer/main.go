@@ -14,18 +14,16 @@ import (
 	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
 	_ "compress/zlib"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type EnvVars struct {
-	MongoUrl          string `validate:"required,gt=0" env:"BLOCK_CONSUMER_MONGO_URL,required"`
-	MongoDatabaseName string `validate:"required,gt=0" env:"BLOCK_CONSUMER_MONGO_DATABASE_NAME,required"`
-	RedisUrl          string `validate:"required,gt=0" env:"BLOCK_CONSUMER_REDIS_URL,required"`
-	BlockchainId      string `validate:"required,gt=0" env:"BLOCK_CONSUMER_BLOCKCHAIN_ID,required"`
-	ConsumerName      string `validate:"required,gt=0" env:"BLOCK_CONSUMER_NAME,required"`
-	BlockTimeoutMs    int    `validate:"required,gte=0" env:"BLOCK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
+	PostgresUrl    string `validate:"required,gt=0" env:"BLOCK_CONSUMER_POSTGRES_URL,required"`
+	RedisUrl       string `validate:"required,gt=0" env:"BLOCK_CONSUMER_REDIS_URL,required"`
+	BlockchainId   string `validate:"required,gt=0" env:"BLOCK_CONSUMER_BLOCKCHAIN_ID,required"`
+	ConsumerName   string `validate:"required,gt=0" env:"BLOCK_CONSUMER_NAME,required"`
+	BlockTimeoutMs int    `validate:"required,gte=0" env:"BLOCK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
 }
 
 func main() {
@@ -51,21 +49,17 @@ func main() {
 	}()
 
 	// Creates a database connection pool
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(envvars.MongoUrl))
+	pgClient, err := pgxpool.New(ctx, envvars.PostgresUrl)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err := mongoClient.Disconnect(context.Background()); err != nil {
-			common.LogError(nil, err)
-		}
-	}()
+	defer pgClient.Close()
 
 	// Creates the consumer
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewBlockProcessor(processors.BlockProcessorParams{
-			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
+			BlockStore:  blockstore.NewTimescaleBlockStore(pgClient),
 			RedisClient: redisClient,
 			Opts: &processors.BlockProcessorOpts{
 				ChainID: envvars.BlockchainId,

@@ -17,14 +17,12 @@ import (
 	_ "compress/zlib"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type EnvVars struct {
-	MongoUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MONGO_URL,required"`
-	MongoDatabaseName       string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MONGO_DATABASE_NAME,required"`
+	PostgresUrl             string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_POSTGRES_URL,required"`
 	MySqlUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_URL,required"`
 	RedisUrl                string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_REDIS_URL,required"`
 	ConsumerName            string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
@@ -55,16 +53,12 @@ func main() {
 		}
 	}()
 
-	// Creates a mongodb client
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(envvars.MongoUrl))
+	// Creates a database connection pool
+	pgClient, err := pgxpool.New(ctx, envvars.PostgresUrl)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err := mongoClient.Disconnect(context.Background()); err != nil {
-			common.LogError(nil, err)
-		}
-	}()
+	defer pgClient.Close()
 
 	// Creates a mysql client
 	mysqlClient, err := sql.Open("mysql", envvars.MySqlUrl)
@@ -85,7 +79,7 @@ func main() {
 	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, envvars.MongoDatabaseName),
+			BlockStore:  blockstore.NewTimescaleBlockStore(pgClient),
 			MySqlClient: mysqlClient,
 			RedisClient: redisClient,
 		}),

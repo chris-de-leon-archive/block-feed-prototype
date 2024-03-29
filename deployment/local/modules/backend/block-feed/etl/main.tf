@@ -68,8 +68,7 @@ resource "docker_container" "block_consumer" {
   image   = docker_image.block_consumer.name
   restart = "always"
   env = [
-    "BLOCK_CONSUMER_MONGO_URL=${var.mongo_readwrite_url}",
-    "BLOCK_CONSUMER_MONGO_DATABASE_NAME=${var.mongo_db_name}",
+    "BLOCK_CONSUMER_POSTGRES_URL=${var.timescaledb_url}",
     "BLOCK_CONSUMER_REDIS_URL=${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}",
     "BLOCK_CONSUMER_BLOCKCHAIN_ID=${var.chain_id}",
     "BLOCK_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",

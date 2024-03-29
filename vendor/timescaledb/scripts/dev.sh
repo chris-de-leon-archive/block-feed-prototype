@@ -1,4 +1,4 @@
-MONGO_VERSION="7.0.5"
+PG_VERSION="latest-pg16"
 RANDM_UUID="$(uuidgen)"
 IMAGE_NAME="db:$RANDM_UUID"
 
@@ -13,13 +13,17 @@ set -e
 
 docker build \
 	-t "$IMAGE_NAME" \
-	--build-arg MONGO_VERSION="$MONGO_VERSION" \
+	--build-arg PG_VERSION="$PG_VERSION" \
 	.
 
 docker run --rm -d \
-	-e MONGO_AUTO_INIT="true" \
-	-p 27017:27017 \
+	-e POSTGRES_PASSWORD="password" \
+	-e POSTGRES_USER="rootuser" \
+	-e POSTGRES_DB="dev" \
+	-p 5432:5432 \
 	--name "$RANDM_UUID" \
 	"$IMAGE_NAME"
+
+sleep 3
 
 docker exec -it "$RANDM_UUID" /bin/bash

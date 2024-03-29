@@ -1,9 +1,5 @@
-output "mongo_readwrite_url" {
-  value = "mongodb://readwrite:password@${docker_container.mongodb.name}:${docker_container.mongodb.ports[0].internal}/?compressors=zlib&replicaSet=rs0"
-}
-
-output "mongo_readonly_url" {
-  value = "mongodb://readonly:password@${docker_container.mongodb.name}:${docker_container.mongodb.ports[0].internal}/?compressors=zlib&replicaSet=rs0"
+output "timescaledb_url" {
+  value = "postgres://blockstore:password@${docker_container.timescaledb.name}:${docker_container.timescaledb.ports[0].internal}/${var.timescaledb_db_name}?sslmode=disable&search_path=block_feed"
 }
 
 output "mysql_backend_url" {

@@ -7,27 +7,28 @@ terraform {
   }
 }
 
-resource "docker_image" "mongo_dev" {
-  name = "mongo-dev:${var.tag}"
+resource "docker_image" "timescaledb_dev" {
+  name = "timescaledb-dev:${var.tag}"
   build {
-    context    = "${path.cwd}/vendor/mongodb"
+    context    = "${path.cwd}/vendor/timescaledb"
     dockerfile = "./Dockerfile"
     build_args = {
-      MONGO_VERSION = var.mongo_version
+      PG_VERSION = var.timescaledb_version
     }
   }
 }
 
-resource "docker_container" "mongodb" {
-  name  = "mongodb"
-  image = docker_image.mongo_dev.name
+resource "docker_container" "timescaledb" {
+  name  = "timescaledb"
+  image = docker_image.timescaledb_dev.name
   env = [
-    "MONGO_AUTO_INIT=true",
-    "MONGO_DB=${var.mongo_db_name}"
+    "POSTGRES_PASSWORD=password",
+    "POSTGRES_USER=rootuser",
+    "POSTGRES_DB=${var.timescaledb_db_name}",
   ]
   ports {
-    internal = 27017
-    external = 27017
+    internal = 5432
+    external = 5432
   }
   networks_advanced {
     name = var.network_name

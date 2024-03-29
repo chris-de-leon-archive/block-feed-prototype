@@ -187,11 +187,12 @@ func (blockStore *MongoBlockStore) GetBlocks(ctx context.Context, chainID string
 
 func (blockStore *MongoBlockStore) GetLatestBlock(ctx context.Context, chainID string) (*BlockDocument, error) {
 	// Sorts blocks in descending order
-	findOpts := options.FindOne().SetSort(bson.D{primitive.E{Key: index, Value: -1}})
+	findOpts := options.FindOne().
+		SetSort(bson.D{primitive.E{Key: index, Value: -1}})
 
 	// Gets the first block
 	var block BlockDocument
-	err := blockStore.db.Collection(chainID).FindOne(ctx, bson.D{}, findOpts).Decode(block)
+	err := blockStore.db.Collection(chainID).FindOne(ctx, bson.D{}, findOpts).Decode(&block)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}

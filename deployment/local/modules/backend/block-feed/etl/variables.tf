@@ -6,11 +6,7 @@ variable "network_name" {
   type = string
 }
 
-variable "mongo_readwrite_url" {
-  type = string
-}
-
-variable "mongo_db_name" {
+variable "timescaledb_url" {
   type = string
 }
 

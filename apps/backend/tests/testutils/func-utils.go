@@ -63,28 +63,21 @@ func GetBulkInsertQuery[T any](tableName string, rows []T) (string, []any) {
 	rowMeta := reflect.TypeOf(empty)
 	numCols := rowMeta.NumField()
 
-	sqlTemplates := make([]string, len(rows))
+	sqlPlaceholders := make([]string, len(rows))
 	sqlVals := make([]any, len(rows)*numCols)
-	for i, r := range rows {
-		sqlTemplates[i] = fmt.Sprintf("(%s)", strings.Repeat("?, ", numCols-1)+"?")
+	for i, row := range rows {
+		sqlPlaceholders[i] = fmt.Sprintf("(%s)", strings.Repeat("?, ", numCols-1)+"?")
 		for j := 0; j < numCols; j++ {
-			sqlVals[i*numCols+j] = reflect.
-				ValueOf(&r).
-				Elem().
-				FieldByName(
-					reflect.
-						TypeOf(r).
-						Field(j).
-						Name,
-				).
-				Interface()
+			colName := reflect.TypeOf(row).Field(j).Name
+			colItem := reflect.ValueOf(&row).Elem().FieldByName(colName).Interface()
+			sqlVals[i*numCols+j] = colItem
 		}
 	}
 
-	return fmt.Sprintf(
-			"INSERT INTO `%s` VALUES %s",
-			tableName,
-			strings.Join(sqlTemplates, ","),
-		),
-		sqlVals
+	sqlQuery := fmt.Sprintf("INSERT INTO `%s` VALUES %s",
+		tableName,
+		strings.Join(sqlPlaceholders, ","),
+	)
+
+	return sqlQuery, sqlVals
 }

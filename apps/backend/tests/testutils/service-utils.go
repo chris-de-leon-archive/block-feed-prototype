@@ -78,8 +78,8 @@ func NewWebhookConsumer(
 		return nil, err
 	}
 
-	// Creates a mongodb client
-	mongoClient, err := GetMongoClient(t, ctx, storeUrl)
+	// Creates a block store client
+	blockStoreClient, err := GetPostgresClient(t, ctx, storeUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func NewWebhookConsumer(
 	return services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, MONGO_DB),
+			BlockStore:  blockstore.NewTimescaleBlockStore(blockStoreClient),
 			MySqlClient: mysqlClient,
 			RedisClient: redisClient,
 		}),
@@ -116,8 +116,8 @@ func NewBlockConsumer(
 		return nil, err
 	}
 
-	// Creates a mongodb client
-	mongoClient, err := GetMongoClient(t, ctx, storeUrl)
+	// Creates a block store client
+	blockStoreClient, err := GetPostgresClient(t, ctx, storeUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func NewBlockConsumer(
 	return services.NewStreamConsumer(services.StreamConsumerParams{
 		RedisClient: redisClient,
 		Processor: processors.NewBlockProcessor(processors.BlockProcessorParams{
-			BlockStore:  blockstore.NewMongoBlockStore(mongoClient, MONGO_DB),
+			BlockStore:  blockstore.NewTimescaleBlockStore(blockStoreClient),
 			RedisClient: redisClient,
 			Opts:        &blockProcessorOpts,
 		}),

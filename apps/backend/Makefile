@@ -1,12 +1,21 @@
 # make test-all
 test-all:
 	@sqlc generate
-	@go test ./tests/e2e... -v
+	@go test ./tests/... -v
 
-# make test NAME=<...>
-test:
+# Example(s):
+# 	make test-e2e FPATH=basic
+test-e2e:
 	@sqlc generate
-	@go test ./tests/e2e/$(NAME)_test.go -v
+	@go test ./tests/e2e/$(FPATH)_test.go -v
+
+# Example(s):
+# 	make test-int FPATH=blockstore/redis
+# 	make test-int FPATH=blockstore/mongo
+# 	make test-int FPATH=blockstore/timescale
+test-int:
+	@sqlc generate
+	@go test ./tests/integration/$(FPATH)_test.go -v
 
 # make docker-push-all-images TAG=<...>
 docker-push-all-images:

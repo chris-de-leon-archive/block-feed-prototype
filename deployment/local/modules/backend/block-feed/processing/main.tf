@@ -110,8 +110,7 @@ resource "docker_container" "webhook_consumer" {
   image   = docker_image.webhook_consumer.name
   restart = "always"
   env = [
-    "WEBHOOK_CONSUMER_MONGO_URL=${var.mongo_readonly_url}",
-    "WEBHOOK_CONSUMER_MONGO_DATABASE_NAME=${var.mongo_db_name}",
+    "WEBHOOK_CONSUMER_POSTGRES_URL=${var.timescaledb_url}",
     "WEBHOOK_CONSUMER_MYSQL_URL=${var.mysql_url}",
     "WEBHOOK_CONSUMER_REDIS_URL=${docker_container.webhook_redis[count.index % var.shards].name}:${docker_container.webhook_redis[count.index % var.shards].ports[0].internal}",
     "WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE=${var.mysql_processor_conn_pool_size}",

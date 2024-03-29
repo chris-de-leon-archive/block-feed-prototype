@@ -39,7 +39,7 @@ import (
 //
 //  7. It tests that multiple webhook consumers are able to deliver the block data to the webhook URL when the block flusher updates the latest block height
 //
-//  8. Then finally, it tests that block data collection and storage in Mongo DB are working properly
+//  8. Then finally, it tests that block data collection and block storage are working properly
 //
 // # This test is run against a live network for simplicity - in the future these test cases will be run against a local devnet
 func TestBasic(t *testing.T) {
@@ -75,9 +75,10 @@ func TestBasic(t *testing.T) {
 		WEBHOOK_ACTIVATION_BLOCK_TIMEOUT_MS = 60000
 		WEBHOOK_ACTIVATION_POOL_SIZE        = 3
 
-		REDIS_VERSION = "7.2.1-alpine3.18"
-		MONGO_VERSION = "7.0.5"
-		MYSQL_VERSION = "8.3.0"
+		TIMESCALEDB_VERSION = "latest-pg16"
+		REDIS_VERSION       = "7.2.1-alpine3.18"
+		MONGO_VERSION       = "7.0.5"
+		MYSQL_VERSION       = "8.3.0"
 
 		WEBHOOK_MAX_BLOCKS  = 1
 		WEBHOOK_MAX_RETRIES = 3
@@ -136,7 +137,7 @@ func TestBasic(t *testing.T) {
 	var cLoadBalancerRedis *testutils.ContainerWithConnectionInfo
 	var cBlockPollerRedis *testutils.ContainerWithConnectionInfo
 	var cWebhookRedis *testutils.ContainerWithConnectionInfo
-	var cMongoDB *testutils.ContainerWithConnectionInfo
+	var cTimescaleDB *testutils.ContainerWithConnectionInfo
 	var cMySql *testutils.ContainerWithConnectionInfo
 
 	// Starts a mysql container
@@ -150,13 +151,13 @@ func TestBasic(t *testing.T) {
 		return nil
 	})
 
-	// Starts a mongo container
+	// Starts a block store container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewMongoContainer(ctx, t, MONGO_VERSION, true)
+		container, err := testutils.NewTimescaleDBContainer(ctx, t, TIMESCALEDB_VERSION)
 		if err != nil {
 			return err
 		} else {
-			cMongoDB = container
+			cTimescaleDB = container
 		}
 		return nil
 	})
@@ -220,9 +221,9 @@ func TestBasic(t *testing.T) {
 	// Creates a block consumer service
 	blockConsumer, err := testutils.NewBlockConsumer(t, ctx,
 		cBlockPollerRedis.Conn.Url,
-		testutils.MongoUrl(*cMongoDB.Conn,
-			testutils.MONGO_READWRITE_USER_UNAME,
-			testutils.MONGO_READWRITE_USER_PWORD,
+		testutils.PostgresUrl(*cTimescaleDB.Conn,
+			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
+			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
 		services.StreamConsumerOpts{
 			ConsumerName:     BLOCK_CONSUMER_NAME,
@@ -252,9 +253,9 @@ func TestBasic(t *testing.T) {
 	webhookConsumer, err := testutils.NewWebhookConsumer(t, ctx,
 		cWebhookRedis.Conn.Url,
 		backendUserMySqlUrl,
-		testutils.MongoUrl(*cMongoDB.Conn,
-			testutils.MONGO_READONLY_USER_UNAME,
-			testutils.MONGO_READONLY_USER_PWORD,
+		testutils.PostgresUrl(*cTimescaleDB.Conn,
+			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
+			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
 		services.StreamConsumerOpts{
 			ConsumerName:     WEBHOOK_CONSUMER_NAME,

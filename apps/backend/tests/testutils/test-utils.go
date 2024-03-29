@@ -287,7 +287,6 @@ func SetupWebhooks(
 			sqlcQtx := sqlc.New(tx)
 
 			// Inserts a new customer
-			customerId := uuid.NewString()
 			if _, err := testQtx.CreateCustomer(ctx, customerId); err != nil {
 				return false, err
 			}
@@ -301,10 +300,7 @@ func SetupWebhooks(
 			}
 
 			// Inserts the webhooks
-			if _, err := tx.ExecContext(ctx,
-				bulkWebhookInsertQuery,
-				bulkWebhookInsertArgs...,
-			); err != nil {
+			if _, err := tx.ExecContext(ctx, bulkWebhookInsertQuery, bulkWebhookInsertArgs...); err != nil {
 				return false, err
 			}
 

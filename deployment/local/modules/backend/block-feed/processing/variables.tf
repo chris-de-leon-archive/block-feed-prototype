@@ -6,18 +6,13 @@ variable "network_name" {
   type = string
 }
 
-variable "mongo_readonly_url" {
-  type = string
-}
-
-variable "mongo_db_name" {
+variable "timescaledb_url" {
   type = string
 }
 
 variable "mysql_url" {
   type = string
 }
-
 
 variable "redis_image" {
   type = string

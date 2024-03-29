@@ -11,6 +11,7 @@ import (
 	_ "compress/zlib"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,6 +27,19 @@ func GetMongoClient(t *testing.T, ctx context.Context, url string) (*mongo.Clien
 		if err := client.Disconnect(context.Background()); err != nil {
 			t.Log(err)
 		}
+	})
+
+	return client, nil
+}
+
+func GetPostgresClient(t *testing.T, ctx context.Context, url string) (*pgxpool.Pool, error) {
+	client, err := pgxpool.New(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Cleanup(func() {
+		client.Close()
 	})
 
 	return client, nil

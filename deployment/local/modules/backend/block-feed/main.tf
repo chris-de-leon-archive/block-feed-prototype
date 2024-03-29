@@ -12,8 +12,7 @@ module "etl" {
   network_name           = var.network_name
   tag                    = var.tag
   redis_image            = var.redis_image
-  mongo_readwrite_url    = var.mongo_readwrite_url
-  mongo_db_name          = var.mongo_db_name
+  timescaledb_url        = var.timescaledb_url
   mysql_url              = var.mysql_url
   chain_name             = var.chain_name
   chain_id               = var.chain_id
@@ -29,8 +28,7 @@ module "processing" {
   network_name                   = var.network_name
   tag                            = var.tag
   redis_image                    = var.redis_image
-  mongo_readonly_url             = var.mongo_readonly_url
-  mongo_db_name                  = var.mongo_db_name
+  timescaledb_url                = var.timescaledb_url
   mysql_url                      = var.mysql_url
   etl_redis_url                  = module.etl.redis_url
   chain_id                       = var.chain_id

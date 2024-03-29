@@ -2,12 +2,12 @@ variable "tag" {
   type = string
 }
 
-variable "mongo_version" {
+variable "timescaledb_version" {
   type    = string
-  default = "7.0.5"
+  default = "latest-pg16"
 }
 
-variable "mongo_db_name" {
+variable "timescaledb_db_name" {
   type    = string
   default = "block_feed"
 }

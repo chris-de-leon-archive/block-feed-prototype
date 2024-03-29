@@ -20,13 +20,13 @@ resource "docker_network" "block_feed_net" {
 }
 
 module "block_feed_storage" {
-  source        = "./modules/storage"
-  network_name  = docker_network.block_feed_net.name
-  tag           = var.tag
-  mongo_version = var.mongo_version
-  mongo_db_name = var.mongo_db_name
-  mysql_version = var.mysql_version
-  mysql_db_name = var.mysql_db_name
+  source              = "./modules/storage"
+  network_name        = docker_network.block_feed_net.name
+  tag                 = var.tag
+  timescaledb_version = var.timescaledb_version
+  timescaledb_db_name = var.timescaledb_db_name
+  mysql_version       = var.mysql_version
+  mysql_db_name       = var.mysql_db_name
 }
 
 // module "block_feed_flow_mainnet" {
@@ -34,9 +34,7 @@ module "block_feed_storage" {
 //   network_name                   = docker_network.block_feed_net.name
 //   tag                            = var.tag
 //   redis_image                    = docker_image.redis.name
-//   mongo_readwrite_url            = module.block_feed_storage.mongo_readwrite_url
-//   mongo_readonly_url             = module.block_feed_storage.mongo_readonly_url
-//   mongo_db_name                  = var.mongo_db_name
+//   timescaledb_url                = module.block_feed_storage.timescaledb_url
 //   mysql_url                      = module.block_feed_storage.mysql_backend_url
 //   chain_url                      = "access.mainnet.nodes.onflow.org:9000"
 //   chain_id                       = "flow-mainnet"
@@ -61,9 +59,7 @@ module "block_feed_eth_mainnet" {
   network_name                   = docker_network.block_feed_net.name
   tag                            = var.tag
   redis_image                    = docker_image.redis.name
-  mongo_readwrite_url            = module.block_feed_storage.mongo_readwrite_url
-  mongo_readonly_url             = module.block_feed_storage.mongo_readonly_url
-  mongo_db_name                  = var.mongo_db_name
+  timescaledb_url                = module.block_feed_storage.timescaledb_url
   mysql_url                      = module.block_feed_storage.mysql_backend_url
   chain_url                      = "https://eth-mainnet.public.blastapi.io"
   chain_id                       = "eth-mainnet"

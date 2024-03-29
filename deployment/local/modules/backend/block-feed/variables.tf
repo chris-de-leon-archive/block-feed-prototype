@@ -10,15 +10,7 @@ variable "redis_image" {
   type = string
 }
 
-variable "mongo_readonly_url" {
-  type = string
-}
-
-variable "mongo_readwrite_url" {
-  type = string
-}
-
-variable "mongo_db_name" {
+variable "timescaledb_url" {
   type = string
 }
 

@@ -6,11 +6,11 @@ variable "network_name" {
   type = string
 }
 
-variable "mongo_version" {
+variable "timescaledb_version" {
   type = string
 }
 
-variable "mongo_db_name" {
+variable "timescaledb_db_name" {
   type = string
 }
 

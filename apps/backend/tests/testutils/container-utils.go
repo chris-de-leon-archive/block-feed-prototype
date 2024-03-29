@@ -28,6 +28,14 @@ const (
 	MONGO_DB                   = "test"
 	MONGO_PORT                 = "27017/tcp"
 
+	TIMESCALEDB_BLOCKSTORE_USER_UNAME = "blockstore"
+	TIMESCALEDB_BLOCKSTORE_USER_PWORD = "password"
+	TIMESCALEDB_ROOT_USER_UNAME       = "root"
+	TIMESCALEDB_ROOT_USER_PWORD       = "password"
+	TIMESCALEDB_SCHEMA                = "test"
+	TIMESCALEDB_DB                    = "test"
+	TIMESCALEDB_PORT                  = "5432/tcp"
+
 	MYSQL_BACKEND_USER_UNAME = "backend_user"
 	MYSQL_BACKEND_USER_PWORD = "password"
 	MYSQL_ROOT_USER_UNAME    = "root"
@@ -95,6 +103,60 @@ func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*Cont
 
 	// The default URL allows superuser access
 	conn.Url = MySqlUrl(*conn, MYSQL_ROOT_USER_UNAME, MYSQL_ROOT_USER_PWORD)
+
+	// Returns the container info
+	return &ContainerWithConnectionInfo{
+		Container: container,
+		Conn:      conn,
+	}, nil
+}
+
+func NewTimescaleDBContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
+	// Gets the directory that this file exists in
+	dir, err := GetRootDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates the container
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			ExposedPorts: []string{TIMESCALEDB_PORT},
+			WaitingFor:   wait.ForExposedPort(),
+			FromDockerfile: testcontainers.FromDockerfile{
+				Context:    path.Join(dir, "vendor", "timescaledb"),
+				Dockerfile: path.Join("Dockerfile"),
+				Repo:       "timescaledb-dev",
+				Tag:        version,
+				BuildArgs: map[string]*string{
+					"PG_VERSION": &version,
+				},
+			},
+			Env: map[string]string{
+				"POSTGRES_PASSWORD": TIMESCALEDB_ROOT_USER_PWORD,
+				"POSTGRES_USER":     TIMESCALEDB_ROOT_USER_UNAME,
+				"POSTGRES_SCHEMA":   TIMESCALEDB_SCHEMA,
+				"POSTGRES_DB":       TIMESCALEDB_DB,
+			},
+		},
+		Started: true,
+	})
+
+	// Schedules the container for termination once the test case is completed
+	if err != nil {
+		return nil, err
+	} else {
+		ScheduleContainerTermination(t, container)
+	}
+
+	// Gets the connection info of the container
+	conn, err := GetConnectionInfo(ctx, container, nat.Port(TIMESCALEDB_PORT))
+	if err != nil {
+		return nil, err
+	}
+
+	// The default URL allows superuser access
+	conn.Url = PostgresUrl(*conn, TIMESCALEDB_ROOT_USER_UNAME, TIMESCALEDB_ROOT_USER_PWORD)
 
 	// Returns the container info
 	return &ContainerWithConnectionInfo{
@@ -260,6 +322,18 @@ func MySqlUrl(conn HostConnectionInfo, uname string, pword string) string {
 		"host.docker.internal",
 		conn.Port.Port(),
 		MYSQL_DB,
+	)
+}
+
+func PostgresUrl(conn HostConnectionInfo, uname string, pword string) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
+		uname,
+		pword,
+		"host.docker.internal",
+		conn.Port.Port(),
+		TIMESCALEDB_DB,
+		TIMESCALEDB_SCHEMA,
 	)
 }
 

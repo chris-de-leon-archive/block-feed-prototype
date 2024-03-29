@@ -66,25 +66,14 @@ func (blockStore *RedisBlockStore) GetBlocks(ctx context.Context, chainID string
 }
 
 func (blockStore *RedisBlockStore) GetLatestBlock(ctx context.Context, chainID string) (*BlockDocument, error) {
-	// Fetches the last block height that was pushed to redis if one exists
-	result, err := blockStore.client.ZRange(ctx, chainID, -1, -1).Result()
+	blocks, err := blockStore.GetLatestBlocks(ctx, chainID, 1)
 	if err != nil {
 		return nil, err
 	}
-
-	// Returns nil if there is no data
-	if len(result) == 0 {
+	if len(blocks) == 0 {
 		return nil, nil
 	}
-
-	// Parses the block
-	var block BlockDocument
-	if err := json.Unmarshal([]byte(result[0]), &block); err != nil {
-		return nil, err
-	}
-
-	// Returns the block
-	return &block, nil
+	return &blocks[0], nil
 }
 
 func (blockStore *RedisBlockStore) GetLatestBlocks(ctx context.Context, chainID string, limit int64) ([]BlockDocument, error) {
@@ -93,8 +82,8 @@ func (blockStore *RedisBlockStore) GetLatestBlocks(ctx context.Context, chainID 
 		return []BlockDocument{}, nil
 	}
 
-	// Fetches the last block height that was pushed to redis if one exists
-	rawBlocks, err := blockStore.client.ZRevRange(ctx, chainID, 0, limit-1).Result()
+	// Gets the blocks with the largest heights - at most `limit` items will be returned
+	rawBlocks, err := blockStore.client.ZRange(ctx, chainID, -limit, -1).Result()
 	if err != nil {
 		return []BlockDocument{}, err
 	}
@@ -106,7 +95,8 @@ func (blockStore *RedisBlockStore) GetLatestBlocks(ctx context.Context, chainID 
 		if err := json.Unmarshal([]byte(b), &block); err != nil {
 			return []BlockDocument{}, err
 		} else {
-			blocks[i] = block
+			// Orders blocks in descending order of block height
+			blocks[(len(blocks)-1)-i] = block
 		}
 	}
 

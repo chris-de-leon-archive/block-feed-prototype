@@ -67,7 +67,8 @@ func (q *Queries) CreateWebhook(ctx context.Context, arg *CreateWebhookParams) (
 }
 
 const CreateWebhookNodes = `-- name: CreateWebhookNodes :execrows
-INSERT INTO ` + "`" + `webhook_node` + "`" + ` (` + "`" + `id` + "`" + `, ` + "`" + `created_at` + "`" + `, ` + "`" + `url` + "`" + `, ` + "`" + `blockchain_id` + "`" + `) VALUES (?, ?, ?, ?)
+INSERT INTO ` + "`" + `webhook_node` + "`" + ` (` + "`" + `id` + "`" + `, ` + "`" + `created_at` + "`" + `, ` + "`" + `url` + "`" + `, ` + "`" + `blockchain_id` + "`" + `) 
+VALUES (?, ?, ?, ?)
 `
 
 type CreateWebhookNodesParams struct {
@@ -79,7 +80,8 @@ type CreateWebhookNodesParams struct {
 
 // CreateWebhookNodes
 //
-//	INSERT INTO `webhook_node` (`id`, `created_at`, `url`, `blockchain_id`) VALUES (?, ?, ?, ?)
+//	INSERT INTO `webhook_node` (`id`, `created_at`, `url`, `blockchain_id`)
+//	VALUES (?, ?, ?, ?)
 func (q *Queries) CreateWebhookNodes(ctx context.Context, arg *CreateWebhookNodesParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, CreateWebhookNodes,
 		arg.ID,
