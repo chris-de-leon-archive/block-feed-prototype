@@ -1,4 +1,4 @@
-import { AuthContext } from "@block-feed/server/graphql/types"
+import { GraphQLAuthContext } from "@block-feed/server/graphql/types"
 import { constants } from "@block-feed/shared/constants"
 import * as schema from "@block-feed/drizzle"
 import { and, eq } from "drizzle-orm"
@@ -40,13 +40,13 @@ export const zInput = z.object({
 
 export const handler = async (
   args: z.infer<typeof zInput>,
-  ctx: AuthContext,
+  ctx: GraphQLAuthContext,
 ) => {
   if (Object.values(args.data).filter((v) => v != null).length === 0) {
     return { count: 0 }
   }
 
-  return await ctx.db.drizzle
+  return await ctx.vendor.db.drizzle
     .update(schema.webhook)
     .set({
       maxRetries: args.data.maxRetries ?? undefined,
@@ -56,7 +56,7 @@ export const handler = async (
     })
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.user.sub),
+        eq(schema.webhook.customerId, ctx.auth0.user.sub),
         eq(schema.webhook.id, args.id),
       ),
     )

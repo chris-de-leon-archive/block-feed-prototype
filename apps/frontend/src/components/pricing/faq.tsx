@@ -34,12 +34,12 @@ const items: AccordianProps[] = [
   {
     title: "Can I cancel or downgrade?",
     content:
-      "Yes. You can downgrade to the free tier at any time. Cancellations will take effect at the end of the billing term.",
+      "Yes. You can cancel your subscription at any time. Cancellations will take effect at the end of the billing term. If you'd like your subscription canceled sooner please contact us!",
   },
   {
-    title: "What happens if I exceed the monthly limit on the free tier?",
+    title: "What happens if I miss a monthly payment?",
     content:
-      "Our service will stop forwarding data to your webhook(s) until the next month or until you upgrade to a higher tier. Your webhook(s) will still remain in your dashboard, and we will resume sending data from the last block that was sent to your service.",
+      "Our service will stop forwarding data to your webhook(s) until payment is made. Your webhook(s) will still remain in your dashboard, and we will resume sending data from the last block that was sent to your service.",
   },
   {
     title: "What payment methods are available?",

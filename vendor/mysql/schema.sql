@@ -3,9 +3,20 @@ CREATE TABLE `customer` (
 	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE `checkout_session` (
+  `id` VARCHAR(36) PRIMARY KEY,
+	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `client_reference_id` VARCHAR(36) NOT NULL UNIQUE,
+  `session_id` VARCHAR(255) NOT NULL, -- this can be unique, but there's no benefit in adding the constraint
+  `customer_id` VARCHAR(255) NOT NULL UNIQUE,
+  `url` TEXT NOT NULL,
+
+  FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`)
+);
+
 CREATE TABLE `blockchain` (
   `id` VARCHAR(255) PRIMARY KEY,
-  `url` VARCHAR(255) NOT NULL
+  `url` TEXT NOT NULL
 );
 
 CREATE TABLE `webhook` (
@@ -13,7 +24,7 @@ CREATE TABLE `webhook` (
 	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_queued` BOOLEAN NOT NULL, -- mainly for frontend rendering, has no significance on the backend
   `is_active` BOOLEAN NOT NULL, 
-	`url` VARCHAR(255) NOT NULL,
+	`url` TEXT NOT NULL,
   `max_blocks` INT NOT NULL,
   `max_retries` INT NOT NULL,
   `timeout_ms` INT NOT NULL,

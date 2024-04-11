@@ -10,7 +10,8 @@ export type WebhookCreatorProps = Readonly<{
 
 export function WebhookCreator(props: WebhookCreatorProps) {
   const [isCreateModalVisible, setCreateModalVisibility] = useState(false)
-  const webhookCreator = client.useGraphQLMutation(
+
+  const webhookCreator = client.useGraphQLDashboardMutation(
     client.graphql(
       "mutation CreateWebhook($data: WebhookCreateInput!) {\n  webhookCreate(data: $data) {\n    id\n  }\n}",
     ),
@@ -28,8 +29,8 @@ export function WebhookCreator(props: WebhookCreatorProps) {
           blockchains={props.blockchains}
           disabled={webhookCreator.isPending}
           onSubmit={(data) => {
-            webhookCreator
-              .mutateAsync({
+            webhookCreator.mutate(
+              {
                 data: {
                   url: data.url,
                   maxBlocks: data.maxBlocks,
@@ -37,11 +38,14 @@ export function WebhookCreator(props: WebhookCreatorProps) {
                   timeoutMs: data.timeoutMs,
                   blockchainId: data.blockchainId,
                 },
-              })
-              .then(() => {
-                setCreateModalVisibility(false)
-                props.afterCreate()
-              })
+              },
+              {
+                onSettled: () => {
+                  setCreateModalVisibility(false)
+                  props.afterCreate()
+                },
+              },
+            )
           }}
           onParseError={(err) => {
             console.error(err)

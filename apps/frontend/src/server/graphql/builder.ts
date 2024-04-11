@@ -1,10 +1,10 @@
 import ValidationPlugin from "@pothos/plugin-validation"
 import { gqlBadRequestError } from "./errors"
+import { GraphQLAuthContext } from "./types"
 import SchemaBuilder from "@pothos/core"
-import { Context } from "./types"
 
 export const builder = new SchemaBuilder<{
-  Context: Context
+  Context: GraphQLAuthContext
 }>({
   plugins: [ValidationPlugin],
   validationOptions: {

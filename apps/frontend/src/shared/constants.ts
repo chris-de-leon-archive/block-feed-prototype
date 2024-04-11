@@ -38,4 +38,7 @@ export const constants = {
       },
     },
   },
+  reactquery: {
+    MAX_QUERY_RETRIES: 3,
+  },
 } as const

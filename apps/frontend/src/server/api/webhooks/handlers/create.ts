@@ -1,4 +1,4 @@
-import { AuthContext } from "@block-feed/server/graphql/types"
+import { GraphQLAuthContext } from "@block-feed/server/graphql/types"
 import { constants } from "@block-feed/shared/constants"
 import * as schema from "@block-feed/drizzle"
 import { randomUUID } from "crypto"
@@ -40,11 +40,12 @@ export const zInput = z.object({
 
 export const handler = async (
   args: z.infer<typeof zInput>,
-  ctx: AuthContext,
+  ctx: GraphQLAuthContext,
 ) => {
-  const blockchainExists = await ctx.db.drizzle.query.blockchain.findFirst({
-    where: eq(schema.blockchain.id, args.data.blockchainId),
-  })
+  const blockchainExists =
+    await ctx.vendor.db.drizzle.query.blockchain.findFirst({
+      where: eq(schema.blockchain.id, args.data.blockchainId),
+    })
 
   if (blockchainExists == null) {
     throw gqlBadRequestError(
@@ -53,7 +54,7 @@ export const handler = async (
   }
 
   const uuid = randomUUID()
-  return await ctx.db.drizzle
+  return await ctx.vendor.db.drizzle
     .insert(schema.webhook)
     .values({
       id: uuid,
@@ -63,7 +64,7 @@ export const handler = async (
       maxBlocks: args.data.maxBlocks,
       maxRetries: args.data.maxRetries,
       timeoutMs: args.data.timeoutMs,
-      customerId: ctx.user.sub,
+      customerId: ctx.auth0.user.sub,
       blockchainId: args.data.blockchainId,
     })
     .then(([result]) => {

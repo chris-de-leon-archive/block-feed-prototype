@@ -1,5 +1,5 @@
 import { WebhookStatus } from "@block-feed/shared/enums/webhook-status.enum"
-import { AuthContext } from "@block-feed/server/graphql/types"
+import { GraphQLAuthContext } from "@block-feed/server/graphql/types"
 import * as schema from "@block-feed/drizzle"
 import { z } from "zod"
 import {
@@ -54,7 +54,7 @@ export const zInput = z.object({
 
 export const handler = async (
   args: z.infer<typeof zInput>,
-  ctx: AuthContext,
+  ctx: GraphQLAuthContext,
 ) => {
   let cursor:
     | {
@@ -64,9 +64,9 @@ export const handler = async (
     | undefined = undefined
 
   if (args.pagination.cursor != null) {
-    const webhook = await ctx.db.drizzle.query.webhook.findFirst({
+    const webhook = await ctx.vendor.db.drizzle.query.webhook.findFirst({
       where: and(
-        eq(schema.webhook.customerId, ctx.user.sub),
+        eq(schema.webhook.customerId, ctx.auth0.user.sub),
         eq(schema.webhook.id, args.pagination.cursor.id),
       ),
     })
@@ -78,10 +78,10 @@ export const handler = async (
     }
   }
 
-  return await ctx.db.drizzle.query.webhook
+  return await ctx.vendor.db.drizzle.query.webhook
     .findMany({
       where: and(
-        eq(schema.webhook.customerId, ctx.user.sub),
+        eq(schema.webhook.customerId, ctx.auth0.user.sub),
         args.filters.and?.blockchain?.eq != null &&
           args.filters.and.blockchain.eq !== ""
           ? eq(schema.webhook.blockchainId, args.filters.and.blockchain.eq)

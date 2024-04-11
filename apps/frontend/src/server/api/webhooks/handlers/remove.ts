@@ -1,4 +1,4 @@
-import { AuthContext } from "@block-feed/server/graphql/types"
+import { GraphQLAuthContext } from "@block-feed/server/graphql/types"
 import { constants } from "@block-feed/shared/constants"
 import { and, eq, inArray } from "drizzle-orm"
 import * as schema from "@block-feed/drizzle"
@@ -13,17 +13,17 @@ export const zInput = z.object({
 
 export const handler = async (
   args: z.infer<typeof zInput>,
-  ctx: AuthContext,
+  ctx: GraphQLAuthContext,
 ) => {
   if (args.ids.length === 0) {
     return { count: 0 }
   }
 
-  return await ctx.db.drizzle
+  return await ctx.vendor.db.drizzle
     .delete(schema.webhook)
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.user.sub),
+        eq(schema.webhook.customerId, ctx.auth0.user.sub),
         inArray(schema.webhook.id, args.ids),
       ),
     )

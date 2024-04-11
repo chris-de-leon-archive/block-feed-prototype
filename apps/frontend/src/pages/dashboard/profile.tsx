@@ -1,10 +1,10 @@
+import { withStripeSubscriptionRequired } from "@block-feed/guards/with-stripe-subscription-required"
 import { DashboardLayout } from "@block-feed/layouts/dashboard.layout"
-import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { FaUserCircle } from "react-icons/fa"
 import Image from "next/image"
 import Link from "next/link"
 
-export default withPageAuthRequired(({ user }) => {
+export default withStripeSubscriptionRequired(({ user }) => {
   return (
     <DashboardLayout ctx={{ user }}>
       <div className="container mx-auto mt-24">

@@ -15,6 +15,17 @@ PREPARE stmt FROM @query;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- checkout_session 
+SET @query = CONCAT("REVOKE IF EXISTS ALL PRIVILEGES ON checkout_session FROM ", @uname);
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @query = CONCAT("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE checkout_session TO ", @uname);
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- blockchain
 SET @query = CONCAT("REVOKE IF EXISTS ALL PRIVILEGES ON blockchain FROM ", @uname);
 PREPARE stmt FROM @query;

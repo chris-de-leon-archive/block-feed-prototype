@@ -6,12 +6,12 @@ export_env_files .
 echo ""
 
 if [ "$1" = "token" ]; then
-	ts-node ./tools/auth0/get-token.ts
+	ts-node ./scripts/auth0/get-token.ts
 	exit 0
 fi
 
 if [ "$1" = "clean" ]; then
-	ts-node ./tools/auth0/remove-all-users.ts
+	ts-node ./scripts/auth0/remove-all-users.ts
 	exit 0
 fi
 

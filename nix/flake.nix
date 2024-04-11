@@ -31,6 +31,7 @@
             pkgs.gopls
             pkgs.sqlc # v1.25.0
             pkgs.atlas # v0.18.0
+            pkgs.stripe-cli # v1.19.1
           ];
 
           shellHook = ''

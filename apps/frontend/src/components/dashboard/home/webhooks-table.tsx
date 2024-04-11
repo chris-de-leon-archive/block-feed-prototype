@@ -7,6 +7,7 @@ import { IoRefresh } from "react-icons/io5"
 import { useEffect, useState } from "react"
 import { GrDeploy } from "react-icons/gr"
 import { FaEdit } from "react-icons/fa"
+import { useRouter } from "next/router"
 import {
   WebhookEditFormProps,
   WebhookEditForm,
@@ -56,17 +57,17 @@ export function WebhooksTable(props: WebhooksTableProps) {
   }, [props.webhooks])
 
   // Gets mutations for webhooks
-  const webhookActivator = client.useGraphQLMutation(
+  const webhookActivator = client.useGraphQLDashboardMutation(
     client.graphql(
       "mutation ActivateWebhooks($ids: [String!]!) {\n  webhookActivate(ids: $ids) {\n    count\n  }\n}",
     ),
   )
-  const webhookRemover = client.useGraphQLMutation(
+  const webhookRemover = client.useGraphQLDashboardMutation(
     client.graphql(
       "mutation RemoveWebhooks($ids: [String!]!) {\n  webhookRemove(ids: $ids) {\n    count\n  }\n}",
     ),
   )
-  const webhookEditor = client.useGraphQLMutation(
+  const webhookEditor = client.useGraphQLDashboardMutation(
     client.graphql(
       "mutation UpdateWebhook($id: String!, $data: WebhookUpdateInput!) {\n  webhookUpdate(id: $id, data: $data) {\n    count\n  }\n}",
     ),
@@ -144,8 +145,8 @@ export function WebhooksTable(props: WebhooksTableProps) {
           webhook={webhookToEdit}
           disabled={webhookEditor.isPending}
           onSubmit={(data) => {
-            webhookEditor
-              .mutateAsync({
+            webhookEditor.mutate(
+              {
                 id: data.id,
                 data: {
                   url: data.url,
@@ -153,11 +154,14 @@ export function WebhooksTable(props: WebhooksTableProps) {
                   maxRetries: data.maxRetries,
                   timeoutMs: data.timeoutMs,
                 },
-              })
-              .then(() => {
-                setWebhookToEdit(null)
-                props.afterEdit()
-              })
+              },
+              {
+                onSettled: () => {
+                  setWebhookToEdit(null)
+                  props.afterEdit()
+                },
+              },
+            )
           }}
           onParseError={(err) => {
             setWebhookToEdit(null)
@@ -267,13 +271,16 @@ export function WebhooksTable(props: WebhooksTableProps) {
               type="button"
               disabled={!checkboxes.canActivate()}
               onClick={() =>
-                webhookActivator
-                  .mutateAsync({
+                webhookActivator.mutate(
+                  {
                     ids: checkboxes.getCheckedWebhookIDs(),
-                  })
-                  .then(() => {
-                    props.afterActivate()
-                  })
+                  },
+                  {
+                    onSettled: () => {
+                      props.afterActivate()
+                    },
+                  },
+                )
               }
             >
               {webhookActivator.isPending ? (
@@ -295,13 +302,16 @@ export function WebhooksTable(props: WebhooksTableProps) {
               type="button"
               disabled={!checkboxes.canDelete()}
               onClick={() =>
-                webhookRemover
-                  .mutateAsync({
+                webhookRemover.mutate(
+                  {
                     ids: checkboxes.getCheckedWebhookIDs(),
-                  })
-                  .then(() => {
-                    props.afterRemove()
-                  })
+                  },
+                  {
+                    onSettled: () => {
+                      props.afterRemove()
+                    },
+                  },
+                )
               }
             >
               {webhookRemover.isPending ? (

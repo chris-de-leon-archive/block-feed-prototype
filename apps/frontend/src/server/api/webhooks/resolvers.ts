@@ -1,14 +1,13 @@
-import { requireAuth } from "@block-feed/server/graphql/middleware/auth.middleware"
 import { gqlCursorPaginationInput } from "@block-feed/server/graphql/inputs"
 import { gqlCount, gqlUUID } from "@block-feed/server/graphql/models"
 import { builder } from "@block-feed/server/graphql/builder"
+import { gqlWebhook, gqlWebhooks } from "./models"
 import * as findMany from "./handlers/find-many"
 import * as activate from "./handlers/activate"
 import * as findOne from "./handlers/find-one"
 import * as create from "./handlers/create"
 import * as remove from "./handlers/remove"
 import * as update from "./handlers/update"
-import { gqlWebhook, gqlWebhooks } from "./models"
 import {
   gqlWebhookFiltersInput,
   gqlWebhookCreateInput,
@@ -25,11 +24,13 @@ builder.queryField("webhook", (t) =>
       schema: findOne.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await findOne.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await findOne.handler(args, ctx)
     },
   }),
 )
@@ -51,11 +52,13 @@ builder.queryField("webhooks", (t) =>
       schema: findMany.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await findMany.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await findMany.handler(args, ctx)
     },
   }),
 )
@@ -73,11 +76,13 @@ builder.mutationField("webhookCreate", (t) =>
       schema: create.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await create.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await create.handler(args, ctx)
     },
   }),
 )
@@ -96,11 +101,13 @@ builder.mutationField("webhookUpdate", (t) =>
       schema: update.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await update.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await update.handler(args, ctx)
     },
   }),
 )
@@ -115,11 +122,13 @@ builder.mutationField("webhookRemove", (t) =>
       schema: remove.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await remove.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await remove.handler(args, ctx)
     },
   }),
 )
@@ -134,11 +143,13 @@ builder.mutationField("webhookActivate", (t) =>
       schema: activate.zInput,
     },
     resolve: async (_, args, ctx) => {
-      const user = await requireAuth(ctx.yoga.request.headers, ctx)
-      return await activate.handler(args, {
-        ...ctx,
-        user,
+      await ctx.middlewares.requireStripeSubscription({
+        cache: ctx.caches.stripe,
+        stripe: ctx.vendor.stripe,
+        db: ctx.vendor.db,
+        user: ctx.auth0.user,
       })
+      return await activate.handler(args, ctx)
     },
   }),
 )

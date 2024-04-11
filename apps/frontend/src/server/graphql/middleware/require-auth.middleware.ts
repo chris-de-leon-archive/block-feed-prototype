@@ -1,13 +1,21 @@
-import { gqlBadRequestError, gqlUnauthorizedError } from "../errors"
+import { gqlUnauthorizedError, gqlBadRequestError } from "../errors"
+import { db } from "@block-feed/server/vendor/database"
+import { auth } from "@block-feed/server/vendor/auth0"
+import { ApiCache } from "@block-feed/server/caching"
 import * as schema from "@block-feed/drizzle"
 import { UserInfoResponse } from "auth0"
-import { Context } from "../types"
-import { sql } from "drizzle-orm"
 
-export const requireAuth = async (headers: Headers, ctx: Context) => {
+export type RequireAuthContext = Readonly<{
+  cache: ApiCache<UserInfoResponse>
+  auth0: ReturnType<typeof auth.client.create>
+  db: ReturnType<typeof db.client.create>
+  req: Request
+}>
+
+export const requireAuth = async (ctx: RequireAuthContext) => {
   // Gets the authorization header value
   const authorization =
-    headers.get("authorization") ?? headers.get("Authorization")
+    ctx.req.headers.get("authorization") ?? ctx.req.headers.get("Authorization")
 
   // Checks that the authorization header exists
   if (authorization == null) {
@@ -37,13 +45,13 @@ export const requireAuth = async (headers: Headers, ctx: Context) => {
   const accessToken = tokens[tokens.length - 1]
 
   // Check the cache for the user's profile info
-  const cached = await ctx.redisCache.client.get(accessToken)
+  const cached = await ctx.cache.get(accessToken)
   if (cached != null) {
-    return JSON.parse(cached) as UserInfoResponse
+    return cached
   }
 
   // Uses the auth token to get the user profile info
-  const profile = await ctx.auth.userInfo
+  const profile = await ctx.auth0.userInfo
     .getUserInfo(accessToken)
     .then(({ data }) => data)
     .catch(() => null)
@@ -53,21 +61,14 @@ export const requireAuth = async (headers: Headers, ctx: Context) => {
   if (profile == null) {
     throw gqlUnauthorizedError("invalid access token")
   } else {
-    await ctx.redisCache.client.setex(
-      accessToken,
-      ctx.env.REDIS_CACHE_EXP_SEC,
-      JSON.stringify(profile),
-    )
+    await ctx.cache.set(accessToken, profile)
   }
 
-  // Inserts the user (or ignores if one already exists)
+  // Inserts the user in the database (or ignores if one already exists)
   await ctx.db.drizzle
     .insert(schema.customer)
+    .ignore()
     .values({ id: profile.sub })
-    .onDuplicateKeyUpdate({
-      set: { id: sql`id` },
-    })
-    .execute()
 
   // Adds the auth0 profile info to the context
   return profile

@@ -1,4 +1,4 @@
-import { AuthContext } from "@block-feed/server/graphql/types"
+import { GraphQLAuthContext } from "@block-feed/server/graphql/types"
 import { and, eq, inArray, notInArray } from "drizzle-orm"
 import { constants } from "@block-feed/shared/constants"
 import * as schema from "@block-feed/drizzle"
@@ -13,7 +13,7 @@ export const zInput = z.object({
 
 export const handler = async (
   args: z.infer<typeof zInput>,
-  ctx: AuthContext,
+  ctx: GraphQLAuthContext,
 ) => {
   // Exits early if no IDs were passed in
   if (args.ids.length === 0) {
@@ -27,13 +27,13 @@ export const handler = async (
   //  3. are not active
   //  4. have not been queued already
   //
-  const candidates = ctx.db.drizzle.$with("candidates").as(
-    ctx.db.drizzle
+  const candidates = ctx.vendor.db.drizzle.$with("candidates").as(
+    ctx.vendor.db.drizzle
       .select()
       .from(schema.webhook)
       .where(
         and(
-          eq(schema.webhook.customerId, ctx.user.sub),
+          eq(schema.webhook.customerId, ctx.auth0.user.sub),
           inArray(schema.webhook.id, args.ids),
           eq(schema.webhook.isActive, 0),
           eq(schema.webhook.isQueued, 0),
@@ -41,8 +41,8 @@ export const handler = async (
       ),
   )
 
-  // Removes any candidate webhooks that have already been claimed or assigned to a node
-  const webhooks = await ctx.db.drizzle
+  // Filters out any candidate webhooks that have already been claimed or assigned to a node
+  const webhooks = await ctx.vendor.db.drizzle
     .with(candidates)
     .select()
     .from(candidates)
@@ -50,19 +50,18 @@ export const handler = async (
       and(
         notInArray(
           candidates.id,
-          ctx.db.drizzle
+          ctx.vendor.db.drizzle
             .selectDistinct({ webhookId: schema.webhookClaim.webhookId })
             .from(schema.webhookClaim),
         ),
         notInArray(
           candidates.id,
-          ctx.db.drizzle
+          ctx.vendor.db.drizzle
             .selectDistinct({ webhookId: schema.webhookLocation.webhookId })
             .from(schema.webhookLocation),
         ),
       ),
     )
-    .execute()
 
   // Exits early if no webhooks remain after filtering
   if (webhooks.length === 0) {
@@ -70,9 +69,9 @@ export const handler = async (
   }
 
   // Forwards the request to the webhook load balancer
-  await ctx.redisWebhookLB.client.xaddbatch(
+  await ctx.vendor.redisWebhookLB.client.xaddbatch(
     // NOTE: these fields are case sensitive and should match the names configured in the Go backend
-    ctx.env.REDIS_WEBHOOK_STREAM_NAME,
+    ctx.vendor.redisWebhookLB.env.REDIS_WEBHOOK_STREAM_NAME,
     "data",
     ...args.ids.map((id) => JSON.stringify({ WebhookID: id })),
   )
@@ -84,12 +83,12 @@ export const handler = async (
   // again after it has been pressed once. For this we use the `is_queued` field (which is purely meant
   // for frontend rendering purposes and has no meaning on the backend side). It is trivially set to true
   // after the job has been sent to redis.
-  await ctx.db.drizzle
+  await ctx.vendor.db.drizzle
     .update(schema.webhook)
     .set({ isQueued: 1 })
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.user.sub),
+        eq(schema.webhook.customerId, ctx.auth0.user.sub),
         inArray(schema.webhook.id, args.ids),
       ),
     )

@@ -14,6 +14,9 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  */
 const documents = {
     "query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}": types.BlockchainsDocument,
+    "mutation CreateBillingPortalSession {\n  createBillingPortalSession {\n    url\n  }\n}": types.CreateBillingPortalSessionDocument,
+    "mutation CreateCheckoutSession {\n  createCheckoutSession {\n    url\n  }\n}": types.CreateCheckoutSessionDocument,
+    "query StripeSubscription {\n  stripeSubscription {\n    id\n    status\n  }\n}": types.StripeSubscriptionDocument,
     "mutation ActivateWebhooks($ids: [String!]!) {\n  webhookActivate(ids: $ids) {\n    count\n  }\n}": types.ActivateWebhooksDocument,
     "mutation CreateWebhook($data: WebhookCreateInput!) {\n  webhookCreate(data: $data) {\n    id\n  }\n}": types.CreateWebhookDocument,
     "query Webhooks($filters: WebhookFiltersInput!, $pagination: CursorPaginationInput!) {\n  webhooks(filters: $filters, pagination: $pagination) {\n    payload {\n      id\n      createdAt\n      url\n      customerId\n      blockchainId\n      isActive\n      isQueued\n      maxBlocks\n      maxRetries\n      timeoutMs\n    }\n    pagination {\n      hasNext\n      hasPrev\n    }\n  }\n}": types.WebhooksDocument,
@@ -40,6 +43,18 @@ export function graphql(source: string): unknown;
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}"): (typeof documents)["query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "mutation CreateBillingPortalSession {\n  createBillingPortalSession {\n    url\n  }\n}"): (typeof documents)["mutation CreateBillingPortalSession {\n  createBillingPortalSession {\n    url\n  }\n}"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "mutation CreateCheckoutSession {\n  createCheckoutSession {\n    url\n  }\n}"): (typeof documents)["mutation CreateCheckoutSession {\n  createCheckoutSession {\n    url\n  }\n}"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "query StripeSubscription {\n  stripeSubscription {\n    id\n    status\n  }\n}"): (typeof documents)["query StripeSubscription {\n  stripeSubscription {\n    id\n    status\n  }\n}"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

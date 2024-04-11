@@ -1,5 +1,8 @@
+import { requireStripeSubscription } from "@block-feed/server/graphql/middleware/require-subscription.middleware"
+import { withAuth0JWT } from "@block-feed/server/graphql/plugins/auth0.plugin"
+import { BaseContext, GraphQLContext } from "@block-feed/server/graphql/types"
 import { ClientError, RequestOptions } from "graphql-request"
-import { Context } from "@block-feed/server/graphql/types"
+import { stripe } from "@block-feed/server/vendor/stripe"
 import { db } from "@block-feed/server/vendor/database"
 import { redis } from "@block-feed/server/vendor/redis"
 import { after, before, describe, it } from "node:test"
@@ -8,11 +11,19 @@ import { randomInt, randomUUID } from "node:crypto"
 import * as testcontainers from "testcontainers"
 import * as schema from "@block-feed/drizzle"
 import * as testutils from "../../utils"
+import { UserInfoResponse } from "auth0"
 import assert from "node:assert"
+import Stripe from "stripe"
+import {
+  STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
+  AUTH0_PROFILE_CACHE_KEY_PREFIX,
+  ApiCache,
+} from "@block-feed/server/caching"
 
 describe("Auth Tests", () => {
   const webhookStreamName = "webhook-lb-stream"
   const blockchainId = "fake-blockchain"
+  const cacheExpMs = 30000
   const verbose = {
     database: true,
     container: {
@@ -22,14 +33,15 @@ describe("Auth Tests", () => {
   }
 
   let appServer: Awaited<ReturnType<typeof testutils.createAsyncServer>>
+  let redisCache: ReturnType<typeof redis.client.create>
   let databaseC: testcontainers.StartedTestContainer
   let redisC: testcontainers.StartedTestContainer
   let adminDbUrl: string
   let apiDbUrl: string
   let redisUrl: string
-  let ctx: Omit<Context, "yoga">
+  let ctx: BaseContext
 
-  const testFunctions = (sdk: ReturnType<typeof testutils.withSdk>) => [
+  const getFunctionsToTest = (sdk: ReturnType<typeof testutils.withSdk>) => [
     {
       name: "create",
       call: async (config: RequestOptions["requestHeaders"]) =>
@@ -132,7 +144,7 @@ describe("Auth Tests", () => {
       adminDbUrl,
       async ({ conn }) => {
         await conn.transaction(async (tx) => {
-          // NOTE: there's no need to add the auth0 user to the database
+          // There's no need to add the auth0 user to the database
           // The middleware will take care of that automatically
           await tx.insert(schema.blockchain).values({
             id: blockchainId,
@@ -142,17 +154,43 @@ describe("Auth Tests", () => {
       },
     )
 
-    // Creates a TRPC context
+    // Creates a redis cache client
+    redisCache = redis.client.create({
+      REDIS_WEBHOOK_STREAM_NAME: webhookStreamName,
+      REDIS_URL: redisUrl,
+    })
+
+    // Creates the API context
     ctx = {
-      auth: auth.client.create(auth.client.zEnv.parse(process.env)),
-      redis: redis.client.create({ REDIS_URL: redisUrl }),
-      db: db.client.create({
-        DB_LOGGING: verbose.database,
-        DB_MODE: "default",
-        DB_URL: apiDbUrl,
-      }),
+      vendor: {
+        stripe: stripe.client.create(stripe.client.zEnv.parse(process.env)),
+        auth0: auth.client.create(auth.client.zEnv.parse(process.env)),
+        redisWebhookLB: redis.client.create({
+          REDIS_WEBHOOK_STREAM_NAME: webhookStreamName,
+          REDIS_URL: redisUrl,
+        }),
+        db: db.client.create({
+          DB_LOGGING: verbose.database,
+          DB_URL: apiDbUrl,
+        }),
+      },
+      caches: {
+        stripe: new ApiCache<Stripe.Response<Stripe.Checkout.Session>>(
+          redisCache,
+          cacheExpMs,
+          STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
+        ),
+        auth0: new ApiCache<UserInfoResponse>(
+          redisCache,
+          cacheExpMs,
+          AUTH0_PROFILE_CACHE_KEY_PREFIX,
+        ),
+      },
+      middlewares: {
+        requireStripeSubscription,
+      },
       env: {
-        WEBHOOK_REDIS_STREAM_NAME: webhookStreamName,
+        CACHE_EXP_SEC: cacheExpMs,
       },
     }
 
@@ -165,8 +203,15 @@ describe("Auth Tests", () => {
             request: context.request,
             params: context.params,
           },
-        } satisfies Context
+        } satisfies GraphQLContext
       },
+      plugins: [
+        withAuth0JWT({
+          auth0: ctx.vendor.auth0,
+          cache: ctx.caches.auth0,
+          db: ctx.vendor.db,
+        }),
+      ],
     })
   })
 
@@ -175,14 +220,15 @@ describe("Auth Tests", () => {
       [
         appServer.close(),
         new Promise((res, rej) => {
-          ctx.db.pool.end((err) => {
+          ctx.vendor.db.pool.end((err) => {
             if (err != null) {
               rej(err)
             }
             res(null)
           })
         }),
-        ctx.redis.client.quit(),
+        ctx.vendor.redisWebhookLB.client.quit(),
+        redisCache.client.quit(),
         databaseC.stop(),
         redisC.stop(),
       ],
@@ -197,9 +243,8 @@ describe("Auth Tests", () => {
 
   it("Integration Test", async () => {
     const sdk = testutils.withSdk(`${appServer.url}/graphql`)
-
     await Promise.allSettled(
-      testFunctions(sdk)
+      getFunctionsToTest(sdk)
         .flatMap((f) => args.map((a) => ({ func: f, args: a })))
         .map(async (test) => {
           return await it(`${test.func.name} (${test.args.name})`, async () => {

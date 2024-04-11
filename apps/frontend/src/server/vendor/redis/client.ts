@@ -1,4 +1,4 @@
-import { Callback, Redis, Result } from "ioredis"
+import { Redis, Result } from "ioredis"
 import { z } from "zod"
 
 // https://github.com/redis/ioredis/blob/ec42c82ceab1957db00c5175dfe37348f1856a93/examples/typescript/scripts.ts#L12
@@ -13,6 +13,7 @@ declare module "ioredis" {
 }
 
 export const zEnv = z.object({
+  REDIS_WEBHOOK_STREAM_NAME: z.string().min(1),
   REDIS_URL: z.string().url().optional(),
 })
 
@@ -21,7 +22,7 @@ export const create = (env: z.infer<typeof zEnv>) => {
     throw new Error("REDIS_URL is not defined")
   }
 
-  const redis = new Redis(env.REDIS_URL, {
+  const client = new Redis(env.REDIS_URL, {
     scripts: {
       xaddbatch: {
         numberOfKeys: 2,
@@ -35,6 +36,7 @@ export const create = (env: z.infer<typeof zEnv>) => {
   })
 
   return {
-    client: redis,
+    client,
+    env,
   }
 }

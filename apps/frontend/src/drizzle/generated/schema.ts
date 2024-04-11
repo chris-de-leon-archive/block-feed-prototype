@@ -1,14 +1,30 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, datetime, index, foreignKey, tinyint, int, unique } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, text, foreignKey, unique, datetime, index, tinyint, int } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 
 export const blockchain = mysqlTable("blockchain", {
 	id: varchar("id", { length: 255 }).notNull(),
-	url: varchar("url", { length: 255 }).notNull(),
+	url: text("url").notNull(),
 },
 (table) => {
 	return {
 		blockchainId: primaryKey({ columns: [table.id], name: "blockchain_id"}),
+	}
+});
+
+export const checkoutSession = mysqlTable("checkout_session", {
+	id: varchar("id", { length: 36 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	clientReferenceId: varchar("client_reference_id", { length: 36 }).notNull(),
+	sessionId: varchar("session_id", { length: 255 }).notNull(),
+	customerId: varchar("customer_id", { length: 255 }).notNull().references(() => customer.id),
+	url: text("url").notNull(),
+},
+(table) => {
+	return {
+		checkoutSessionId: primaryKey({ columns: [table.id], name: "checkout_session_id"}),
+		clientReferenceId: unique("client_reference_id").on(table.clientReferenceId),
+		customerId: unique("customer_id").on(table.customerId),
 	}
 });
 
@@ -27,7 +43,7 @@ export const webhook = mysqlTable("webhook", {
 	createdAt: datetime("created_at", { mode: 'string'}).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	isQueued: tinyint("is_queued").notNull(),
 	isActive: tinyint("is_active").notNull(),
-	url: varchar("url", { length: 255 }).notNull(),
+	url: text("url").notNull(),
 	maxBlocks: int("max_blocks").notNull(),
 	maxRetries: int("max_retries").notNull(),
 	timeoutMs: int("timeout_ms").notNull(),
@@ -39,6 +55,7 @@ export const webhook = mysqlTable("webhook", {
 		customerId: index("customer_id").on(table.customerId),
 		blockchainId: index("blockchain_id").on(table.blockchainId),
 		webhookId: primaryKey({ columns: [table.id], name: "webhook_id"}),
+		id: unique("id").on(table.id, table.createdAt),
 	}
 });
 

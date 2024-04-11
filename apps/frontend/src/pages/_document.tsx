@@ -1,8 +1,9 @@
 import { Html, Head, Main, NextScript } from "next/document"
+import { env } from "@block-feed/client"
 import Script from "next/script"
 
 export default function Document() {
-  const gtag = process.env["GTAG"]
+  const gtag = env.NEXT_PUBLIC_GTAG
   return (
     <Html lang="en">
       <Head>

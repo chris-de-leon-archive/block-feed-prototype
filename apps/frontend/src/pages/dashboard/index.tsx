@@ -1,3 +1,4 @@
+import { withStripeSubscriptionRequired } from "@block-feed/guards/with-stripe-subscription-required"
 import { WebhookSearchForm } from "@block-feed/components/dashboard/home/forms/webhook-search.form"
 import { WebhookCreator } from "@block-feed/components/dashboard/home/webhook-creator"
 import { WebhooksTable } from "@block-feed/components/dashboard/home/webhooks-table"
@@ -5,17 +6,25 @@ import { DashboardLoading } from "@block-feed/components/dashboard/loading"
 import { interpretWebhookStatusString } from "@block-feed/shared/utils"
 import { DashboardError } from "@block-feed/components/dashboard/error"
 import { DashboardLayout } from "@block-feed/layouts/dashboard.layout"
-import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import {
+  defaultQueryRetryHandler,
+  handleDashboardError,
+} from "@block-feed/client/errors"
 import { constants } from "@block-feed/shared/constants"
 import * as client from "@block-feed/client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/router"
 import {
   keepPreviousData,
   useInfiniteQuery,
   useQueryClient,
 } from "@tanstack/react-query"
 
-export default withPageAuthRequired(({ user }) => {
+export default withStripeSubscriptionRequired(({ user }) => {
+  // Gets a reference to the next router and query client
+  const router = useRouter()
+  const qc = useQueryClient()
+
   // Component state
   const [filters, setFilters] = useState<
     Readonly<
@@ -27,20 +36,18 @@ export default withPageAuthRequired(({ user }) => {
     >
   >({})
 
-  // Gets a reference to the query client
-  const qc = useQueryClient()
-
   // Gets a list of blockchains
-  const blockchains = client.useGraphQLQuery(
+  const blockchains = client.useGraphQLDashboardQuery(
     client.graphql(
       "query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}",
     ),
     {},
   )
 
-  // Gets the user's webhooks
+  // Gets the user's webhooks (this query will only
+  // run if the previous query ran successfully)
   const webhooks = useInfiniteQuery({
-    queryKey: ["webhooks", filters],
+    queryKey: ["webhooks", filters, blockchains],
     queryFn: async (ctx) => {
       return await client.makeAuthenticatedRequest(
         client.graphql(
@@ -67,6 +74,7 @@ export default withPageAuthRequired(({ user }) => {
         },
       )
     },
+    retry: defaultQueryRetryHandler,
     maxPages: 1,
     placeholderData: keepPreviousData,
     initialPageParam: { reverse: false, id: "" },
@@ -108,6 +116,13 @@ export default withPageAuthRequired(({ user }) => {
     },
   })
 
+  // If an error occurred, handle it accordingly
+  useEffect(() => {
+    if (webhooks.error != null) {
+      return handleDashboardError(router, webhooks.error)
+    }
+  }, [webhooks.error])
+
   // A helper function that resets pagination state
   const resetPagination = () => {
     qc.setQueryData(["webhooks", filters], () => ({
@@ -117,36 +132,16 @@ export default withPageAuthRequired(({ user }) => {
     webhooks.refetch()
   }
 
-  // If an error occurred report it to the user
-  if (blockchains.error != null || webhooks.error != null) {
-    console.error(blockchains.error ?? webhooks.error)
-    return (
-      <DashboardLayout ctx={{ user }}>
-        <DashboardError />
-      </DashboardLayout>
-    )
-  }
-
-  // We're still waiting for data from the API - render a loading screen
-  if (blockchains.isLoading || webhooks.isLoading) {
-    return (
-      <DashboardLayout ctx={{ user }}>
-        <DashboardLoading />
-      </DashboardLayout>
-    )
-  }
-
-  // Double check that there are actually some blockchains to use
-  if (blockchains.data != null && blockchains.data.blockchains.length === 0) {
-    return (
-      <DashboardLayout ctx={{ user }}>
-        <DashboardError msg="No blockchains are available right now please try again later" />
-      </DashboardLayout>
-    )
-  }
-
-  // No errors occurred and we were able to get the data - render the dashboard and data
+  // If no errors occurred and we were able to get the data - render the dashboard
   if (blockchains.data != null && webhooks.data != null) {
+    if (blockchains.data.blockchains.length === 0) {
+      return (
+        <DashboardLayout ctx={{ user }}>
+          <DashboardError msg="No blockchains are available right now please try again later" />
+        </DashboardLayout>
+      )
+    }
+
     const blockchainIds = blockchains.data.blockchains.map(({ id }) => id)
     const webhookData =
       webhooks.data.pages.at(webhooks.data.pages.length - 1)?.webhooks
@@ -206,10 +201,10 @@ export default withPageAuthRequired(({ user }) => {
     )
   }
 
-  // If we're here then we're not waiting for data, but the data is null - in this case we'll render an error
+  // In any other situation, render a loading screen
   return (
     <DashboardLayout ctx={{ user }}>
-      <DashboardError />
+      <DashboardLoading />
     </DashboardLayout>
   )
 })

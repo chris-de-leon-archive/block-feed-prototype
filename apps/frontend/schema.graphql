@@ -18,6 +18,8 @@ input CursorPaginationInput {
 }
 
 type Mutation {
+  createBillingPortalSession: StripeSession!
+  createCheckoutSession: StripeSession!
   webhookActivate(ids: [String!]!): Count!
   webhookCreate(data: WebhookCreateInput!): UUID!
   webhookRemove(ids: [String!]!): Count!
@@ -31,6 +33,7 @@ type PaginationFlags {
 
 type Query {
   blockchains: [Blockchain!]!
+  stripeSubscription: StripeSubscription!
   webhook(id: String!): Webhook!
   webhooks(filters: WebhookFiltersInput!, pagination: CursorPaginationInput!): Webhooks!
 }
@@ -41,6 +44,26 @@ input StringEqFilterInput {
 
 input StringLikeFilterInput {
   like: String
+}
+
+type StripeSession {
+  url: String!
+}
+
+type StripeSubscription {
+  id: String!
+  status: StripeSubscriptionStatus!
+}
+
+enum StripeSubscriptionStatus {
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  paused
+  trialing
+  unpaid
 }
 
 type UUID {
