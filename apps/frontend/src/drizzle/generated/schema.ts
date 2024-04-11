@@ -52,8 +52,8 @@ export const webhook = mysqlTable("webhook", {
 },
 (table) => {
 	return {
-		customerId: index("customer_id").on(table.customerId),
 		blockchainId: index("blockchain_id").on(table.blockchainId),
+		customerId: index("customer_id").on(table.customerId),
 		webhookId: primaryKey({ columns: [table.id], name: "webhook_id"}),
 		id: unique("id").on(table.id, table.createdAt),
 	}
