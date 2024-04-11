@@ -1,5 +1,0 @@
-mutation CreateBillingPortalSession {
-  createBillingPortalSession {
-    url
-  }
-}

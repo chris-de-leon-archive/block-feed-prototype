@@ -1,5 +1,0 @@
-mutation ActivateWebhooks($ids: [String!]!) {
-  webhookActivate(ids: $ids) {
-    count
-  }
-}

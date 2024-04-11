@@ -1,5 +1,0 @@
-mutation UpdateWebhook($id: String!, $data: WebhookUpdateInput!) {
-  webhookUpdate(id: $id, data: $data) {
-    count
-  }
-}

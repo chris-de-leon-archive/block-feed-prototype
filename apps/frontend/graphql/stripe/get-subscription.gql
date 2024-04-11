@@ -1,6 +1,0 @@
-query StripeSubscription {
-  stripeSubscription {
-    id
-    status
-  }
-}

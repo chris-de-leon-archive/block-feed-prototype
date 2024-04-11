@@ -1,5 +1,0 @@
-mutation CreateCheckoutSession {
-  createCheckoutSession {
-    url
-  }
-}

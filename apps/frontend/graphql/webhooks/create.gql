@@ -1,5 +1,0 @@
-mutation CreateWebhook($data: WebhookCreateInput!) {
-  webhookCreate(data: $data) {
-    id
-  }
-}
