@@ -23,6 +23,7 @@ node_modules
 .terraform/
 
 # IDE - VSCode	
+.vscode
 .vscode/*	
 !.vscode/settings.json	
 !.vscode/tasks.json	
