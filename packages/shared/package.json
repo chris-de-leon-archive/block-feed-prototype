@@ -1,0 +1,17 @@
+{
+  "name": "@block-feed/shared",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "devDependencies": {
+    "@block-feed/eslint-config": "workspace:*",
+    "@block-feed/typescript-config": "workspace:*",
+    "eslint": "8.57.0",
+    "typescript": "5.3.3"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@block-feed/workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test:int:one": "f() { sqlc generate && go test ./tests/integration/$1_test.go -v; }; f",
+    "test:e2e:one": "f() { sqlc generate && go test ./tests/e2e/$1_test.go -v; }; f",
+    "test:all": "sqlc generate && go test ./tests/... -v",
+    "docker:repos:delete:all": "bash ./scripts/docker-delete-all-repos.sh",
+    "docker:img:build:all": "bash ./scripts/docker-build-all-images.sh",
+    "docker:img:push:all": "bash ./scripts/docker-push-all-images.sh"
+  }
+}
+

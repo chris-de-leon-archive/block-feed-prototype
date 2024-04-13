@@ -1,0 +1,5 @@
+mutation RemoveWebhooks($ids: [String!]!) {
+  webhookRemove(ids: $ids) {
+    count
+  }
+}
