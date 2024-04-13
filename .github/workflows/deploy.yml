@@ -15,4 +15,4 @@ jobs:
 
       - name: Deploy
         run: |
-          cd api && npm install && npm run api:deploy
+          echo "TODO: implement me"

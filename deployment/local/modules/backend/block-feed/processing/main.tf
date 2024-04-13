@@ -39,7 +39,7 @@ resource "docker_image" "block_flusher" {
   name         = "block-flusher:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/processing/block-flusher/main.go"
@@ -66,7 +66,7 @@ resource "docker_image" "webhook_activation_consumer" {
   name         = "webhook-activation-consumer:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/processing/webhook-activation-consumer/main.go"
@@ -96,7 +96,7 @@ resource "docker_image" "webhook_consumer" {
   name         = "webhook-consumer:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/processing/webhook-consumer/main.go"

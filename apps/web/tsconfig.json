@@ -1,0 +1,23 @@
+{
+  "extends": "@block-feed/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      // https://github.com/microsoft/TypeScript/issues/26859#issuecomment-511330265
+      "@block-feed/web/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "next.config.mjs",
+    "postcss.config.js",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

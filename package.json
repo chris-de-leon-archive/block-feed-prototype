@@ -1,0 +1,22 @@
+{
+  "name": "block-feed-prototype",
+  "private": true,
+  "scripts": {
+    "turbo:app": "turbo gen workspace --type app",
+    "turbo:pkg": "turbo gen workspace --type package",
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "fmt": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@block-feed/eslint-config": "workspace:*",
+    "@block-feed/typescript-config": "workspace:*",
+    "prettier": "3.2.5",
+    "turbo": "1.13.2"
+  },
+  "packageManager": "pnpm@8.9.0",
+  "engines": {
+    "node": ">=18"
+  }
+}

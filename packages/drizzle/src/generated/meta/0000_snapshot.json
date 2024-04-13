@@ -1,0 +1,566 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "5",
+  "dialect": "mysql",
+  "tables": {
+    "blockchain": {
+      "name": "blockchain",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "autoincrement": false,
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "blockchain_id": {
+          "name": "blockchain_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    },
+    "checkout_session": {
+      "name": "checkout_session",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_reference_id": {
+          "autoincrement": false,
+          "name": "client_reference_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "autoincrement": false,
+          "name": "session_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "autoincrement": false,
+          "name": "customer_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "autoincrement": false,
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "checkout_session_id": {
+          "name": "checkout_session_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "checkout_session_ibfk_1": {
+          "name": "checkout_session_ibfk_1",
+          "tableFrom": "checkout_session",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "client_reference_id": {
+          "name": "client_reference_id",
+          "columns": [
+            "client_reference_id"
+          ]
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "columns": [
+            "customer_id"
+          ]
+        }
+      }
+    },
+    "customer": {
+      "name": "customer",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "customer_id": {
+          "name": "customer_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    },
+    "webhook": {
+      "name": "webhook",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_queued": {
+          "autoincrement": false,
+          "name": "is_queued",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "autoincrement": false,
+          "name": "is_active",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "autoincrement": false,
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_blocks": {
+          "autoincrement": false,
+          "name": "max_blocks",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_retries": {
+          "autoincrement": false,
+          "name": "max_retries",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timeout_ms": {
+          "autoincrement": false,
+          "name": "timeout_ms",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "autoincrement": false,
+          "name": "customer_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockchain_id": {
+          "autoincrement": false,
+          "name": "blockchain_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "webhook_id": {
+          "name": "webhook_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "blockchain_id": {
+          "name": "blockchain_id",
+          "columns": [
+            "blockchain_id"
+          ],
+          "isUnique": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "columns": [
+            "customer_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "webhook_ibfk_1": {
+          "name": "webhook_ibfk_1",
+          "tableFrom": "webhook",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "webhook_ibfk_2": {
+          "name": "webhook_ibfk_2",
+          "tableFrom": "webhook",
+          "tableTo": "blockchain",
+          "columnsFrom": [
+            "blockchain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "id": {
+          "name": "id",
+          "columns": [
+            "id",
+            "created_at"
+          ]
+        }
+      }
+    },
+    "webhook_claim": {
+      "name": "webhook_claim",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimed_by": {
+          "autoincrement": false,
+          "name": "claimed_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "webhook_id": {
+          "autoincrement": false,
+          "name": "webhook_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "webhook_claim_id": {
+          "name": "webhook_claim_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "webhook_claim_ibfk_1": {
+          "name": "webhook_claim_ibfk_1",
+          "tableFrom": "webhook_claim",
+          "tableTo": "webhook",
+          "columnsFrom": [
+            "webhook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "webhook_id": {
+          "name": "webhook_id",
+          "columns": [
+            "webhook_id"
+          ]
+        }
+      }
+    },
+    "webhook_location": {
+      "name": "webhook_location",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "webhook_claim_id": {
+          "autoincrement": false,
+          "name": "webhook_claim_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "webhook_node_id": {
+          "autoincrement": false,
+          "name": "webhook_node_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "webhook_id": {
+          "autoincrement": false,
+          "name": "webhook_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "webhook_location_id": {
+          "name": "webhook_location_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "webhook_claim_id": {
+          "name": "webhook_claim_id",
+          "columns": [
+            "webhook_claim_id"
+          ],
+          "isUnique": false
+        },
+        "webhook_node_id": {
+          "name": "webhook_node_id",
+          "columns": [
+            "webhook_node_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "webhook_location_ibfk_1": {
+          "name": "webhook_location_ibfk_1",
+          "tableFrom": "webhook_location",
+          "tableTo": "webhook_claim",
+          "columnsFrom": [
+            "webhook_claim_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "webhook_location_ibfk_2": {
+          "name": "webhook_location_ibfk_2",
+          "tableFrom": "webhook_location",
+          "tableTo": "webhook_node",
+          "columnsFrom": [
+            "webhook_node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "webhook_location_ibfk_3": {
+          "name": "webhook_location_ibfk_3",
+          "tableFrom": "webhook_location",
+          "tableTo": "webhook",
+          "columnsFrom": [
+            "webhook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "webhook_id": {
+          "name": "webhook_id",
+          "columns": [
+            "webhook_id"
+          ]
+        },
+        "webhook_id_2": {
+          "name": "webhook_id_2",
+          "columns": [
+            "webhook_id",
+            "webhook_node_id"
+          ]
+        }
+      }
+    },
+    "webhook_node": {
+      "name": "webhook_node",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "default": "CURRENT_TIMESTAMP",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "autoincrement": false,
+          "name": "url",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blockchain_id": {
+          "autoincrement": false,
+          "name": "blockchain_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "webhook_node_id": {
+          "name": "webhook_node_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "blockchain_id": {
+          "name": "blockchain_id",
+          "columns": [
+            "blockchain_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "webhook_node_ibfk_1": {
+          "name": "webhook_node_ibfk_1",
+          "tableFrom": "webhook_node",
+          "tableTo": "blockchain",
+          "columnsFrom": [
+            "blockchain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "url": {
+          "name": "url",
+          "columns": [
+            "url"
+          ]
+        },
+        "url_2": {
+          "name": "url_2",
+          "columns": [
+            "url",
+            "blockchain_id"
+          ]
+        }
+      }
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  }
+}

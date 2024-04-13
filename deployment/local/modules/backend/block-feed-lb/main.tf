@@ -23,7 +23,7 @@ resource "docker_container" "webhook_lb_redis" {
 resource "docker_image" "webhook_lb_consumer" {
   name = "webhook-lb-consumer:${var.tag}"
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/load-balancing/webhook-load-balancer-consumer/main.go"

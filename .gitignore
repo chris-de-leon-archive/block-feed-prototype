@@ -1,19 +1,19 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # Custom
-apps/frontend/tests/utils/openapi
-apps/frontend/.env
 ignore
 
-# Node.JS
+# Dependencies
 node_modules
+.pnp
+.pnp.js
 
-# Serverless directories
-.serverless
-.esbuild
-.build
-
-# OpenAPI Generator
-.openapi-generator-ignore
-.openapi-generator
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Terraform
 *.tfstate
@@ -22,42 +22,35 @@ node_modules
 *.terraform.lock.hcl
 .terraform/
 
-# Compiled output
-dist
-tmp
-/out-tsc
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
+# IDE - VSCode	
+.vscode
+.vscode/*	
+!.vscode/settings.json	
+!.vscode/tasks.json	
+!.vscode/launch.json	
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+# Testing
+coverage
 
-# System Files
+# Turbo
+.turbo
+
+# Vercel
+.vercel
+
+# Build Outputs
+.next/
+out/
+build
+dist
+
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
 .DS_Store
-Thumbs.db
-
-.nx/cache
-
-# Local Netlify folder
-.netlify
+*.pem

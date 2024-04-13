@@ -24,7 +24,7 @@ resource "docker_image" "block_poller" {
   name         = "block-poller-${var.chain_id}:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/etl/block-pollers/${var.chain_name}/main.go"
@@ -55,7 +55,7 @@ resource "docker_image" "block_consumer" {
   name         = "block-consumer:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/backend"
+    context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
       BUILD_PATH = "./src/apps/etl/block-consumer/main.go"

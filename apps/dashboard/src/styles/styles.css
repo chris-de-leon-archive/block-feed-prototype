@@ -1,0 +1,11 @@
+@tailwind components;
+@tailwind utilities;
+@tailwind base;
+
+/* 
+ * https://www.reddit.com/r/nextjs/comments/y7cdtj/comment/itqxdvn/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+ */
+html {
+  --scroll-behavior: smooth !important;
+  scroll-behavior: smooth !important;
+}
