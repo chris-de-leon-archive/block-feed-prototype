@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@block-feed/drizzle": "workspace:*",
-    "auth0": "4.3.1",
+    "@clerk/clerk-sdk-node": "4.13.14",
     "drizzle-orm": "0.30.8",
     "ioredis": "5.3.2",
     "mysql2": "3.9.4",

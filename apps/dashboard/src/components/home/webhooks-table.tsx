@@ -10,6 +10,7 @@ import { IoRefresh } from "react-icons/io5"
 import { useEffect, useState } from "react"
 import { GrDeploy } from "react-icons/gr"
 import { FaEdit } from "react-icons/fa"
+import { useAuth } from "@clerk/nextjs"
 import {
   WebhookEditFormProps,
   WebhookEditForm,
@@ -48,6 +49,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
   // Component state
   const [webhookToEdit, setWebhookToEdit] = useState<WebhookToEdit>(null)
   const [selected, setSelected] = useState<WebhookCheckboxState>(new Map())
+  const { getToken } = useAuth()
 
   // If a new list of webhooks is available, reset the checkbox state
   useEffect(() => {
@@ -63,16 +65,19 @@ export function WebhooksTable(props: WebhooksTableProps) {
     graphql(
       "mutation ActivateWebhooks($ids: [String!]!) {\n  webhookActivate(ids: $ids) {\n    count\n  }\n}",
     ),
+    getToken,
   )
   const webhookRemover = useGraphQLDashboardMutation(
     graphql(
       "mutation RemoveWebhooks($ids: [String!]!) {\n  webhookRemove(ids: $ids) {\n    count\n  }\n}",
     ),
+    getToken,
   )
   const webhookEditor = useGraphQLDashboardMutation(
     graphql(
       "mutation UpdateWebhook($id: String!, $data: WebhookUpdateInput!) {\n  webhookUpdate(id: $id, data: $data) {\n    count\n  }\n}",
     ),
+    getToken,
   )
 
   // Checkbox helper functions

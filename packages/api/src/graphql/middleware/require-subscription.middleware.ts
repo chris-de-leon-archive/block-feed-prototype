@@ -1,6 +1,6 @@
 import type { DatabaseVendor, StripeVendor } from "@block-feed/vendors"
+import type { SignedInAuthObject } from "@clerk/clerk-sdk-node"
 import * as schema from "@block-feed/drizzle"
-import type { UserInfoResponse } from "auth0"
 import { ApiCache } from "../../caching"
 import type { Stripe } from "stripe"
 import { eq } from "drizzle-orm"
@@ -18,7 +18,7 @@ export type RequireStripeSubscriptionContext = Readonly<{
   cache: ApiCache<Stripe.Response<Stripe.Checkout.Session>>
   stripe: StripeVendor
   db: DatabaseVendor
-  user: UserInfoResponse
+  user: SignedInAuthObject
 }>
 
 export const requireStripeSubscription = async (
@@ -26,7 +26,7 @@ export const requireStripeSubscription = async (
 ) => {
   // Queries the database for the authenticated user's stripe subscription data
   const apiSess = await ctx.db.drizzle.query.checkoutSession.findFirst({
-    where: eq(schema.checkoutSession.customerId, ctx.user.sub),
+    where: eq(schema.checkoutSession.customerId, ctx.user.sessionClaims.sub),
   })
 
   // If the user has not checked out yet, throw an error
@@ -47,7 +47,7 @@ export const requireStripeSubscription = async (
   // NOTE: ordering matters here - the customer object is only present on completed checkout
   // sessions
   const stripeSess = await ctx.cache.getOrSet(
-    ctx.user.sub,
+    ctx.user.sessionClaims.sub,
     async () =>
       await ctx.stripe.client.checkout.sessions.retrieve(apiSess.sessionId, {
         expand: ["subscription", "customer"],

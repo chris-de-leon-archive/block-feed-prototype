@@ -8,6 +8,7 @@ import { graphql } from "@block-feed/dashboard/client/generated"
 import { constants } from "@block-feed/shared"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import {
   makeAuthenticatedRequest,
   useGraphQLDashboardQuery,
@@ -21,7 +22,8 @@ import {
 } from "@tanstack/react-query"
 
 export default function Dashboard() {
-  // Gets a reference to the next router and query client
+  // Defines helper hooks
+  const { getToken } = useAuth()
   const router = useRouter()
   const qc = useQueryClient()
 
@@ -40,6 +42,7 @@ export default function Dashboard() {
   const blockchains = useGraphQLDashboardQuery(
     graphql("query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}"),
     {},
+    getToken,
   )
 
   // Gets the user's webhooks (this query will only
@@ -70,6 +73,7 @@ export default function Dashboard() {
             },
           },
         },
+        await getToken(),
       )
     },
     retry: defaultQueryRetryHandler,

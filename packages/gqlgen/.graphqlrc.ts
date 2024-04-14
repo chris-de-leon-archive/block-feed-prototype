@@ -16,7 +16,7 @@ const rootDir = execSync("git rev-parse --show-toplevel")
 const frontendOutputPath = path.join(
   rootDir,
   "apps",
-  "web",
+  "dashboard",
   "src",
   "client",
   "generated/",

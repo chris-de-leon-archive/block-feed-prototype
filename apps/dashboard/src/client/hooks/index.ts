@@ -1,8 +1,8 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { type TypedDocumentNode } from "@graphql-typed-document-node/core"
 import { GraphQLErrorCode, constants } from "@block-feed/shared"
+import { redirectToSignIn, useAuth } from "@clerk/nextjs"
 import request, { ClientError } from "graphql-request"
-import { isAccessTokenErrorCode } from "../node"
 import { isGraphQLErrorCode } from "../errors"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -13,65 +13,33 @@ import {
   useMutation,
   useQuery,
 } from "@tanstack/react-query"
-import {
-  AccessTokenErrorCode,
-  GetAccessTokenResult,
-  AccessTokenError,
-} from "@auth0/nextjs-auth0"
 
 export type ErrorCallbacks = Readonly<{
-  onExpiredAccessTokenError?: (err: AccessTokenError) => void
   onInvalidSubscriptionError?: (err: ClientError) => void
   onNotSubscribedError?: (err: ClientError) => void
   onUnauthorizedError?: (err: ClientError) => void
   onError?: (err: Error) => void
 }>
 
-export async function getAccessToken() {
-  const res = await fetch("/api/auth/token")
-
-  if (res.ok) {
-    const tok = (await res.json()) as GetAccessTokenResult
-    if (tok.accessToken != null) {
-      return tok.accessToken
-    } else {
-      throw new Error("invalid session")
-    }
-  }
-
-  if (res.status === 401) {
-    const err = (await res.json()) as AccessTokenError
-    throw new AccessTokenError(
-      err.code as AccessTokenErrorCode,
-      err.message,
-      err.cause,
-    )
-  }
-
-  throw new Error("failed to fetch access token")
-}
-
 export async function makeAuthenticatedRequest<
   TResult,
   TVariables extends Record<string, unknown> | undefined,
->(document: TypedDocumentNode<TResult, TVariables>, variables: TVariables) {
-  const accessToken = await getAccessToken()
-  return await request(env.NEXT_PUBLIC_API_URL, document, variables, {
-    authorization: `bearer ${accessToken}`,
-  })
+>(
+  document: TypedDocumentNode<TResult, TVariables>,
+  variables: TVariables,
+  accessToken?: string | null | undefined,
+) {
+  return await request(
+    env.NEXT_PUBLIC_API_URL,
+    document,
+    variables,
+    accessToken != null ? { authorization: `Bearer ${accessToken}` } : {},
+  )
 }
 
 export const defaultQueryRetryHandler = (failureCount: number, err: Error) => {
   if (failureCount >= constants.reactquery.MAX_QUERY_RETRIES) {
     return false
-  }
-
-  if (err instanceof AccessTokenError) {
-    if (
-      isAccessTokenErrorCode(err, AccessTokenErrorCode.EXPIRED_ACCESS_TOKEN)
-    ) {
-      return false
-    }
   }
 
   if (err instanceof ClientError) {
@@ -90,16 +58,6 @@ export const defaultQueryRetryHandler = (failureCount: number, err: Error) => {
 }
 
 export const handleError = (err: Error, callbacks: ErrorCallbacks) => {
-  if (err instanceof AccessTokenError) {
-    if (
-      isAccessTokenErrorCode(err, AccessTokenErrorCode.EXPIRED_ACCESS_TOKEN) &&
-      callbacks.onExpiredAccessTokenError != null
-    ) {
-      callbacks.onExpiredAccessTokenError(err)
-      return
-    }
-  }
-
   if (err instanceof ClientError) {
     if (
       isGraphQLErrorCode(err, GraphQLErrorCode.UNAUTHORIZED) &&
@@ -132,11 +90,6 @@ export const handleError = (err: Error, callbacks: ErrorCallbacks) => {
 
 export const handleDashboardError = (router: AppRouterInstance, err: Error) => {
   handleError(err, {
-    onExpiredAccessTokenError: () => {
-      // The user's access token has expired - let's have them
-      // log in again so they get another token.
-      router.push("/api/auth/login")
-    },
     onInvalidSubscriptionError: () => {
       // The user's subscription is invalid either because the
       // free trial is over, they failed to pay for usage, etc.
@@ -150,9 +103,9 @@ export const handleDashboardError = (router: AppRouterInstance, err: Error) => {
     },
     onUnauthorizedError: () => {
       // The user's access token could not be used to fetch their
-      // profile info (this can happen if the auth0 user was deleted).
+      // profile info (this can happen if the user was deleted).
       // In this case, let's have them log in / sign up again.
-      router.push("/api/auth/logout")
+      redirectToSignIn()
     },
     onError: (err) => {
       // For any other type of error, redirect the user to an
@@ -168,6 +121,7 @@ export function useGraphQLQuery<
 >(
   document: TypedDocumentNode<TResult, TVariables>,
   variables: TVariables,
+  getToken: ReturnType<typeof useAuth>["getToken"],
   options: Partial<
     Omit<
       UseQueryOptions<TResult, Error, TResult, any[]>,
@@ -179,7 +133,13 @@ export function useGraphQLQuery<
   return useQuery({
     ...options,
     queryKey: [docName, variables],
-    queryFn: () => makeAuthenticatedRequest(document, variables),
+    queryFn: async () => {
+      return await makeAuthenticatedRequest(
+        document,
+        variables,
+        await getToken(),
+      )
+    },
   })
 }
 
@@ -188,14 +148,20 @@ export function useGraphQLMutation<
   TVariables extends Record<string, unknown> | undefined,
 >(
   document: TypedDocumentNode<TResult, TVariables>,
+  getToken: ReturnType<typeof useAuth>["getToken"],
   options: Partial<
     Omit<UseMutationOptions<TResult, Error, TVariables, unknown>, "mutationFn">
   > = {},
 ) {
   return useMutation({
     ...options,
-    mutationFn: (variables: TVariables) =>
-      makeAuthenticatedRequest(document, variables),
+    mutationFn: async (variables: TVariables) => {
+      return await makeAuthenticatedRequest(
+        document,
+        variables,
+        await getToken(),
+      )
+    },
   })
 }
 
@@ -205,6 +171,7 @@ export function useGraphQLDashboardQuery<
 >(
   document: TypedDocumentNode<TResult, TVariables>,
   variables: TVariables,
+  getToken: ReturnType<typeof useAuth>["getToken"],
   options: Partial<
     Omit<
       UseQueryOptions<TResult, Error, TResult, any[]>,
@@ -214,7 +181,7 @@ export function useGraphQLDashboardQuery<
 ) {
   const router = useRouter()
 
-  const query = useGraphQLQuery(document, variables, {
+  const query = useGraphQLQuery(document, variables, getToken, {
     ...options,
     retry: defaultQueryRetryHandler,
   })
@@ -233,6 +200,7 @@ export function useGraphQLDashboardMutation<
   TVariables extends Record<string, unknown> | undefined,
 >(
   document: TypedDocumentNode<TResult, TVariables>,
+  getToken: ReturnType<typeof useAuth>["getToken"],
   options: Partial<
     Omit<
       UseMutationOptions<TResult, Error, TVariables, unknown>,
@@ -241,7 +209,7 @@ export function useGraphQLDashboardMutation<
   > = {},
 ) {
   const router = useRouter()
-  return useGraphQLMutation(document, {
+  return useGraphQLMutation(document, getToken, {
     ...options,
     onError: (err: Error) => {
       handleDashboardError(router, err)

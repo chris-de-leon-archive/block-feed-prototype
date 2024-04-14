@@ -15,7 +15,7 @@ export const handler = async (
   return await ctx.vendor.db.drizzle.query.webhook
     .findFirst({
       where: and(
-        eq(schema.webhook.customerId, ctx.auth0.user.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
         eq(schema.webhook.id, args.id),
       ),
     })

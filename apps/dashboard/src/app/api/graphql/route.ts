@@ -3,20 +3,18 @@ import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases"
 import { maxTokensPlugin } from "@escape.tech/graphql-armor-max-tokens"
 import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit"
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth"
-import { stripe, redis, auth0, db } from "@block-feed/vendors"
+import { stripe, redis, clerk, db } from "@block-feed/vendors"
 import { initContextCache } from "@pothos/core"
 import { createYoga } from "graphql-yoga"
-import { UserInfoResponse } from "auth0"
 import Stripe from "stripe"
 import { z } from "zod"
 import {
   STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
-  AUTH0_PROFILE_CACHE_KEY_PREFIX,
   withStripeWebhookEventHandler,
   requireStripeSubscription,
   handleStripeWebhookEvent,
   GraphQLContext,
-  withAuth0JWT,
+  withClerkJWT,
   ApiCache,
   builder,
 } from "@block-feed/api"
@@ -43,7 +41,7 @@ const redisCacheClient = redis.client.create(
 
 const stripeClient = stripe.client.create(stripe.client.zEnv.parse(process.env))
 
-const auth0Client = auth0.client.create(auth0.client.zEnv.parse(process.env))
+const clerkClient = clerk.client.create(clerk.client.zEnv.parse(process.env))
 
 const dbClient = db.client.create(db.client.zEnv.parse(process.env))
 
@@ -51,12 +49,6 @@ const stripeCache = new ApiCache<Stripe.Response<Stripe.Checkout.Session>>(
   redisCacheClient,
   envvars.CACHE_EXP_SEC,
   STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
-)
-
-const auth0Cache = new ApiCache<UserInfoResponse>(
-  redisCacheClient,
-  envvars.CACHE_EXP_SEC,
-  AUTH0_PROFILE_CACHE_KEY_PREFIX,
 )
 
 const { handleRequest } = createYoga({
@@ -73,11 +65,10 @@ const { handleRequest } = createYoga({
       vendor: {
         redisWebhookLB: redisWebhookLoadBalancerClient,
         stripe: stripeClient,
-        auth0: auth0Client,
+        clerk: clerkClient,
         db: dbClient,
       },
       caches: {
-        auth0: auth0Cache,
         stripe: stripeCache,
       },
       middlewares: {
@@ -107,9 +98,8 @@ const { handleRequest } = createYoga({
     // Verifies that each request has a valid JWT in the authorization header.
     // If the JWT is valid, then we'll use it to retrieve the user's profile
     // data and attach it to the context.
-    withAuth0JWT({
-      auth0: auth0Client,
-      cache: auth0Cache,
+    withClerkJWT({
+      clerk: clerkClient,
       db: dbClient,
     }),
   ],

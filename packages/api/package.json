@@ -12,6 +12,7 @@
   "dependencies": {
     "@block-feed/drizzle": "workspace:*",
     "@block-feed/shared": "workspace:*",
+    "@clerk/clerk-sdk-node": "4.13.14",
     "@pothos/core": "3.41.0",
     "@pothos/plugin-validation": "3.10.1",
     "drizzle-orm": "0.30.8",
@@ -23,7 +24,6 @@
     "@block-feed/eslint-config": "workspace:*",
     "@block-feed/typescript-config": "workspace:*",
     "@block-feed/vendors": "workspace:*",
-    "auth0": "4.3.1",
     "eslint": "8.57.0",
     "graphql-request": "6.1.0",
     "mysql2": "3.9.4",

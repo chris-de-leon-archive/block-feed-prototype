@@ -93,7 +93,7 @@ const handleCheckoutSessionCompleted = async (
       console.error(metadata.error)
       return
     }
-    await ctx.cache.invalidate(metadata.data.auth0Id)
+    await ctx.cache.invalidate(metadata.data.userId)
   }
 }
 
@@ -130,11 +130,11 @@ const handleCustomerDeleted = async (
     }
 
     await Promise.allSettled([
-      ctx.cache.invalidate(metadata.data.auth0Id),
+      ctx.cache.invalidate(metadata.data.userId),
       ctx.db.drizzle.transaction(async (tx) => {
         await tx
           .delete(schema.checkoutSession)
-          .where(eq(schema.checkoutSession.customerId, metadata.data.auth0Id))
+          .where(eq(schema.checkoutSession.customerId, metadata.data.userId))
       }),
     ]).then(handlePromiseSettledResults)
   }
@@ -162,7 +162,7 @@ const invalidateCachedSubscription = async (
       event.data.object.metadata,
     )
     if (metadata.success) {
-      await ctx.cache.invalidate(metadata.data.auth0Id)
+      await ctx.cache.invalidate(metadata.data.userId)
     } else {
       console.error(
         `an error occurred while processing event: ${JSON.stringify(event, null, 2)}`,
@@ -186,7 +186,7 @@ const invalidateCachedSubscription = async (
       const sub = await resolveSubscription(subscription)
       const metadata = zStripeSubscriptionMetadata.safeParse(sub.metadata)
       if (metadata.success) {
-        await ctx.cache.invalidate(metadata.data.auth0Id)
+        await ctx.cache.invalidate(metadata.data.userId)
       } else {
         console.error(
           `an error occurred while processing event: ${JSON.stringify(event, null, 2)}`,
