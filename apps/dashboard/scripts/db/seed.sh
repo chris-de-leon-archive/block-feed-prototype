@@ -2,7 +2,7 @@
 set -e
 
 if [ -z "$1" ]; then
-	echo "argument 1 is required (Auth0 ID)"
+	echo "argument 1 is required (User ID)"
 	exit 1
 fi
 

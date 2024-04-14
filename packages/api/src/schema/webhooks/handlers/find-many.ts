@@ -66,7 +66,7 @@ export const handler = async (
   if (args.pagination.cursor != null) {
     const webhook = await ctx.vendor.db.drizzle.query.webhook.findFirst({
       where: and(
-        eq(schema.webhook.customerId, ctx.auth0.user.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
         eq(schema.webhook.id, args.pagination.cursor.id),
       ),
     })
@@ -81,7 +81,7 @@ export const handler = async (
   return await ctx.vendor.db.drizzle.query.webhook
     .findMany({
       where: and(
-        eq(schema.webhook.customerId, ctx.auth0.user.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
         args.filters.and?.blockchain?.eq != null &&
           args.filters.and.blockchain.eq !== ""
           ? eq(schema.webhook.blockchainId, args.filters.and.blockchain.eq)

@@ -14,7 +14,7 @@ builder.queryField("blockchains", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await findMany.handler(args, ctx)
     },

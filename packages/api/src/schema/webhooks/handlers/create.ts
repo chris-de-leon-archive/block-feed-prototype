@@ -64,7 +64,7 @@ export const handler = async (
       maxBlocks: args.data.maxBlocks,
       maxRetries: args.data.maxRetries,
       timeoutMs: args.data.timeoutMs,
-      customerId: ctx.auth0.user.sub,
+      customerId: ctx.clerk.user.sessionClaims.sub,
       blockchainId: args.data.blockchainId,
     })
     .then(([result]) => {

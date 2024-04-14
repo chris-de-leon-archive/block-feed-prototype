@@ -2,13 +2,13 @@ import { isGraphQLErrorCode } from "@block-feed/dashboard/client/errors"
 import { graphql } from "@block-feed/dashboard/client/generated"
 import { makeRequest } from "@block-feed/dashboard/client/node"
 import { GraphQLErrorCode } from "@block-feed/shared"
-import { getSession } from "@auth0/nextjs-auth0"
 import { ClientError } from "graphql-request"
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs"
 
 export default async function Subscribe() {
   // Gets the session
-  const session = await getSession()
+  const { getToken } = auth()
 
   // Creates a checkout session
   const result = await makeRequest(
@@ -16,7 +16,7 @@ export default async function Subscribe() {
       "mutation CreateCheckoutSession {\n  createCheckoutSession {\n    url\n  }\n}",
     ),
     {},
-    session?.accessToken,
+    await getToken(),
   )
 
   // Handles any API errors

@@ -1,5 +1,4 @@
-import { doesObjectHaveKey } from "@block-feed/dashboard/utils"
-import { GraphQLErrorCode } from "@block-feed/shared"
+import { GraphQLErrorCode, doesObjectHaveKey } from "@block-feed/shared"
 import { ClientError } from "graphql-request"
 
 export const isGraphQLErrorCode = (

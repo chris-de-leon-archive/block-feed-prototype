@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "stripe:listen": "stripe listen --forward-to localhost:3000/api/graphql",
+    "stripe:listen": "stripe listen --forward-to localhost:3001/api/graphql",
     "script": "TS_NODE_PROJECT=ts-node.tsconfig.json node --env-file=.env --require ts-node/register",
     "compose:up": "docker compose up -d --build",
     "compose:down": "docker compose down --remove-orphans",
@@ -15,10 +15,10 @@
     "fmt": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "3.5.0",
     "@block-feed/api": "workspace:*",
-    "@block-feed/vendors": "workspace:*",
     "@block-feed/shared": "workspace:*",
+    "@block-feed/vendors": "workspace:*",
+    "@clerk/nextjs": "4.29.12",
     "@escape.tech/graphql-armor-cost-limit": "2.1.0",
     "@escape.tech/graphql-armor-max-aliases": "2.3.0",
     "@escape.tech/graphql-armor-max-depth": "2.2.0",
@@ -27,7 +27,6 @@
     "@graphql-typed-document-node/core": "3.2.0",
     "@pothos/core": "3.41.0",
     "@tanstack/react-query": "5.29.0",
-    "auth0": "4.3.1",
     "graphql": "16.8.1",
     "graphql-request": "6.1.0",
     "graphql-yoga": "5.3.0",

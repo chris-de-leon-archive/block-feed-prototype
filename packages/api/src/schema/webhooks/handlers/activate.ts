@@ -33,7 +33,7 @@ export const handler = async (
       .from(schema.webhook)
       .where(
         and(
-          eq(schema.webhook.customerId, ctx.auth0.user.sub),
+          eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
           inArray(schema.webhook.id, args.ids),
           eq(schema.webhook.isActive, 0),
           eq(schema.webhook.isQueued, 0),
@@ -88,7 +88,7 @@ export const handler = async (
     .set({ isQueued: 1 })
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.auth0.user.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
         inArray(schema.webhook.id, args.ids),
       ),
     )

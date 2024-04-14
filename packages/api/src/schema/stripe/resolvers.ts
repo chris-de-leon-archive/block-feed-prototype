@@ -29,7 +29,7 @@ builder.mutationField("createBillingPortalSession", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await createBillingPortalSession.handler(args, {
         ...ctx,
@@ -51,7 +51,7 @@ builder.queryField("stripeSubscription", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await stripeSubscription.handler(args, {
         ...ctx,

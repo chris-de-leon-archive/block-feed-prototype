@@ -4,6 +4,7 @@ import { WebhookCreateForm } from "@block-feed/dashboard/components/home/forms/w
 import { useGraphQLDashboardMutation } from "@block-feed/dashboard/client/hooks"
 import { Modal } from "@block-feed/dashboard/components/shared/modal"
 import { graphql } from "@block-feed/dashboard/client/generated"
+import { useAuth } from "@clerk/nextjs"
 import { useState } from "react"
 
 export type WebhookCreatorProps = Readonly<{
@@ -13,11 +14,13 @@ export type WebhookCreatorProps = Readonly<{
 
 export function WebhookCreator(props: WebhookCreatorProps) {
   const [isCreateModalVisible, setCreateModalVisibility] = useState(false)
+  const { getToken } = useAuth()
 
   const webhookCreator = useGraphQLDashboardMutation(
     graphql(
       "mutation CreateWebhook($data: WebhookCreateInput!) {\n  webhookCreate(data: $data) {\n    id\n  }\n}",
     ),
+    getToken,
   )
 
   return (

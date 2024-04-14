@@ -1,25 +1,24 @@
 import type { requireStripeSubscription } from "./middleware/require-subscription.middleware"
+import type { SignedInAuthObject } from "@clerk/clerk-sdk-node"
 import type { YogaInitialContext } from "graphql-yoga"
 import type { ApiCache } from "../caching/api.cache"
-import type { UserInfoResponse } from "auth0"
 import type { Stripe } from "stripe"
 import type {
   DatabaseVendor,
   StripeVendor,
   RedisVendor,
-  Auth0Vendor,
+  ClerkVendor,
 } from "@block-feed/vendors"
 
 export type BaseContext = Readonly<{
   vendor: Readonly<{
     redisWebhookLB: RedisVendor
     stripe: StripeVendor
-    auth0: Auth0Vendor
+    clerk: ClerkVendor
     db: DatabaseVendor
   }>
   caches: Readonly<{
     stripe: ApiCache<Stripe.Response<Stripe.Checkout.Session>>
-    auth0: ApiCache<UserInfoResponse>
   }>
   middlewares: Readonly<{
     requireStripeSubscription: typeof requireStripeSubscription
@@ -33,9 +32,9 @@ export type YogaContext = Readonly<{
   yoga: YogaInitialContext
 }>
 
-export type Auth0Context = Readonly<{
-  auth0: Readonly<{
-    user: UserInfoResponse
+export type ClerkContext = Readonly<{
+  clerk: Readonly<{
+    user: SignedInAuthObject
   }>
 }>
 
@@ -49,9 +48,9 @@ export type StripeContext = Readonly<{
 
 export type GraphQLContext = BaseContext & YogaContext
 
-export type GraphQLAuthContext = BaseContext & YogaContext & Auth0Context
+export type GraphQLAuthContext = BaseContext & YogaContext & ClerkContext
 
 export type GraphQLStripeAuthContext = BaseContext &
   YogaContext &
-  Auth0Context &
+  ClerkContext &
   StripeContext

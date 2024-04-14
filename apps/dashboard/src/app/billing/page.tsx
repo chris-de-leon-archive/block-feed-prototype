@@ -2,19 +2,19 @@ import { isGraphQLErrorCode } from "@block-feed/dashboard/client/errors"
 import { graphql } from "@block-feed/dashboard/client/generated"
 import { makeRequest } from "@block-feed/dashboard/client/node"
 import { GraphQLErrorCode } from "@block-feed/shared"
-import { getSession } from "@auth0/nextjs-auth0"
 import { ClientError } from "graphql-request"
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs"
 
 export default async function Billing() {
-  const session = await getSession()
+  const { getToken } = auth()
 
   const result = await makeRequest(
     graphql(
       "mutation CreateBillingPortalSession {\n  createBillingPortalSession {\n    url\n  }\n}",
     ),
     {},
-    session?.accessToken,
+    await getToken(),
   )
 
   if (result instanceof ClientError) {

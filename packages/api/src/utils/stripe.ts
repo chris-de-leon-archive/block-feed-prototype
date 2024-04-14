@@ -5,15 +5,15 @@ import { z } from "zod"
 export const fromZodType = <T extends z.ZodType>(o: z.infer<T>) => o
 
 export const zStripeCheckoutSessionMetadata = z.object({
-  auth0Id: z.string(),
+  userId: z.string(),
 })
 
 export const zStripeSubscriptionMetadata = z.object({
-  auth0Id: z.string(),
+  userId: z.string(),
 })
 
 export const zStripeCustomerMetadata = z.object({
-  auth0Id: z.string(),
+  userId: z.string(),
 })
 
 export const expandStripeSubscription = async (

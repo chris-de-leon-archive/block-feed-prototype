@@ -1,5 +1,6 @@
 import { gqlInternalServerError } from "../../../graphql/errors"
 import { GraphQLAuthContext } from "../../../graphql/types"
+import { doesObjectHaveKey } from "@block-feed/shared"
 import * as schema from "@block-feed/drizzle"
 import { randomUUID } from "crypto"
 import { eq } from "drizzle-orm"
@@ -41,7 +42,7 @@ export const zInput = z.object({})
 //  https://docs.stripe.com/payments/checkout/limit-subscriptions
 //
 // NOTE: Unfortunately, enforcing that emails are UNIQUE and VERIFIED can get very tricky when users are allowed
-// to sign in / sign up with multiple OAuth providers. For example, suppose we're using Auth0 and enable Github
+// to sign in / sign up with multiple OAuth providers. For example, if we were using Auth0 and enable Github
 // auth and Google auth with account linking. Due to potential security risks, account linking is not automatic
 // so there's a possibility that there will still be multiple users with the same email in our system. Furthermore,
 // some providers don't include an `email_verified` field and some providers require additional steps to ensure
@@ -71,13 +72,13 @@ export const zInput = z.object({})
 //
 //    https://docs.stripe.com/billing/subscriptions/trials#metered-billing-with-paused-subscriptions
 //
-// NOTE: if an Auth0 user's Stripe customer account is deleted then recreated - they will get another free trial.
-// Furthermore, if an Auth0 user's Stripe customer account is deleted, and the checkout_session linked to the user
+// NOTE: if a BlockFeed user's Stripe customer account is deleted then recreated - they will get another free trial.
+// Furthermore, if an BlockFeed user's Stripe customer account is deleted, and the checkout_session linked to the user
 // is NOT deleted from the database (potentially due to slow or failed webhook processing), then the stripe subscription
 // middleware will throw a not subscribed error and the frontend will redirect the user back to checkout. This will
 // lead them back to this handler. In this case, we would be creating a checkout session for a deleted customer which
 // this handler will detect. Upon detecting that the customer is deleted, it will clean up the database and go through
-// the normal flow as if this is the Auth0 user's first time checking out.
+// the normal flow as if this is the user's first time checking out.
 //
 export const handler = async (
   _: z.infer<typeof zInput>,
@@ -88,6 +89,20 @@ export const handler = async (
   if (result.url != null) {
     return { url: result.url }
   }
+
+  // Gets the user from the context
+  const user = ctx.clerk.user.sessionClaims
+
+  // Extracts the email from the JWT if it exists (if Clerk is
+  // configured to include the user's primary email address in
+  // the session claims, then this should always exist):
+  //
+  //  https://clerk.com/docs/backend-requests/making/custom-session-token#add-custom-claims-to-your-session-token
+  //
+  const email =
+    doesObjectHaveKey(user, "email") && typeof user.email === "string"
+      ? user.email
+      : undefined
 
   // If there's no cached URL that we can return back to the user, then we need to generate a new checkout session.
   const clientReferenceId = randomUUID()
@@ -103,7 +118,7 @@ export const handler = async (
     ],
     // The stripe customer ID will be defined if the user has subscribed in the past
     ...(result.stripeCustomerId == null
-      ? { customer_email: ctx.auth0.user.email }
+      ? { customer_email: email }
       : { customer: result.stripeCustomerId }),
     success_url: ctx.vendor.stripe.env.STRIPE_CHECKOUT_SUCCESS_URL,
     cancel_url: ctx.vendor.stripe.env.STRIPE_CHECKOUT_CANCEL_URL,
@@ -121,11 +136,11 @@ export const handler = async (
           }
         : {}),
       metadata: fromZodType<typeof zStripeSubscriptionMetadata>({
-        auth0Id: ctx.auth0.user.sub,
+        userId: user.sub,
       }),
     },
     metadata: fromZodType<typeof zStripeCheckoutSessionMetadata>({
-      auth0Id: ctx.auth0.user.sub,
+      userId: user.sub,
     }),
     automatic_tax: {
       enabled: true,
@@ -148,14 +163,14 @@ export const handler = async (
   // lead to duplicate subscriptions / customers since the ghost session data is never
   // returned to the user and remains completely private in our Stripe account.
   return await ctx.vendor.db.drizzle.transaction(async (tx) => {
-    // The following code ensures that users are only able to see one checkout session link
-    // at a time until it eventually expires or the subscription tied to it is canceled. Why
-    // is it necessary to do this? If we leak multiple checkout session URLs to the user, then
-    // it is possible that they may accidently subscribe more than once leading to duplicate
-    // charges on their account, multiple Stripe customers being created for a single auth0 user,
-    // multiple subscriptions being tied to a single auth0 user, and additional headaches with
-    // regards to cleaning up the Stripe dashboard + database. The code below is designed to be
-    // concurrent safe and additional comments have been left behind to outline the thought process.
+    // The following code ensures that users are only able to see one checkout session link at a time
+    // until it eventually expires or the subscription tied to it is canceled. Why is it necessary to
+    // do this? If we leak multiple checkout session URLs to the user, then it is possible that they
+    // may accidently subscribe more than once leading to duplicate charges on their account, multiple
+    // Stripe customers being created for a single user, multiple subscriptions being tied to a single
+    // user, and additional headaches with regards to cleaning up the Stripe dashboard + database. The
+    // code below is designed to be concurrent safe and additional comments have been left behind to
+    // outline the thought process.
     if (result.stripeCustomerId != null) {
       // If we're here, then we know the following:
       //
@@ -206,7 +221,7 @@ export const handler = async (
         await tx
           .update(schema.checkoutSession)
           .set({
-            customerId: ctx.auth0.user.sub,
+            customerId: user.sub,
             sessionId: session.id,
             clientReferenceId,
             url,
@@ -260,7 +275,7 @@ export const handler = async (
       if (result.clientReferenceId == null) {
         await tx.insert(schema.checkoutSession).ignore().values({
           id: randomUUID(),
-          customerId: ctx.auth0.user.sub,
+          customerId: user.sub,
           sessionId: session.id,
           clientReferenceId,
           url,
@@ -281,7 +296,7 @@ export const handler = async (
           await tx
             .update(schema.checkoutSession)
             .set({
-              customerId: ctx.auth0.user.sub,
+              customerId: user.sub,
               sessionId: session.id,
               clientReferenceId,
               url,
@@ -300,7 +315,7 @@ export const handler = async (
     // we'll query it and return it to the client.
     return await tx.query.checkoutSession
       .findFirst({
-        where: eq(schema.checkoutSession.customerId, ctx.auth0.user.sub),
+        where: eq(schema.checkoutSession.customerId, user.sub),
       })
       .then((res) => {
         if (res == null) {
@@ -312,6 +327,9 @@ export const handler = async (
 }
 
 const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
+  // Gets the user from the context
+  const user = ctx.clerk.user.sessionClaims
+
   // Defines helper variable(s)
   const empty = {
     clientReferenceId: undefined,
@@ -322,7 +340,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
   // Queries the database for any existing sessions
   const existingSession =
     await ctx.vendor.db.drizzle.query.checkoutSession.findFirst({
-      where: eq(schema.checkoutSession.customerId, ctx.auth0.user.sub),
+      where: eq(schema.checkoutSession.customerId, user.sub),
     })
 
   // If the database does not have a checkout session, then we need to create a new one
@@ -333,7 +351,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
   // If an existing session was found, we need to handle it based on its status. First
   // let's query the cache / Stripe API for the additional checkout session details
   const sess = await ctx.caches.stripe.getOrSet(
-    ctx.auth0.user.sub,
+    user.sub,
     async () =>
       await ctx.vendor.stripe.client.checkout.sessions.retrieve(
         existingSession.sessionId,

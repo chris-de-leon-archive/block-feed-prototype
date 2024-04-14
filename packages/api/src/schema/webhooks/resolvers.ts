@@ -28,7 +28,7 @@ builder.queryField("webhook", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await findOne.handler(args, ctx)
     },
@@ -56,7 +56,7 @@ builder.queryField("webhooks", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await findMany.handler(args, ctx)
     },
@@ -80,7 +80,7 @@ builder.mutationField("webhookCreate", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await create.handler(args, ctx)
     },
@@ -105,7 +105,7 @@ builder.mutationField("webhookUpdate", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await update.handler(args, ctx)
     },
@@ -126,7 +126,7 @@ builder.mutationField("webhookRemove", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await remove.handler(args, ctx)
     },
@@ -147,7 +147,7 @@ builder.mutationField("webhookActivate", (t) =>
         cache: ctx.caches.stripe,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
-        user: ctx.auth0.user,
+        user: ctx.clerk.user,
       })
       return await activate.handler(args, ctx)
     },

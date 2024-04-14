@@ -14,7 +14,7 @@ export function Sidebar() {
       <div className="flex flex-col">
         <Link
           className="mb-5 mr-10 flex flex-row items-center gap-x-2 p-5 text-3xl font-bold"
-          href="/dashboard"
+          href="/"
         >
           <Image src="/logos/box.svg" alt="logo-box" width={40} height={40} />
           BlockFeed
