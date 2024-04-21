@@ -1,4 +1,4 @@
-FROM golang:1.21.9-bullseye AS base
+FROM golang:1.22.2-bullseye AS base
 WORKDIR /workspace
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target="/go/pkg/mod" go mod download -x
