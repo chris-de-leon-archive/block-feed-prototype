@@ -7,7 +7,7 @@ terraform {
   }
 }
 
-resource "docker_container" "block_poller_redis" {
+resource "docker_container" "redis_event_bus" {
   name    = "block-poller-redis-${var.chain_id}"
   image   = var.redis_image
   command = ["--port", "6379", "--loglevel", "debug"]
@@ -20,59 +20,27 @@ resource "docker_container" "block_poller_redis" {
   }
 }
 
-resource "docker_image" "block_poller" {
-  name         = "block-poller-${var.chain_id}:${var.tag}"
+resource "docker_image" "block_streamer" {
+  name         = "block-streamer-${var.chain_id}:${var.tag}"
   keep_locally = true
   build {
     context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/etl/block-pollers/${var.chain_name}/main.go"
+      BUILD_PATH = "./src/apps/etl/${var.chain_name}/main.go"
     }
   }
 }
 
-resource "docker_container" "block_poller" {
+resource "docker_container" "block_streamer" {
   name    = "block-poller-${var.chain_id}"
-  image   = docker_image.block_poller.name
+  image   = docker_image.block_streamer.name
   restart = "always"
   env = [
-    "BLOCK_POLLER_MYSQL_URL=${var.mysql_url}",
-    "BLOCK_POLLER_REDIS_URL=${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}",
-    "BLOCK_POLLER_BLOCKCHAIN_URL=${var.chain_url}",
-    "BLOCK_POLLER_BLOCKCHAIN_ID=${var.chain_id}",
-    "BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS=${var.max_in_flight_requests}",
-    "BLOCK_POLLER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
-    "BLOCK_POLLER_BATCH_SIZE=${var.max_blocks_per_poll}",
-    "BLOCK_POLLER_POLL_MS=${var.poll_ms}"
-  ]
-  networks_advanced {
-    name = var.network_name
-  }
-}
-
-resource "docker_image" "block_consumer" {
-  name         = "block-consumer:${var.tag}"
-  keep_locally = true
-  build {
-    context    = "${path.cwd}/apps/workers"
-    dockerfile = "./Dockerfile"
-    build_args = {
-      BUILD_PATH = "./src/apps/etl/block-consumer/main.go"
-    }
-  }
-}
-
-resource "docker_container" "block_consumer" {
-  name    = "block-consumer-${var.chain_id}"
-  image   = docker_image.block_consumer.name
-  restart = "always"
-  env = [
-    "BLOCK_CONSUMER_POSTGRES_URL=${var.timescaledb_url}",
-    "BLOCK_CONSUMER_REDIS_URL=${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}",
-    "BLOCK_CONSUMER_BLOCKCHAIN_ID=${var.chain_id}",
-    "BLOCK_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
-    "BLOCK_CONSUMER_NAME=${var.chain_id}-block-consumer"
+    "BLOCK_STREAMER_POSTGRES_URL=${var.timescaledb_url}",
+    "BLOCK_STREAMER_REDIS_URL=${docker_container.redis_event_bus.name}:${docker_container.redis_event_bus.ports[0].internal}",
+    "BLOCK_STREAMER_BLOCKCHAIN_URL=${var.chain_url}",
+    "BLOCK_STREAMER_BLOCKCHAIN_ID=${var.chain_id}",
   ]
   networks_advanced {
     name = var.network_name

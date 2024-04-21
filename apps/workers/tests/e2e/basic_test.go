@@ -1,9 +1,8 @@
 package e2e
 
 import (
-	"block-feed/src/libs/blockchains"
-	"block-feed/src/libs/processors"
-	"block-feed/src/libs/services"
+	"block-feed/src/libs/services/loadbalancing"
+	"block-feed/src/libs/services/processing"
 	"block-feed/tests/testutils"
 	"context"
 	"errors"
@@ -14,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onflow/flow-go-sdk/access/grpc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -45,40 +45,20 @@ import (
 func TestBasic(t *testing.T) {
 	// Defines helper constants
 	const (
-		CHAIN_URL = "access.devnet.nodes.onflow.org:9000"
-		CHAIN_ID  = blockchains.FLOW_TESTNET
+		FLOW_TESTNET_CHAIN_ID = "flow-testnet"
+		FLOW_TESTNET_URL      = grpc.TestnetHost
 
-		BLOCK_POLLER_NAME                   = "test-block-poller"
-		BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS = 3
-		BLOCK_POLLER_BLOCK_TIMEOUT_MS       = 60000
-		BLOCK_POLLER_BATCH_SIZE             = 10
-		BLOCK_POLLER_POLL_MS                = 100
-
-		BLOCK_FLUSHER_BLOCK_TIMEOUT_MS = 60000
-
-		WEBHOOK_CONSUMER_NAME             = "webhook-consumer"
-		WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS = 60000
-		WEBHOOK_CONSUMER_POOL_SIZE        = 3
-
-		BLOCK_CONSUMER_NAME    = string(CHAIN_ID) + "-block-consumer"
-		BLOCK_BLOCK_TIMEOUT_MS = 60000
-		BLOCK_POOL_SIZE        = 1
+		WEBHOOK_CONSUMER_NAME      = "webhook-consumer"
+		WEBHOOK_CONSUMER_POOL_SIZE = 3
 
 		WEBHOOK_LB_CONSUMER_NAME                = "webhook-lb-consumer"
-		WEBHOOK_LB_BLOCK_TIMEOUT_MS             = 60000
 		WEBHOOK_LB_POOL_SIZE                    = 3
 		WEBHOOK_LB_LOCK_RETRY_ATTEMPTS          = 10
 		WEBHOOK_LB_LOCK_EXP_BACKOFF_INIT_MS     = 1000
 		WEBHOOK_LB_LOCK_EXP_BACKOFF_MAX_RAND_MS = 1000
 
-		WEBHOOK_ACTIVATION_CONSUMER_NAME    = "webhook-activation-consumer"
-		WEBHOOK_ACTIVATION_BLOCK_TIMEOUT_MS = 60000
-		WEBHOOK_ACTIVATION_POOL_SIZE        = 3
-
-		TIMESCALEDB_VERSION = "latest-pg16"
-		REDIS_VERSION       = "7.2.1-alpine3.18"
-		MONGO_VERSION       = "7.0.5"
-		MYSQL_VERSION       = "8.3.0"
+		WEBHOOK_ACTIVATION_CONSUMER_NAME = "webhook-activation-consumer"
+		WEBHOOK_ACTIVATION_POOL_SIZE     = 3
 
 		WEBHOOK_MAX_BLOCKS  = 1
 		WEBHOOK_MAX_RETRIES = 3
@@ -90,12 +70,8 @@ func TestBasic(t *testing.T) {
 
 	// Defines helper variables
 	var (
-		ctx            = context.Background()
-		reqLog         = []testutils.RequestLog{}
-		blockchainOpts = &blockchains.BlockchainOpts{
-			ChainUrl: CHAIN_URL,
-			ChainID:  CHAIN_ID,
-		}
+		ctx    = context.Background()
+		reqLog = []testutils.RequestLog{}
 	)
 
 	// Starts a mock server
@@ -122,16 +98,6 @@ func TestBasic(t *testing.T) {
 	}))
 	t.Cleanup(func() { server.Close() })
 
-	// Creates a chain resolver
-	resolver := testutils.NewChainResolver()
-	t.Cleanup(func() { resolver.Close(func(err error) { t.Logf("error: %v\n", err) }) })
-
-	// Gets the blockchain client
-	chain, err := resolver.ResolveChain(blockchainOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Creates an error group so that we can create all containers in parallel
 	containerErrGrp := new(errgroup.Group)
 	var cLoadBalancerRedis *testutils.ContainerWithConnectionInfo
@@ -142,7 +108,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a mysql container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewMySqlContainer(ctx, t, MYSQL_VERSION)
+		container, err := testutils.NewMySqlContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -153,7 +119,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a block store container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewTimescaleDBContainer(ctx, t, TIMESCALEDB_VERSION)
+		container, err := testutils.NewTimescaleDBContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -164,7 +130,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -175,7 +141,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -186,7 +152,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -203,48 +169,28 @@ func TestBasic(t *testing.T) {
 	// Instead of using superuser credentials, use a role with limited permissions
 	backendUserMySqlUrl := testutils.MySqlUrl(*cMySql.Conn, testutils.MYSQL_BACKEND_USER_UNAME, testutils.MYSQL_BACKEND_USER_PWORD)
 
-	// Creates a block poller service
-	blockPoller, err := testutils.NewBlockPoller(t,
-		cBlockPollerRedis.Conn.Url,
-		chain,
-		services.BlockPollerOpts{
-			MaxInFlightRequests: BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS,
-			BlockTimeoutMs:      BLOCK_POLLER_BLOCK_TIMEOUT_MS,
-			BatchSize:           BLOCK_POLLER_BATCH_SIZE,
-			PollMs:              BLOCK_POLLER_POLL_MS,
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Creates a block consumer service
-	blockConsumer, err := testutils.NewBlockConsumer(t, ctx,
+	// Creates a flow block streamer service
+	flowBlockStreamer, err := testutils.NewFlowBlockStreamer(t, ctx,
+		string(FLOW_TESTNET_CHAIN_ID),
+		FLOW_TESTNET_URL,
 		cBlockPollerRedis.Conn.Url,
 		testutils.PostgresUrl(*cTimescaleDB.Conn,
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
-		services.StreamConsumerOpts{
-			ConsumerName:     BLOCK_CONSUMER_NAME,
-			ConsumerPoolSize: BLOCK_POOL_SIZE,
-			BlockTimeoutMs:   BLOCK_BLOCK_TIMEOUT_MS,
-		},
-		processors.BlockProcessorOpts{
-			ChainID: string(blockchainOpts.ChainID),
-		},
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Creates a block flusher service
-	blockFlusher, err := testutils.NewBlockFlusher(t,
+	// Creates a webhook flusher service
+	webhookFlusher, err := testutils.NewWebhookFlusher(t,
 		cWebhookRedis.Conn.Url,
 		cBlockPollerRedis.Conn.Url,
-		services.BlockFlusherOpts{
-			BlockTimeoutMs: BLOCK_FLUSHER_BLOCK_TIMEOUT_MS,
-		})
+		processing.WebhookFlusherOpts{
+			ChannelName: string(FLOW_TESTNET_CHAIN_ID),
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,10 +203,9 @@ func TestBasic(t *testing.T) {
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
-		services.StreamConsumerOpts{
-			ConsumerName:     WEBHOOK_CONSUMER_NAME,
-			ConsumerPoolSize: WEBHOOK_CONSUMER_POOL_SIZE,
-			BlockTimeoutMs:   WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,
+		&processing.WebhookConsumerOpts{
+			ConsumerName: WEBHOOK_CONSUMER_NAME,
+			Concurrency:  WEBHOOK_CONSUMER_POOL_SIZE,
 		})
 	if err != nil {
 		t.Fatal(err)
@@ -270,12 +215,9 @@ func TestBasic(t *testing.T) {
 	webhookLoadBalancerConsumer, err := testutils.NewWebhookLoadBalancerConsumer(t,
 		cLoadBalancerRedis.Conn.Url,
 		backendUserMySqlUrl,
-		services.StreamConsumerOpts{
-			ConsumerName:     WEBHOOK_LB_CONSUMER_NAME,
-			ConsumerPoolSize: WEBHOOK_LB_POOL_SIZE,
-			BlockTimeoutMs:   WEBHOOK_LB_BLOCK_TIMEOUT_MS,
-		},
-		processors.WebhookLoadBalancerProcessorOpts{
+		&loadbalancing.WebhookLoadBalancerOpts{
+			ConsumerName:            WEBHOOK_LB_CONSUMER_NAME,
+			Concurrency:             WEBHOOK_LB_POOL_SIZE,
 			LockExpBackoffInitMs:    WEBHOOK_LB_LOCK_EXP_BACKOFF_INIT_MS,
 			LockRetryAttempts:       WEBHOOK_LB_LOCK_RETRY_ATTEMPTS,
 			LockExpBackoffMaxRandMs: WEBHOOK_LB_LOCK_EXP_BACKOFF_MAX_RAND_MS,
@@ -289,10 +231,9 @@ func TestBasic(t *testing.T) {
 	webhookActivationConsumer, err := testutils.NewWebhookActivationConsumer(t,
 		cWebhookRedis.Conn.Url,
 		backendUserMySqlUrl,
-		services.StreamConsumerOpts{
-			ConsumerName:     WEBHOOK_ACTIVATION_CONSUMER_NAME,
-			ConsumerPoolSize: WEBHOOK_ACTIVATION_POOL_SIZE,
-			BlockTimeoutMs:   WEBHOOK_ACTIVATION_BLOCK_TIMEOUT_MS,
+		&processing.WebhookActivatorOpts{
+			ConsumerName: WEBHOOK_ACTIVATION_CONSUMER_NAME,
+			Concurrency:  WEBHOOK_ACTIVATION_POOL_SIZE,
 		},
 	)
 	if err != nil {
@@ -301,7 +242,8 @@ func TestBasic(t *testing.T) {
 
 	// Adds a webhook to the webhook load balancing stream
 	if err := testutils.LoadBalanceWebhook(ctx, t,
-		chain,
+		string(FLOW_TESTNET_CHAIN_ID),
+		FLOW_TESTNET_URL,
 		cMySql.Conn.Url,
 		cLoadBalancerRedis.Conn.Url,
 		server.URL,
@@ -320,9 +262,8 @@ func TestBasic(t *testing.T) {
 
 	// Runs all services in the background
 	eg := new(errgroup.Group)
-	eg.Go(func() error { return blockPoller.Run(timeoutCtx) })
-	eg.Go(func() error { return blockConsumer.Run(timeoutCtx) })
-	eg.Go(func() error { return blockFlusher.Run(timeoutCtx) })
+	eg.Go(func() error { return flowBlockStreamer.Run(timeoutCtx) })
+	eg.Go(func() error { return webhookFlusher.Run(timeoutCtx) })
 	eg.Go(func() error { return webhookConsumer.Run(timeoutCtx) })
 	eg.Go(func() error { return webhookActivationConsumer.Run(timeoutCtx) })
 	eg.Go(func() error { return webhookLoadBalancerConsumer.Run(timeoutCtx) })

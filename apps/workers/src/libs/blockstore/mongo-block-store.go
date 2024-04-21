@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -76,6 +77,7 @@ func (blockStore *MongoBlockStore) Init(ctx context.Context, chainID string) err
 	collectionOpts := options.CreateCollection().SetValidationLevel("strict").SetValidator(schema)
 
 	// Defines collection index parameters
+	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/indexes/#unique-indexes
 	indexModel := mongo.IndexModel{
 		Keys:    bson.M{index: 1},
 		Options: options.Index().SetUnique(true),
@@ -95,13 +97,15 @@ func (blockStore *MongoBlockStore) Init(ctx context.Context, chainID string) err
 				ctx,
 				func(tx mongo.SessionContext) (interface{}, error) {
 					if err := blockStore.db.CreateCollection(tx, chainID, collectionOpts); err != nil {
-						return nil, err
-					} else {
-						return blockStore.db.
-							Collection(chainID).
-							Indexes().
-							CreateOne(tx, indexModel)
+						isCollectionNamespaceError := strings.Contains(err.Error(), "(NamespaceExists) Collection")
+						isAlreadyExistsError := strings.Contains(err.Error(), "already exists")
+						if isCollectionNamespaceError && isAlreadyExistsError {
+							return nil, tx.AbortTransaction(tx)
+						} else {
+							return nil, err
+						}
 					}
+					return blockStore.db.Collection(chainID).Indexes().CreateOne(tx, indexModel)
 				},
 				txOpts,
 			),

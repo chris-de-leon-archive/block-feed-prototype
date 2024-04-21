@@ -77,6 +77,10 @@ func ExponentialBackoff[T any](
 }
 
 func LogError(logger *log.Logger, err error) {
+	if err == nil {
+		return
+	}
+
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
 		file = "unknown"

@@ -58,7 +58,3 @@ variable "mysql_activator_conn_pool_size" {
   type = number
 }
 
-variable "block_timeout_ms" {
-  type    = number
-  default = 60000
-}

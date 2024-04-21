@@ -1,11 +1,10 @@
-package processors
+package loadbalancing
 
 import (
 	"block-feed/src/libs/common"
-	"block-feed/src/libs/constants"
 	"block-feed/src/libs/messaging"
-	"block-feed/src/libs/services"
 	"block-feed/src/libs/sqlc"
+	"block-feed/src/libs/streaming"
 	"context"
 	"database/sql"
 	"errors"
@@ -15,37 +14,39 @@ import (
 )
 
 type (
-	WebhookLoadBalancerProcessorOpts struct {
+	WebhookLoadBalancerOpts struct {
+		ConsumerName            string
+		Concurrency             int
 		LockRetryAttempts       int
 		LockExpBackoffInitMs    int
 		LockExpBackoffMaxRandMs int
 	}
 
-	WebhookLoadBalancerProcessorParams struct {
-		RedisClient *redis.Client
-		MySqlClient *sql.DB
-		Opts        *WebhookLoadBalancerProcessorOpts
+	WebhookLoadBalancerParams struct {
+		WebhookLoadBalancerStream *streaming.RedisWebhookLoadBalancerStream
+		MySqlClient               *sql.DB
+		Opts                      *WebhookLoadBalancerOpts
 	}
 
-	WebhookLoadBalancerProcessor struct {
-		redisClients map[string]*redis.Client
-		redisClient  *redis.Client
-		mysqlClient  *sql.DB
-		opts         *WebhookLoadBalancerProcessorOpts
+	WebhookLoadBalancer struct {
+		redisNodes                map[string]*streaming.RedisWebhookActivationStream
+		webhookLoadBalancerStream *streaming.RedisWebhookLoadBalancerStream
+		mysqlClient               *sql.DB
+		opts                      *WebhookLoadBalancerOpts
 	}
 )
 
 // NOTE: multiple replicas of this service can be created
-func NewWebhookLoadBalancerProcessor(params WebhookLoadBalancerProcessorParams) services.IStreamProcessor {
-	return &WebhookLoadBalancerProcessor{
-		redisClients: map[string]*redis.Client{},
-		redisClient:  params.RedisClient,
-		mysqlClient:  params.MySqlClient,
-		opts:         params.Opts,
+func NewWebhookLoadBalancer(params WebhookLoadBalancerParams) *WebhookLoadBalancer {
+	return &WebhookLoadBalancer{
+		redisNodes:                map[string]*streaming.RedisWebhookActivationStream{},
+		webhookLoadBalancerStream: params.WebhookLoadBalancerStream,
+		mysqlClient:               params.MySqlClient,
+		opts:                      params.Opts,
 	}
 }
 
-func (service *WebhookLoadBalancerProcessor) OnStartup(ctx context.Context, metadata services.OnStartupMetadata) error {
+func (service *WebhookLoadBalancer) Run(ctx context.Context) error {
 	// Double checks that we have nodes for load balancing
 	count, err := sqlc.New(service.mysqlClient).CountWebhookNodes(ctx)
 	if err != nil {
@@ -54,16 +55,23 @@ func (service *WebhookLoadBalancerProcessor) OnStartup(ctx context.Context, meta
 	if count == 0 {
 		return errors.New("no webhook processing nodes exist")
 	}
-	return nil
+
+	// Processes new messages as they arrive
+	return service.webhookLoadBalancerStream.Subscribe(
+		ctx,
+		service.opts.ConsumerName,
+		service.opts.Concurrency,
+		service.handleMessage,
+	)
 }
 
-func (service *WebhookLoadBalancerProcessor) ProcessMessage(ctx context.Context, msg redis.XMessage, isBacklogMsg bool, metadata services.ProcessMessageMetadata) error {
-	// Converts the incoming stream data to a strongly typed struct
-	msgData, err := messaging.ParseMessage[messaging.WebhookLoadBalancerStreamMsgData](msg)
-	if err != nil {
-		return err
-	}
-
+func (service *WebhookLoadBalancer) handleMessage(
+	ctx context.Context,
+	msgID string,
+	msgData *messaging.WebhookLoadBalancerStreamMsgData,
+	isBacklogMsg bool,
+	metadata streaming.SubscribeMetadata,
+) error {
 	// Defines the full consumer name
 	fullConsumerName := fmt.Sprintf(
 		"%s:%s",
@@ -102,15 +110,15 @@ func (service *WebhookLoadBalancerProcessor) ProcessMessage(ctx context.Context,
 	// Protects against duplicate processing
 	if result.Webhook.IsActive {
 		metadata.Logger.Printf("Webhook with ID \"%s\" is already active - aborting", msgData.WebhookID)
-		return service.ack(ctx, msg, metadata)
+		return service.webhookLoadBalancerStream.Ack(ctx, msgID)
 	}
 	if result.WebhookClaim.ClaimedBy != fullConsumerName {
 		metadata.Logger.Printf("Webhook with ID \"%s\" has already been claimed by consumer \"%s\" - aborting\n", msgData.WebhookID, result.WebhookClaim.ClaimedBy)
-		return service.ack(ctx, msg, metadata)
+		return service.webhookLoadBalancerStream.Ack(ctx, msgID)
 	}
 	if count == 0 && !isBacklogMsg {
 		metadata.Logger.Printf("Webhook with ID \"%s\" has already been processed by this consumer in the past - aborting\n", msgData.WebhookID)
-		return service.ack(ctx, msg, metadata)
+		return service.webhookLoadBalancerStream.Ack(ctx, msgID)
 	}
 
 	// Stores the node that the webhook is assigned to
@@ -165,48 +173,29 @@ func (service *WebhookLoadBalancerProcessor) ProcessMessage(ctx context.Context,
 
 	// Gets the cached redis connection pool for the assigned node. If we don't already have a cached
 	// connection pool then we create one and cache it for future requests.
-	rc, exists := service.redisClients[assignedNode.Url]
+	redisNode, exists := service.redisNodes[assignedNode.Url]
 	if !exists {
-		rc = redis.NewClient(&redis.Options{
-			Addr:                  assignedNode.Url,
-			ContextTimeoutEnabled: true,
-		})
-		service.redisClients[assignedNode.Url] = rc
-	}
-
-	// JSON encodes the data for the webhook activation stream
-	data, err := messaging.NewWebhookActivationStreamMsg(msgData.WebhookID).MarshalBinary()
-	if err != nil {
-		return err
+		redisNode = streaming.NewRedisWebhookActivationStream(
+			redis.NewClient(&redis.Options{
+				Addr:                  assignedNode.Url,
+				ContextTimeoutEnabled: true,
+			}),
+		)
+		service.redisNodes[assignedNode.Url] = redisNode
 	}
 
 	// Forwards the message to the webhook activation stream on the assigned node for further processing
-	if err := rc.XAdd(ctx, &redis.XAddArgs{
-		ID:     "*",
-		Stream: constants.WEBHOOK_ACTIVATION_STREAM,
-		Values: map[string]any{messaging.GetDataField(): data},
-	}).Err(); err != nil {
+	if err := redisNode.AddOne(ctx, messaging.NewWebhookActivationStreamMsg(msgData.WebhookID)); err != nil {
 		return err
 	} else {
 		metadata.Logger.Printf("Webhook with ID \"%s\" has been scheduled for activation\n", msgData.WebhookID)
 	}
 
 	// Marks this entry as completed
-	return service.ack(ctx, msg, metadata)
+	return service.webhookLoadBalancerStream.Ack(ctx, msgID)
 }
 
-func (service *WebhookLoadBalancerProcessor) ack(ctx context.Context, msg redis.XMessage, metadata services.ProcessMessageMetadata) error {
-	// Acknowledges the job and deletes it from the stream in one atomic operation
-	return xAckDel(
-		ctx,
-		service.redisClient,
-		metadata.StreamName,
-		metadata.ConsumerGroupName,
-		msg.ID,
-	)
-}
-
-func (service *WebhookLoadBalancerProcessor) assignWebhookToNode(ctx context.Context, claimedWebhook *sqlc.FindClaimedWebhookRow, metadata services.ProcessMessageMetadata) (*sqlc.WebhookNode, error) {
+func (service *WebhookLoadBalancer) assignWebhookToNode(ctx context.Context, claimedWebhook *sqlc.FindClaimedWebhookRow, metadata streaming.SubscribeMetadata) (*sqlc.WebhookNode, error) {
 	// Starts a transaction
 	tx, err := service.mysqlClient.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {

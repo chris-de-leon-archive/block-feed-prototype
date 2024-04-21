@@ -3,7 +3,10 @@ package main
 import (
 	"block-feed/src/libs/common"
 	"block-feed/src/libs/config"
-	"block-feed/src/libs/services"
+	"block-feed/src/libs/eventbus"
+	"block-feed/src/libs/messaging"
+	"block-feed/src/libs/services/processing"
+	"block-feed/src/libs/streaming"
 	"context"
 	"os/signal"
 	"syscall"
@@ -12,9 +15,9 @@ import (
 )
 
 type EnvVars struct {
-	WebhookStreamRedisUrl string `validate:"required,gt=0" env:"BLOCK_FLUSHER_REDIS_WEBHOOK_STREAM_URL,required"`
-	BlockStreamRedisUrl   string `validate:"required,gt=0" env:"BLOCK_FLUSHER_REDIS_BLOCK_STREAM_URL,required"`
-	BlockTimeoutMs        int    `validate:"required,gt=0" env:"BLOCK_FLUSHER_BLOCK_TIMEOUT_MS,required"`
+	WebhookStreamRedisUrl string `validate:"required,gt=0" env:"WEBHOOK_FLUSHER_REDIS_WEBHOOK_STREAM_URL,required"`
+	BlockStreamRedisUrl   string `validate:"required,gt=0" env:"WEBHOOK_FLUSHER_REDIS_BLOCK_STREAM_URL,required"`
+	BlockchainId          string `validate:"required,gt=0" env:"WEBHOOK_FLUSHER_BLOCKCHAIN_ID,required"`
 }
 
 func main() {
@@ -51,11 +54,11 @@ func main() {
 	}()
 
 	// Creates the service
-	service := services.NewBlockFlusher(services.BlockFlusherParams{
-		WebhookStreamRedisClient: redisWebhookStreamClient,
-		BlockStreamRedisClient:   redisBlockStreamClient,
-		Opts: &services.BlockFlusherOpts{
-			BlockTimeoutMs: envvars.BlockTimeoutMs,
+	service := processing.NewWebhookFlusher(processing.WebhookFlusherParams{
+		EventBus:      eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](redisBlockStreamClient),
+		WebhookStream: streaming.NewRedisWebhookStream(redisWebhookStreamClient),
+		Opts: &processing.WebhookFlusherOpts{
+			ChannelName: envvars.BlockchainId,
 		},
 	})
 

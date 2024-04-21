@@ -10,12 +10,42 @@ import (
 	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
 	_ "compress/zlib"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/onflow/flow-go-sdk/access/grpc"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func GetFlowClient(t *testing.T, url string) (*grpc.Client, error) {
+	client, err := grpc.NewClient(url)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Log(err)
+		}
+	})
+
+	return client, err
+}
+
+func GetEthClient(t *testing.T, url string) (*ethclient.Client, error) {
+	client, err := ethclient.Dial(url)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Cleanup(func() {
+		client.Close()
+	})
+
+	return client, err
+}
 
 func GetMongoClient(t *testing.T, ctx context.Context, url string) (*mongo.Client, error) {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))

@@ -12,13 +12,12 @@ HUB_TOKEN=$(
 set +e
 
 REPO_NAMES=(
-	"block-feed-backend-load-balancing-webhook-load-balancer-consumer"
-	"block-feed-backend-processing-webhook-activation-consumer"
+	"block-feed-backend-load-balancing-webhook-load-balancer"
+	"block-feed-backend-processing-webhook-activator"
 	"block-feed-backend-processing-webhook-consumer"
-	"block-feed-backend-processing-block-flusher"
-	"block-feed-backend-etl-block-consumer"
-	"block-feed-backend-etl-block-pollers-flow"
-	"block-feed-backend-etl-block-pollers-eth"
+	"block-feed-backend-processing-webhook-flusher"
+	"block-feed-backend-etl-flow-block-streamer"
+	"block-feed-backend-etl-eth-block-streamer"
 )
 
 for repo in "${REPO_NAMES[@]}"; do

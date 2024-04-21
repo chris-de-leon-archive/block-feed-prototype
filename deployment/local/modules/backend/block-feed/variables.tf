@@ -34,18 +34,6 @@ variable "etl_port" {
   type = number
 }
 
-variable "poll_ms" {
-  type = number
-}
-
-variable "max_blocks_per_poll" {
-  type = number
-}
-
-variable "max_in_flight_requests" {
-  type = number
-}
-
 variable "processing_port" {
   type = number
 }
@@ -78,7 +66,3 @@ variable "mysql_activator_conn_pool_size" {
   type = number
 }
 
-variable "block_timeout_ms" {
-  type    = number
-  default = 60000
-}

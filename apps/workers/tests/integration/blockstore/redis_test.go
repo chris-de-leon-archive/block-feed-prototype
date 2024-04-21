@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-const REDIS_VERSION = "7.2.1-alpine3.18"
-
 func TestRedisBlockStore(t *testing.T) {
 	// Defines helper variables
 	const chainID = "dummy-chain"
@@ -21,7 +19,7 @@ func TestRedisBlockStore(t *testing.T) {
 	blocks[2] = blockstore.BlockDocument{Height: 3, Data: []byte{}}
 
 	// Starts a container
-	container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+	container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,6 +35,13 @@ func TestRedisBlockStore(t *testing.T) {
 
 	// Initializes the block store
 	t.Run("Init Block Store", func(t *testing.T) {
+		if err := blockStore.Init(ctx, chainID); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// Initializes the block store again (should do nothing)
+	t.Run("Init Block Store (idempotent)", func(t *testing.T) {
 		if err := blockStore.Init(ctx, chainID); err != nil {
 			t.Fatal(err)
 		}

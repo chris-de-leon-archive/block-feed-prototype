@@ -2,6 +2,7 @@ package blockchains
 
 import "context"
 
+// TODO: delete this package
 type (
 	ChainID string
 

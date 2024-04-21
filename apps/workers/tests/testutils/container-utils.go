@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	MONGO_VERSION              = "7.0.5"
 	MONGO_READWRITE_USER_UNAME = "readwrite"
 	MONGO_READWRITE_USER_PWORD = "password"
 	MONGO_READONLY_USER_UNAME  = "readonly"
@@ -28,6 +29,7 @@ const (
 	MONGO_DB                   = "test"
 	MONGO_PORT                 = "27017/tcp"
 
+	TIMESCALEDB_VERSION               = "latest-pg16"
 	TIMESCALEDB_BLOCKSTORE_USER_UNAME = "blockstore"
 	TIMESCALEDB_BLOCKSTORE_USER_PWORD = "password"
 	TIMESCALEDB_ROOT_USER_UNAME       = "root"
@@ -36,6 +38,7 @@ const (
 	TIMESCALEDB_DB                    = "test"
 	TIMESCALEDB_PORT                  = "5432/tcp"
 
+	MYSQL_VERSION            = "8.3.0"
 	MYSQL_BACKEND_USER_UNAME = "backend_user"
 	MYSQL_BACKEND_USER_PWORD = "password"
 	MYSQL_ROOT_USER_UNAME    = "root"
@@ -43,7 +46,8 @@ const (
 	MYSQL_DB                 = "test"
 	MYSQL_PORT               = "3306/tcp"
 
-	REDIS_PORT = "6379/tcp"
+	REDIS_VERSION = "7.2.1-alpine3.18"
+	REDIS_PORT    = "6379/tcp"
 )
 
 type (
@@ -59,7 +63,7 @@ type (
 	}
 )
 
-func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
+func NewMySqlContainer(ctx context.Context, t *testing.T) (*ContainerWithConnectionInfo, error) {
 	// Gets the directory that this file exists in
 	dir, err := GetRootDir()
 	if err != nil {
@@ -67,6 +71,7 @@ func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*Cont
 	}
 
 	// Creates the container
+	version := MYSQL_VERSION
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			ExposedPorts: []string{MYSQL_PORT},
@@ -111,7 +116,7 @@ func NewMySqlContainer(ctx context.Context, t *testing.T, version string) (*Cont
 	}, nil
 }
 
-func NewTimescaleDBContainer(ctx context.Context, t *testing.T, version string) (*ContainerWithConnectionInfo, error) {
+func NewTimescaleDBContainer(ctx context.Context, t *testing.T) (*ContainerWithConnectionInfo, error) {
 	// Gets the directory that this file exists in
 	dir, err := GetRootDir()
 	if err != nil {
@@ -119,6 +124,7 @@ func NewTimescaleDBContainer(ctx context.Context, t *testing.T, version string) 
 	}
 
 	// Creates the container
+	version := TIMESCALEDB_VERSION
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			ExposedPorts: []string{TIMESCALEDB_PORT},
@@ -165,7 +171,7 @@ func NewTimescaleDBContainer(ctx context.Context, t *testing.T, version string) 
 	}, nil
 }
 
-func NewMongoContainer(ctx context.Context, t *testing.T, version string, debug bool) (*ContainerWithConnectionInfo, error) {
+func NewMongoContainer(ctx context.Context, t *testing.T, debug bool) (*ContainerWithConnectionInfo, error) {
 	// Gets the directory that this file exists in
 	dir, err := GetRootDir()
 	if err != nil {
@@ -173,6 +179,7 @@ func NewMongoContainer(ctx context.Context, t *testing.T, version string, debug 
 	}
 
 	// Creates the container
+	version := MONGO_VERSION
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			ExposedPorts: []string{MONGO_PORT},
@@ -256,8 +263,9 @@ func NewMongoContainer(ctx context.Context, t *testing.T, version string, debug 
 	}, nil
 }
 
-func NewRedisContainer(ctx context.Context, t *testing.T, version string, cmd []string) (*ContainerWithConnectionInfo, error) {
+func NewRedisContainer(ctx context.Context, t *testing.T, cmd []string) (*ContainerWithConnectionInfo, error) {
 	// Creates the container
+	version := REDIS_VERSION
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        fmt.Sprintf("redis:%s", version),

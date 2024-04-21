@@ -4,17 +4,14 @@ import (
 	"block-feed/src/libs/blockstore"
 	"block-feed/src/libs/common"
 	"block-feed/src/libs/config"
-	"block-feed/src/libs/constants"
-	"block-feed/src/libs/processors"
-	"block-feed/src/libs/services"
+	"block-feed/src/libs/services/processing"
+	"block-feed/src/libs/sqlc"
+	"block-feed/src/libs/streaming"
 	"context"
 	"database/sql"
 	"os/signal"
 	"syscall"
 	"time"
-
-	// https://www.mongodb.com/docs/drivers/go/current/fundamentals/connections/network-compression/#compression-algorithm-dependencies
-	_ "compress/zlib"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,7 +25,6 @@ type EnvVars struct {
 	ConsumerName            string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
 	MySqlConnectionPoolSize int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE,required"`
 	ConsumerPoolSize        int    `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_POOL_SIZE,required"`
-	BlockTimeoutMs          int    `validate:"required,gte=0" env:"WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,required"`
 }
 
 func main() {
@@ -75,25 +71,19 @@ func main() {
 		mysqlClient.SetMaxIdleConns(envvars.MySqlConnectionPoolSize)
 	}
 
-	// Creates the consumer
-	consumer := services.NewStreamConsumer(services.StreamConsumerParams{
-		RedisClient: redisClient,
-		Processor: processors.NewWebhookProcessor(processors.WebhookProcessorParams{
-			BlockStore:  blockstore.NewTimescaleBlockStore(pgClient),
-			MySqlClient: mysqlClient,
-			RedisClient: redisClient,
-		}),
-		Opts: &services.StreamConsumerOpts{
-			StreamName:        constants.WEBHOOK_STREAM,
-			ConsumerGroupName: constants.WEBHOOK_STREAM_CONSUMER_GROUP_NAME,
-			ConsumerName:      envvars.ConsumerName,
-			ConsumerPoolSize:  envvars.ConsumerPoolSize,
-			BlockTimeoutMs:    envvars.BlockTimeoutMs,
+	// Creates the service
+	service := processing.NewWebhookConsumer(processing.WebhookConsumerParams{
+		BlockStore:      blockstore.NewTimescaleBlockStore(pgClient),
+		WebhookStream:   streaming.NewRedisWebhookStream(redisClient),
+		DatabaseQueries: sqlc.New(mysqlClient),
+		Opts: &processing.WebhookConsumerOpts{
+			ConsumerName: envvars.ConsumerName,
+			Concurrency:  envvars.ConsumerPoolSize,
 		},
 	})
 
 	// Runs the consumer until the context is cancelled
-	if err = consumer.Run(ctx); err != nil {
+	if err = service.Run(ctx); err != nil {
 		common.LogError(nil, err)
 		panic(err)
 	}
