@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 	locales_en "github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"

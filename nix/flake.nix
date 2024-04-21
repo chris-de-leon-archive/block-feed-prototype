@@ -1,13 +1,13 @@
-# https://lazamar.co.uk/nix-versions/?channel=nixos-23.05
-
+# https://search.nixos.org/packages?channel=unstable&show=go&from=0&size=50&sort=relevance&type=packages&query=go
+#
 # Run with:
 #
 #   NIXPKGS_ALLOW_UNFREE=1 nix develop --impure ./nix
 #
 {
   inputs = {
-    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/5f5210aa20e343b7e35f40c033000db0ef80d7b9.tar.gz";
-    flowcli.url = "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.9.2.tar.gz";
+    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/3f59355d8466fc2b1cfe45cd21e4476a686bfeaf.tar.gz";
+    flowcli.url = "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.17.1.tar.gz";
     utils.url = "github:numtide/flake-utils";
   };
 
@@ -21,16 +21,14 @@
       in {
         devShell = pkgs.mkShell {
           buildInputs = [
-            pkgs.terraform #v1.7.0
-            pkgs.nodejs_20 # v20.10.0
-            pkgs.awscli2 # v2.15.12
-            pkgs.redis # v7.2.3
-            pkgs.flow # v1.9.2
-            pkgs.go_1_21 #v1.21.5
-            pkgs.gopls
-            pkgs.sqlc # v1.25.0
-            pkgs.atlas # v0.18.0
-            pkgs.stripe-cli # v1.19.1
+            pkgs.terraform # v1.7.5
+            pkgs.nodejs_21 # v21.7.2
+            pkgs.redis # v7.2.4
+            pkgs.flow # v1.17.1
+            pkgs.go #v1.22.2
+            pkgs.sqlc # v1.26.0
+            pkgs.atlas # v0.21.1
+            pkgs.stripe-cli # v1.19.4
           ];
 
           shellHook = ''

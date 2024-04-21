@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "go:clean": "go clean -x -i -r -cache -modcache",
+    "go:build": "go build ./src/apps/...",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
     "test:int:one": "f() { sqlc generate && go test -v ./tests/integration/$1_test.go; }; f",
     "test:int:all": "sqlc generate && go test -v ./tests/integration/...",
     "test:e2e:one": "f() { sqlc generate && go test -v ./tests/e2e/$1_test.go; }; f",

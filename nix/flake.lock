@@ -6,14 +6,14 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1703499940,
-        "narHash": "sha256-teKTfFpR+7bTdJDbF+5nWIl8d6x1+DOZUGZ4d7wmvmg=",
+        "lastModified": 1713689317,
+        "narHash": "sha256-1gRpv9xmyVwHhvfl1TGuMaj98vm3v8pg69X7CwR3Bms=",
         "type": "tarball",
-        "url": "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.9.2.tar.gz"
+        "url": "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.17.1.tar.gz"
       },
       "original": {
         "type": "tarball",
-        "url": "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.9.2.tar.gz"
+        "url": "https://github.com/chris-de-leon/flow-cli.nix/archive/refs/tags/v1.17.1.tar.gz"
       }
     },
     "nixpkgs": {
@@ -34,14 +34,14 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1705883077,
-        "narHash": "sha256-ByzHHX3KxpU1+V0erFy8jpujTufimh6KaS/Iv3AciHk=",
+        "lastModified": 1712643983,
+        "narHash": "sha256-wQMzHIWFI/oGl2E+ePHUoR5VqYO33RNmOS8Ea98c4lI=",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/5f5210aa20e343b7e35f40c033000db0ef80d7b9.tar.gz"
+        "url": "https://github.com/NixOS/nixpkgs/archive/3f59355d8466fc2b1cfe45cd21e4476a686bfeaf.tar.gz"
       },
       "original": {
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/5f5210aa20e343b7e35f40c033000db0ef80d7b9.tar.gz"
+        "url": "https://github.com/NixOS/nixpkgs/archive/3f59355d8466fc2b1cfe45cd21e4476a686bfeaf.tar.gz"
       }
     },
     "root": {
