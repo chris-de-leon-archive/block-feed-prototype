@@ -4,7 +4,7 @@ import (
 	"block-feed/src/libs/common"
 	"block-feed/src/libs/messaging"
 	"block-feed/src/libs/sqlc"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"block-feed/tests/testqueries"
 	"context"
 	"database/sql"
@@ -122,10 +122,9 @@ func LoadBalanceWebhook(
 	// Activates the webhook
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (bool, error) {
-			// TODO: lua script
+			webhookLoadBalancerStream := streams.NewRedisWebhookLoadBalancerStream(client)
 			for i := 0; i < numDuplicates; i++ {
-				producer := streaming.NewRedisWebhookLoadBalancerStream(client)
-				if err := producer.AddOne(ctx, messaging.NewWebhookLoadBalancerStreamMsg(webhookId)); err != nil {
+				if err := webhookLoadBalancerStream.AddOne(ctx, messaging.NewWebhookLoadBalancerStreamMsg(webhookId)); err != nil {
 					return false, err
 				}
 			}
@@ -211,7 +210,7 @@ func SetupWebhook(
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (int64, error) {
 			return client.ZAdd(ctx,
-				streaming.PendingSetKey,
+				streams.PendingSetKey,
 				redis.Z{
 					Score: 0,
 					Member: messaging.NewWebhookStreamMsg(
@@ -325,7 +324,7 @@ func SetupWebhooks(
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (int64, error) {
 			return client.ZAdd(ctx,
-				streaming.PendingSetKey,
+				streams.PendingSetKey,
 				elems...,
 			).Result()
 		}),

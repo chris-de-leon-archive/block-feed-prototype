@@ -3,8 +3,9 @@ package main
 import (
 	"block-feed/src/libs/common"
 	"block-feed/src/libs/config"
+	"block-feed/src/libs/db"
 	"block-feed/src/libs/services/loadbalancing"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"database/sql"
 	"os/signal"
@@ -65,8 +66,8 @@ func main() {
 
 	// Creates the service
 	service := loadbalancing.NewWebhookLoadBalancer(loadbalancing.WebhookLoadBalancerParams{
-		WebhookLoadBalancerStream: streaming.NewRedisWebhookLoadBalancerStream(redisClient),
-		MySqlClient:               mysqlClient,
+		WebhookLoadBalancerStream: streams.NewRedisWebhookLoadBalancerStream(redisClient),
+		Database:                  db.NewDatabase(mysqlClient),
 		Opts: &loadbalancing.WebhookLoadBalancerOpts{
 			LockExpBackoffMaxRandMs: envvars.LockExpBackoffMaxRandMs,
 			LockExpBackoffInitMs:    envvars.LockExpBackoffInitMs,

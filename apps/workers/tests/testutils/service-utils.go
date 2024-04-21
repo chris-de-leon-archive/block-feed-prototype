@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"block-feed/src/libs/blockstore"
+	"block-feed/src/libs/db"
 	"block-feed/src/libs/eventbus"
 	"block-feed/src/libs/messaging"
 	"block-feed/src/libs/services/etl"
@@ -9,8 +10,7 @@ import (
 	etlproducers "block-feed/src/libs/services/etl/producers"
 	"block-feed/src/libs/services/loadbalancing"
 	"block-feed/src/libs/services/processing"
-	"block-feed/src/libs/sqlc"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"testing"
 )
@@ -138,7 +138,7 @@ func NewWebhookFlusher(
 
 	// Creates the service
 	return processing.NewWebhookFlusher(processing.WebhookFlusherParams{
-		WebhookStream: streaming.NewRedisWebhookStream(webhookRedisClient),
+		WebhookStream: streams.NewRedisWebhookStream(webhookRedisClient),
 		EventBus:      eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](blockPollerRedisClient),
 		Opts:          &opts,
 	}), nil
@@ -172,10 +172,10 @@ func NewWebhookConsumer(
 
 	// Creates the service
 	return processing.NewWebhookConsumer(processing.WebhookConsumerParams{
-		BlockStore:      blockstore.NewTimescaleBlockStore(blockStoreClient),
-		WebhookStream:   streaming.NewRedisWebhookStream(redisClient),
-		DatabaseQueries: sqlc.New(mysqlClient),
-		Opts:            opts,
+		BlockStore:    blockstore.NewTimescaleBlockStore(blockStoreClient),
+		WebhookStream: streams.NewRedisWebhookStream(redisClient),
+		Database:      db.NewDatabase(mysqlClient),
+		Opts:          opts,
 	}), nil
 }
 
@@ -199,8 +199,8 @@ func NewWebhookLoadBalancerConsumer(
 
 	// Creates the service
 	return loadbalancing.NewWebhookLoadBalancer(loadbalancing.WebhookLoadBalancerParams{
-		WebhookLoadBalancerStream: streaming.NewRedisWebhookLoadBalancerStream(redisClient),
-		MySqlClient:               mysqlClient,
+		WebhookLoadBalancerStream: streams.NewRedisWebhookLoadBalancerStream(redisClient),
+		Database:                  db.NewDatabase(mysqlClient),
 		Opts:                      opts,
 	}), nil
 }
@@ -225,8 +225,8 @@ func NewWebhookActivationConsumer(
 
 	// Creates the service
 	return processing.NewWebhookActivator(processing.WebhookActivatorParams{
-		WebhookActivationStream: streaming.NewRedisWebhookActivationStream(redisClient),
-		MySqlClient:             mysqlClient,
+		WebhookActivationStream: streams.NewRedisWebhookActivationStream(redisClient),
+		Database:                db.NewDatabase(mysqlClient),
 		Opts:                    opts,
 	}), nil
 }

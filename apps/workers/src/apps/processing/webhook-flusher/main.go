@@ -6,7 +6,7 @@ import (
 	"block-feed/src/libs/eventbus"
 	"block-feed/src/libs/messaging"
 	"block-feed/src/libs/services/processing"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"os/signal"
 	"syscall"
@@ -56,7 +56,7 @@ func main() {
 	// Creates the service
 	service := processing.NewWebhookFlusher(processing.WebhookFlusherParams{
 		EventBus:      eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](redisBlockStreamClient),
-		WebhookStream: streaming.NewRedisWebhookStream(redisWebhookStreamClient),
+		WebhookStream: streams.NewRedisWebhookStream(redisWebhookStreamClient),
 		Opts: &processing.WebhookFlusherOpts{
 			ChannelName: envvars.BlockchainId,
 		},

@@ -3,7 +3,7 @@ package processing
 import (
 	"block-feed/src/libs/eventbus"
 	"block-feed/src/libs/messaging"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"log"
 	"os"
@@ -16,13 +16,13 @@ type (
 
 	WebhookFlusherParams struct {
 		EventBus      eventbus.IEventBus[messaging.WebhookFlushStreamMsgData]
-		WebhookStream *streaming.RedisWebhookStream
+		WebhookStream *streams.RedisWebhookStream
 		Opts          *WebhookFlusherOpts
 	}
 
 	WebhookFlusher struct {
 		eventBus      eventbus.IEventBus[messaging.WebhookFlushStreamMsgData]
-		webhookStream *streaming.RedisWebhookStream
+		webhookStream *streams.RedisWebhookStream
 		opts          *WebhookFlusherOpts
 		logger        *log.Logger
 	}
@@ -42,7 +42,7 @@ func (service *WebhookFlusher) Run(ctx context.Context) error {
 	// If we received new blocks, flush any jobs interested in this new data
 	lastFlushedBlockHeight := uint64(0)
 	return service.eventBus.Subscribe(ctx, service.opts.ChannelName, func(msg *messaging.WebhookFlushStreamMsgData) error {
-		defer service.logger.Printf("System is synced up to block %d", lastFlushedBlockHeight)
+		defer func() { service.logger.Printf("System is synced up to block %d", lastFlushedBlockHeight) }()
 		if msg.LatestBlockHeight > lastFlushedBlockHeight {
 			service.logger.Println("Block height lag detected - flushing pending jobs")
 			if err := service.webhookStream.Flush(ctx, msg.LatestBlockHeight); err != nil {

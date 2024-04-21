@@ -4,9 +4,9 @@ import (
 	"block-feed/src/libs/blockstore"
 	"block-feed/src/libs/common"
 	"block-feed/src/libs/config"
+	"block-feed/src/libs/db"
 	"block-feed/src/libs/services/processing"
-	"block-feed/src/libs/sqlc"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"database/sql"
 	"os/signal"
@@ -73,9 +73,9 @@ func main() {
 
 	// Creates the service
 	service := processing.NewWebhookConsumer(processing.WebhookConsumerParams{
-		BlockStore:      blockstore.NewTimescaleBlockStore(pgClient),
-		WebhookStream:   streaming.NewRedisWebhookStream(redisClient),
-		DatabaseQueries: sqlc.New(mysqlClient),
+		BlockStore:    blockstore.NewTimescaleBlockStore(pgClient),
+		WebhookStream: streams.NewRedisWebhookStream(redisClient),
+		Database:      db.NewDatabase(mysqlClient),
 		Opts: &processing.WebhookConsumerOpts{
 			ConsumerName: envvars.ConsumerName,
 			Concurrency:  envvars.ConsumerPoolSize,

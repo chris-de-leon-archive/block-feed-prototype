@@ -2,9 +2,9 @@ package processing
 
 import (
 	"block-feed/src/libs/blockstore"
+	"block-feed/src/libs/db"
 	"block-feed/src/libs/messaging"
-	"block-feed/src/libs/sqlc"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"bytes"
 	"context"
 	"database/sql"
@@ -21,27 +21,27 @@ type (
 	}
 
 	WebhookConsumerParams struct {
-		BlockStore      blockstore.IBlockStore
-		WebhookStream   *streaming.RedisWebhookStream
-		DatabaseQueries *sqlc.Queries
-		Opts            *WebhookConsumerOpts
+		BlockStore    blockstore.IBlockStore
+		WebhookStream *streams.RedisWebhookStream
+		Database      *db.Database
+		Opts          *WebhookConsumerOpts
 	}
 
 	WebhookConsumer struct {
-		blockStore      blockstore.IBlockStore
-		webhookStream   *streaming.RedisWebhookStream
-		databaseQueries *sqlc.Queries
-		opts            *WebhookConsumerOpts
+		blockStore    blockstore.IBlockStore
+		webhookStream *streams.RedisWebhookStream
+		database      *db.Database
+		opts          *WebhookConsumerOpts
 	}
 )
 
 // NOTE: multiple replicas of this service can be created
 func NewWebhookConsumer(params WebhookConsumerParams) *WebhookConsumer {
 	return &WebhookConsumer{
-		blockStore:      params.BlockStore,
-		webhookStream:   params.WebhookStream,
-		databaseQueries: params.DatabaseQueries,
-		opts:            params.Opts,
+		blockStore:    params.BlockStore,
+		webhookStream: params.WebhookStream,
+		database:      params.Database,
+		opts:          params.Opts,
 	}
 }
 
@@ -68,11 +68,11 @@ func (service *WebhookConsumer) handleMessage(
 	msgID string,
 	msgData *messaging.WebhookStreamMsgData,
 	isBacklogMsg bool,
-	metadata streaming.SubscribeMetadata,
+	metadata streams.SubscribeMetadata,
 ) error {
 	// Gets the webhook data - if it is no longer in the database then this
 	// stream entry will be ACK'd + deleted and we can exit early
-	webhook, err := service.databaseQueries.GetWebhook(ctx, msgData.WebhookID)
+	webhook, err := service.database.Queries.GetWebhook(ctx, msgData.WebhookID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return service.webhookStream.Ack(ctx, msgID, nil)
 	}

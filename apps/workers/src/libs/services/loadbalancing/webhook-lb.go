@@ -2,9 +2,10 @@ package loadbalancing
 
 import (
 	"block-feed/src/libs/common"
+	"block-feed/src/libs/db"
 	"block-feed/src/libs/messaging"
 	"block-feed/src/libs/sqlc"
-	"block-feed/src/libs/streaming"
+	"block-feed/src/libs/streams"
 	"context"
 	"database/sql"
 	"errors"
@@ -23,15 +24,15 @@ type (
 	}
 
 	WebhookLoadBalancerParams struct {
-		WebhookLoadBalancerStream *streaming.RedisWebhookLoadBalancerStream
-		MySqlClient               *sql.DB
+		WebhookLoadBalancerStream *streams.RedisWebhookLoadBalancerStream
+		Database                  *db.Database
 		Opts                      *WebhookLoadBalancerOpts
 	}
 
 	WebhookLoadBalancer struct {
-		redisNodes                map[string]*streaming.RedisWebhookActivationStream
-		webhookLoadBalancerStream *streaming.RedisWebhookLoadBalancerStream
-		mysqlClient               *sql.DB
+		redisNodes                map[string]*streams.RedisWebhookActivationStream
+		webhookLoadBalancerStream *streams.RedisWebhookLoadBalancerStream
+		database                  *db.Database
 		opts                      *WebhookLoadBalancerOpts
 	}
 )
@@ -39,16 +40,16 @@ type (
 // NOTE: multiple replicas of this service can be created
 func NewWebhookLoadBalancer(params WebhookLoadBalancerParams) *WebhookLoadBalancer {
 	return &WebhookLoadBalancer{
-		redisNodes:                map[string]*streaming.RedisWebhookActivationStream{},
+		redisNodes:                map[string]*streams.RedisWebhookActivationStream{},
 		webhookLoadBalancerStream: params.WebhookLoadBalancerStream,
-		mysqlClient:               params.MySqlClient,
+		database:                  params.Database,
 		opts:                      params.Opts,
 	}
 }
 
 func (service *WebhookLoadBalancer) Run(ctx context.Context) error {
 	// Double checks that we have nodes for load balancing
-	count, err := sqlc.New(service.mysqlClient).CountWebhookNodes(ctx)
+	count, err := service.database.Queries.CountWebhookNodes(ctx)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 	msgID string,
 	msgData *messaging.WebhookLoadBalancerStreamMsgData,
 	isBacklogMsg bool,
-	metadata streaming.SubscribeMetadata,
+	metadata streams.SubscribeMetadata,
 ) error {
 	// Defines the full consumer name
 	fullConsumerName := fmt.Sprintf(
@@ -78,9 +79,6 @@ func (service *WebhookLoadBalancer) handleMessage(
 		metadata.ConsumerGroupName,
 		metadata.ConsumerName,
 	)
-
-	// Gets mysql queries
-	queries := sqlc.New(service.mysqlClient)
 
 	// NOTE: It's possible that multiple consumers may receive the same webhook ID. This can happen
 	// when the API gets multiple requests from a single user to activate the same webhook before it
@@ -90,7 +88,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 	// webhook ID, whichever is able to claim the webhook first will be the one to process it. Any
 	// consumers that aren't able to claim the webhook should discard their local copy to prevent
 	// duplicate processing.
-	count, err := queries.ClaimWebhook(ctx, &sqlc.ClaimWebhookParams{
+	count, err := service.database.Queries.ClaimWebhook(ctx, &sqlc.ClaimWebhookParams{
 		ClaimedBy: fullConsumerName,
 		WebhookID: msgData.WebhookID,
 	})
@@ -99,7 +97,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 	}
 
 	// Gets information on who actually claimed the webhook
-	result, err := queries.FindClaimedWebhook(ctx, msgData.WebhookID)
+	result, err := service.database.Queries.FindClaimedWebhook(ctx, msgData.WebhookID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("no claim for webhook with ID \"%s\" exists", msgData.WebhookID)
 	}
@@ -125,7 +123,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 	var assignedNode *sqlc.WebhookNode = nil
 
 	// Finds the node that this webhook has been assigned to (if it exists)
-	node, err := queries.LocateWebhook(ctx, &sqlc.LocateWebhookParams{
+	node, err := service.database.Queries.LocateWebhook(ctx, &sqlc.LocateWebhookParams{
 		BlockchainID: result.Webhook.BlockchainID,
 		WebhookID:    result.Webhook.ID,
 	})
@@ -141,7 +139,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 			service.opts.LockRetryAttempts,
 			service.opts.LockExpBackoffMaxRandMs,
 			func(retryCount int) (*sqlc.WebhookNode, error) {
-				if n, err := service.assignWebhookToNode(ctx, result, metadata); err != nil {
+				if n, err := service.assignWebhookToNode(ctx, result); err != nil {
 					metadata.Logger.Printf("%s (attempt %d of %d)", err.Error(), retryCount, service.opts.LockRetryAttempts)
 					return nil, err
 				} else {
@@ -175,7 +173,7 @@ func (service *WebhookLoadBalancer) handleMessage(
 	// connection pool then we create one and cache it for future requests.
 	redisNode, exists := service.redisNodes[assignedNode.Url]
 	if !exists {
-		redisNode = streaming.NewRedisWebhookActivationStream(
+		redisNode = streams.NewRedisWebhookActivationStream(
 			redis.NewClient(&redis.Options{
 				Addr:                  assignedNode.Url,
 				ContextTimeoutEnabled: true,
@@ -195,54 +193,49 @@ func (service *WebhookLoadBalancer) handleMessage(
 	return service.webhookLoadBalancerStream.Ack(ctx, msgID)
 }
 
-func (service *WebhookLoadBalancer) assignWebhookToNode(ctx context.Context, claimedWebhook *sqlc.FindClaimedWebhookRow, metadata streaming.SubscribeMetadata) (*sqlc.WebhookNode, error) {
-	// Starts a transaction
-	tx, err := service.mysqlClient.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	} else {
-		defer func() {
-			if err := tx.Rollback(); err != nil && !errors.Is(sql.ErrTxDone, err) {
-				common.LogError(metadata.Logger, err)
+func (service *WebhookLoadBalancer) assignWebhookToNode(ctx context.Context, claimedWebhook *sqlc.FindClaimedWebhookRow) (*sqlc.WebhookNode, error) {
+	// Defines a variable which stores the node that this webhook was/is assigned to
+	var assignedNode *sqlc.WebhookNode = nil
+
+	// Wraps the following logic in a database transaction
+	err := service.database.WithTx(ctx,
+		func(queries *sqlc.Queries) error {
+			// Locks the webhook node with the least amount of webhooks skipping over locked rows
+			node, err := queries.LockWebhookNode(ctx, claimedWebhook.Webhook.BlockchainID)
+			if errors.Is(sql.ErrNoRows, err) {
+				return errors.New("all webhook processing nodes are currently locked")
 			}
-		}()
-	}
+			if err != nil {
+				return err
+			}
 
-	// Ensures that the following queries are run inside the transaction
-	qtx := sqlc.New(tx)
+			// Makes sure the webhook is being assigned to a node with a matching blockchain ID
+			if node.BlockchainID != claimedWebhook.Webhook.BlockchainID {
+				return fmt.Errorf("webhook with ID \"%s\" does not have matching blockchain ID as node with ID \"%s\"", claimedWebhook.Webhook.ID, node.ID)
+			}
 
-	// Locks the webhook node with the least amount of webhooks skipping over locked rows
-	node, err := qtx.LockWebhookNode(ctx, claimedWebhook.Webhook.BlockchainID)
-	if errors.Is(sql.ErrNoRows, err) {
-		return nil, errors.New("all webhook processing nodes are currently locked")
-	}
-	if err != nil {
-		return nil, err
-	}
+			// Assigns the webhook to the node that is processing the fewest number of webhooks
+			count, err := queries.AssignWebhookToNode(ctx, &sqlc.AssignWebhookToNodeParams{
+				WebhookClaimID: claimedWebhook.WebhookClaim.ID,
+				WebhookNodeID:  node.ID,
+				WebhookID:      claimedWebhook.Webhook.ID,
+			})
+			if err != nil {
+				return err
+			}
+			if count == 0 {
+				return fmt.Errorf("failed to assign webhook with ID \"%s\" to node with ID \"%s\"", claimedWebhook.Webhook.ID, node.ID)
+			}
 
-	// Makes sure the webhook is being assigned to a node with a matching blockchain ID
-	if node.BlockchainID != claimedWebhook.Webhook.BlockchainID {
-		return nil, fmt.Errorf("webhook with ID \"%s\" does not have matching blockchain ID as node with ID \"%s\"", claimedWebhook.Webhook.ID, node.ID)
-	}
+			// Assigns the node
+			assignedNode = node
 
-	// Assigns the webhook to the node that is processing the fewest number of webhooks
-	count, err := qtx.AssignWebhookToNode(ctx, &sqlc.AssignWebhookToNodeParams{
-		WebhookClaimID: claimedWebhook.WebhookClaim.ID,
-		WebhookNodeID:  node.ID,
-		WebhookID:      claimedWebhook.Webhook.ID,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if count == 0 {
-		return nil, fmt.Errorf("failed to assign webhook with ID \"%s\" to node with ID \"%s\"", claimedWebhook.Webhook.ID, node.ID)
-	}
+			// Returns nil if no errors occurred
+			return nil
+		},
+		&sql.TxOptions{},
+	)
 
-	// Commits the transaction
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	// Returns the assigned node
-	return node, nil
+	// Returns the results
+	return assignedNode, err
 }
