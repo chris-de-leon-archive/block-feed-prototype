@@ -35,57 +35,56 @@ resource "null_resource" "insert_nodes" {
   }
 }
 
-resource "docker_image" "block_flusher" {
-  name         = "block-flusher:${var.tag}"
+resource "docker_image" "webhook_flusher" {
+  name         = "webhook-flusher:${var.tag}"
   keep_locally = true
   build {
     context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/processing/block-flusher/main.go"
+      BUILD_PATH = "./src/apps/processing/webhook-flusher/main.go"
     }
   }
 }
 
-resource "docker_container" "block_flusher" {
+resource "docker_container" "webhook_flusher" {
   count   = var.shards
-  name    = "block-flusher-${var.chain_id}-${count.index}"
-  image   = docker_image.block_flusher.name
+  name    = "webhook-flusher-${var.chain_id}-${count.index}"
+  image   = docker_image.webhook_flusher.name
   restart = "always"
   env = [
-    "BLOCK_FLUSHER_REDIS_WEBHOOK_STREAM_URL=${docker_container.webhook_redis[count.index].name}:${docker_container.webhook_redis[count.index].ports[0].internal}",
-    "BLOCK_FLUSHER_REDIS_BLOCK_STREAM_URL=${var.etl_redis_url}",
-    "BLOCK_FLUSHER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}"
+    "WEBHOOK_FLUSHER_REDIS_WEBHOOK_STREAM_URL=${docker_container.webhook_redis[count.index].name}:${docker_container.webhook_redis[count.index].ports[0].internal}",
+    "WEBHOOK_FLUSHER_REDIS_BLOCK_STREAM_URL=${var.etl_redis_url}",
+    "WEBHOOK_FLUSHER_BLOCKCHAIN_ID=${var.chain_id}"
   ]
   networks_advanced {
     name = var.network_name
   }
 }
 
-resource "docker_image" "webhook_activation_consumer" {
-  name         = "webhook-activation-consumer:${var.tag}"
+resource "docker_image" "webhook_activator" {
+  name         = "webhook-activator:${var.tag}"
   keep_locally = true
   build {
     context    = "${path.cwd}/apps/workers"
     dockerfile = "./Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/processing/webhook-activation-consumer/main.go"
+      BUILD_PATH = "./src/apps/processing/webhook-activator/main.go"
     }
   }
 }
 
-resource "docker_container" "webhook_activation_consumer" {
+resource "docker_container" "webhook_activator" {
   count   = var.shards * var.activators_per_shard
-  name    = "webhook-activation-consumer-${var.chain_id}-${count.index}"
-  image   = docker_image.webhook_activation_consumer.name
+  name    = "webhook-activator-${var.chain_id}-${count.index}"
+  image   = docker_image.webhook_activator.name
   restart = "always"
   env = [
-    "WEBHOOK_ACTIVATION_CONSUMER_MYSQL_URL=${var.mysql_url}",
-    "WEBHOOK_ACTIVATION_CONSUMER_REDIS_URL=${docker_container.webhook_redis[count.index % var.shards].name}:${docker_container.webhook_redis[count.index % var.shards].ports[0].internal}",
-    "WEBHOOK_ACTIVATION_CONSUMER_MYSQL_CONN_POOL_SIZE=${var.mysql_activator_conn_pool_size}",
-    "WEBHOOK_ACTIVATION_CONSUMER_POOL_SIZE=${var.consumers_per_activator}",
-    "WEBHOOK_ACTIVATION_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
-    "WEBHOOK_ACTIVATION_CONSUMER_NAME=webhook-activation-consumer-replica-${count.index}"
+    "WEBHOOK_ACTIVATOR_MYSQL_URL=${var.mysql_url}",
+    "WEBHOOK_ACTIVATOR_REDIS_URL=${docker_container.webhook_redis[count.index % var.shards].name}:${docker_container.webhook_redis[count.index % var.shards].ports[0].internal}",
+    "WEBHOOK_ACTIVATOR_MYSQL_CONN_POOL_SIZE=${var.mysql_activator_conn_pool_size}",
+    "WEBHOOK_ACTIVATOR_POOL_SIZE=${var.consumers_per_activator}",
+    "WEBHOOK_ACTIVATOR_NAME=webhook-activator-replica-${count.index}"
   ]
   networks_advanced {
     name = var.network_name
@@ -115,7 +114,6 @@ resource "docker_container" "webhook_consumer" {
     "WEBHOOK_CONSUMER_REDIS_URL=${docker_container.webhook_redis[count.index % var.shards].name}:${docker_container.webhook_redis[count.index % var.shards].ports[0].internal}",
     "WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE=${var.mysql_processor_conn_pool_size}",
     "WEBHOOK_CONSUMER_POOL_SIZE=${var.consumers_per_processor}",
-    "WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS=${var.block_timeout_ms}",
     "WEBHOOK_CONSUMER_NAME=webhook-consumer-replica-${count.index}"
   ]
   networks_advanced {

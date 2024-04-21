@@ -1,11 +1,10 @@
 package testutils
 
 import (
-	"block-feed/src/libs/blockchains"
 	"block-feed/src/libs/common"
-	"block-feed/src/libs/constants"
 	"block-feed/src/libs/messaging"
 	"block-feed/src/libs/sqlc"
+	"block-feed/src/libs/streaming"
 	"block-feed/tests/testqueries"
 	"context"
 	"database/sql"
@@ -27,7 +26,8 @@ type (
 func LoadBalanceWebhook(
 	ctx context.Context,
 	t *testing.T,
-	chain blockchains.IBlockchain,
+	chainID string,
+	chainURL string,
 	mysqlURL string,
 	redisURL string,
 	serverURL string,
@@ -44,7 +44,7 @@ func LoadBalanceWebhook(
 			ID:           uuid.NewString(),
 			CreatedAt:    time.Now().UTC(),
 			Url:          nodeUrl,
-			BlockchainID: chain.ID(),
+			BlockchainID: chainID,
 		}
 	}
 
@@ -77,8 +77,8 @@ func LoadBalanceWebhook(
 
 		// Makes sure the blockchain exists
 		if _, err := sqlcQtx.UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
-			ID:  chain.ID(),
-			Url: chain.GetOpts().ChainUrl,
+			ID:  chainID,
+			Url: chainURL,
 		}); err != nil {
 			return "", err
 		}
@@ -95,7 +95,7 @@ func LoadBalanceWebhook(
 			MaxRetries:   webhookMaxRetries,
 			TimeoutMs:    webhookTimeoutMs,
 			CustomerID:   customerId,
-			BlockchainID: chain.ID(),
+			BlockchainID: chainID,
 		}); err != nil {
 			return "", err
 		}
@@ -119,22 +119,13 @@ func LoadBalanceWebhook(
 		return err
 	}
 
-	// Prepares for XADD
-	data, err := messaging.NewWebhookLoadBalancerStreamMsg(webhookId).MarshalBinary()
-	if err != nil {
-		return err
-	}
-
 	// Activates the webhook
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (bool, error) {
 			// TODO: lua script
 			for i := 0; i < numDuplicates; i++ {
-				if err := client.XAdd(ctx, &redis.XAddArgs{
-					Stream: constants.WEBHOOK_LOAD_BALANCER_STREAM,
-					ID:     "*",
-					Values: map[string]any{messaging.GetDataField(): data},
-				}).Err(); err != nil {
+				producer := streaming.NewRedisWebhookLoadBalancerStream(client)
+				if err := producer.AddOne(ctx, messaging.NewWebhookLoadBalancerStreamMsg(webhookId)); err != nil {
 					return false, err
 				}
 			}
@@ -146,7 +137,8 @@ func LoadBalanceWebhook(
 func SetupWebhook(
 	ctx context.Context,
 	t *testing.T,
-	chain blockchains.IBlockchain,
+	chainID string,
+	chainURL string,
 	mysqlURL string,
 	redisURL string,
 	serverURL string,
@@ -180,8 +172,8 @@ func SetupWebhook(
 
 		// Makes sure the blockchain exists
 		if _, err := sqlcQtx.UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
-			ID:  chain.ID(),
-			Url: chain.GetOpts().ChainUrl,
+			ID:  chainID,
+			Url: chainURL,
 		}); err != nil {
 			return "", err
 		}
@@ -198,7 +190,7 @@ func SetupWebhook(
 			MaxRetries:   webhookMaxRetries,
 			TimeoutMs:    webhookTimeoutMs,
 			CustomerID:   customerId,
-			BlockchainID: chain.ID(),
+			BlockchainID: chainID,
 		}); err != nil {
 			return "", err
 		}
@@ -219,7 +211,7 @@ func SetupWebhook(
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (int64, error) {
 			return client.ZAdd(ctx,
-				constants.PENDING_SET_KEY,
+				streaming.PendingSetKey,
 				redis.Z{
 					Score: 0,
 					Member: messaging.NewWebhookStreamMsg(
@@ -236,7 +228,8 @@ func SetupWebhook(
 func SetupWebhooks(
 	ctx context.Context,
 	t *testing.T,
-	chain blockchains.IBlockchain,
+	chainID string,
+	chainURL string,
 	redisURL string,
 	mysqlURL string,
 	serverURLs []string,
@@ -260,7 +253,7 @@ func SetupWebhooks(
 			MaxRetries:   webhookMaxRetries,
 			TimeoutMs:    webhookTimeoutMs,
 			CustomerID:   customerId,
-			BlockchainID: chain.ID(),
+			BlockchainID: chainID,
 		}
 	}
 
@@ -293,8 +286,8 @@ func SetupWebhooks(
 
 			// Makes sure the blockchain exists
 			if _, err := sqlcQtx.UpsertBlockchain(ctx, &sqlc.UpsertBlockchainParams{
-				ID:  chain.ID(),
-				Url: chain.GetOpts().ChainUrl,
+				ID:  chainID,
+				Url: chainURL,
 			}); err != nil {
 				return false, err
 			}
@@ -332,7 +325,7 @@ func SetupWebhooks(
 	return common.PickError(
 		GetTempRedisClient(redisURL, func(client *redis.Client) (int64, error) {
 			return client.ZAdd(ctx,
-				constants.PENDING_SET_KEY,
+				streaming.PendingSetKey,
 				elems...,
 			).Result()
 		}),

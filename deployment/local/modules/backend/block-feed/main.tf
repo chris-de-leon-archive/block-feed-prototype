@@ -8,19 +8,15 @@ terraform {
 }
 
 module "etl" {
-  source                 = "./etl"
-  network_name           = var.network_name
-  tag                    = var.tag
-  redis_image            = var.redis_image
-  timescaledb_url        = var.timescaledb_url
-  mysql_url              = var.mysql_url
-  chain_name             = var.chain_name
-  chain_id               = var.chain_id
-  chain_url              = var.chain_url
-  port                   = var.etl_port
-  poll_ms                = var.poll_ms
-  max_blocks_per_poll    = var.max_blocks_per_poll
-  max_in_flight_requests = var.max_in_flight_requests
+  source          = "./etl"
+  network_name    = var.network_name
+  tag             = var.tag
+  redis_image     = var.redis_image
+  timescaledb_url = var.timescaledb_url
+  chain_name      = var.chain_name
+  chain_id        = var.chain_id
+  chain_url       = var.chain_url
+  port            = var.etl_port
 }
 
 module "processing" {

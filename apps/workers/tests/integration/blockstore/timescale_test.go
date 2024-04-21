@@ -10,8 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const TIMESCALEDB_VERSION = "latest-pg16"
-
 func TestTimescaleBlockStore(t *testing.T) {
 	// Defines helper variables
 	const chainID = "dummy-chain"
@@ -24,7 +22,7 @@ func TestTimescaleBlockStore(t *testing.T) {
 	blocks[2] = blockstore.BlockDocument{Height: 3, Data: []byte{}}
 
 	// Starts a container
-	container, err := testutils.NewTimescaleDBContainer(ctx, t, TIMESCALEDB_VERSION)
+	container, err := testutils.NewTimescaleDBContainer(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +51,13 @@ func TestTimescaleBlockStore(t *testing.T) {
 
 	// Initializes the block store
 	t.Run("Init Block Store", func(t *testing.T) {
+		if err := blockStore.Init(ctx, chainID); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// Initializes the block store again (should do nothing)
+	t.Run("Init Block Store (idempotent)", func(t *testing.T) {
 		if err := blockStore.Init(ctx, chainID); err != nil {
 			t.Fatal(err)
 		}

@@ -1,3 +1,3 @@
 output "redis_url" {
-  value = "${docker_container.block_poller_redis.name}:${docker_container.block_poller_redis.ports[0].internal}"
+  value = "${docker_container.redis_event_bus.name}:${docker_container.redis_event_bus.ports[0].internal}"
 }

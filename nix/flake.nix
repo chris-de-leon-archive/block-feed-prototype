@@ -26,7 +26,6 @@
             pkgs.awscli2 # v2.15.12
             pkgs.redis # v7.2.3
             pkgs.flow # v1.9.2
-            pkgs.jdk20 # v20
             pkgs.go_1_21 #v1.21.5
             pkgs.gopls
             pkgs.sqlc # v1.25.0

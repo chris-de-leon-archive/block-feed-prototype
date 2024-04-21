@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// TODO: delete this
+
 var chainToClientFunc = map[blockchains.ChainID](func(opts *blockchains.BlockchainOpts) (blockchains.IBlockchain, error)){
 	blockchains.ETH_TESTNET_SEPOLIA: func(opts *blockchains.BlockchainOpts) (blockchains.IBlockchain, error) {
 		return blockchains.NewEthereumBlockchain(opts)

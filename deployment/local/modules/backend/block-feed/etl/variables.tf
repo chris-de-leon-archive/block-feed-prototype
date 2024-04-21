@@ -10,10 +10,6 @@ variable "timescaledb_url" {
   type = string
 }
 
-variable "mysql_url" {
-  type = string
-}
-
 variable "redis_image" {
   type = string
 }
@@ -34,19 +30,3 @@ variable "port" {
   type = number
 }
 
-variable "max_blocks_per_poll" {
-  type = number
-}
-
-variable "max_in_flight_requests" {
-  type = number
-}
-
-variable "poll_ms" {
-  type = number
-}
-
-variable "block_timeout_ms" {
-  type    = number
-  default = 60000
-}

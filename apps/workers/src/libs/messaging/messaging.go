@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"block-feed/src/libs/blockstore"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -69,15 +68,8 @@ type (
 		IsNew       bool
 	}
 
-	BlockStreamMsgData struct {
-		ChainID string
-		Blocks  []blockstore.BlockDocument
-	}
-
-	BlockFlushStreamMsgData struct {
-		ChainID           string
+	WebhookFlushStreamMsgData struct {
 		LatestBlockHeight uint64
-		IsBlockStoreEmpty bool
 	}
 )
 
@@ -121,21 +113,10 @@ func NewWebhookActivationStreamMsg(webhookID string) *StreamMessage[WebhookActiv
 	}
 }
 
-func NewBlockStreamMsg(chainID string, blocks []blockstore.BlockDocument) *StreamMessage[BlockStreamMsgData] {
-	return &StreamMessage[BlockStreamMsgData]{
-		Data: BlockStreamMsgData{
-			ChainID: chainID,
-			Blocks:  blocks,
-		},
-	}
-}
-
-func NewBlockFlushStreamMsg(chainID string, latestBlockHeight uint64, isBlockStoreEmpty bool) *StreamMessage[BlockFlushStreamMsgData] {
-	return &StreamMessage[BlockFlushStreamMsgData]{
-		Data: BlockFlushStreamMsgData{
-			ChainID:           chainID,
+func NewWebhookFlushStreamMsg(latestBlockHeight uint64) *StreamMessage[WebhookFlushStreamMsgData] {
+	return &StreamMessage[WebhookFlushStreamMsgData]{
+		Data: WebhookFlushStreamMsgData{
 			LatestBlockHeight: latestBlockHeight,
-			IsBlockStoreEmpty: isBlockStoreEmpty,
 		},
 	}
 }

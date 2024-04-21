@@ -1,9 +1,7 @@
 package e2e
 
 import (
-	"block-feed/src/libs/blockchains"
-	"block-feed/src/libs/processors"
-	"block-feed/src/libs/services"
+	"block-feed/src/libs/services/processing"
 	"block-feed/tests/testutils"
 	"context"
 	"errors"
@@ -14,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onflow/flow-go-sdk/access/grpc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,30 +38,12 @@ import (
 func TestPerformance(t *testing.T) {
 	// Defines helper constants
 	const (
-		CHAIN_URL = "access.devnet.nodes.onflow.org:9000"
-		CHAIN_ID  = blockchains.FLOW_TESTNET
+		FLOW_TESTNET_CHAIN_ID = "flow-testnet"
+		FLOW_TESTNET_URL      = grpc.TestnetHost
 
-		BLOCK_POLLER_NAME                   = "test-block-poller"
-		BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS = 3
-		BLOCK_POLLER_BLOCK_TIMEOUT_MS       = 60000
-		BLOCK_POLLER_BATCH_SIZE             = 10
-		BLOCK_POLLER_POLL_MS                = 100
-
-		BLOCK_FLUSHER_BLOCK_TIMEOUT_MS = 60000
-
-		WEBHOOK_CONSUMER_NAME             = "webhook-consumer"
-		WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS = 60000
-		WEBHOOK_CONSUMER_POOL_SIZE        = 3
-		WEBHOOK_CONSUMER_REPLICAS         = 3
-
-		BLOCK_CONSUMER_NAME    = string(CHAIN_ID) + "-block-consumer"
-		BLOCK_BLOCK_TIMEOUT_MS = 60000
-		BLOCK_POOL_SIZE        = 1
-
-		TIMESCALEDB_VERSION = "latest-pg16"
-		REDIS_VERSION       = "7.2.1-alpine3.18"
-		MONGO_VERSION       = "7.0.5"
-		MYSQL_VERSION       = "8.3.0"
+		WEBHOOK_CONSUMER_NAME      = "webhook-consumer"
+		WEBHOOK_CONSUMER_POOL_SIZE = 3
+		WEBHOOK_CONSUMER_REPLICAS  = 3
 
 		WEBHOOK_MAX_BLOCKS  = 1
 		WEBHOOK_MAX_RETRIES = 3
@@ -74,23 +55,9 @@ func TestPerformance(t *testing.T) {
 
 	// Defines helper variables
 	var (
-		ctx            = context.Background()
-		counter        = 0
-		blockchainOpts = &blockchains.BlockchainOpts{
-			ChainUrl: CHAIN_URL,
-			ChainID:  CHAIN_ID,
-		}
+		ctx     = context.Background()
+		counter = 0
 	)
-
-	// Creates a chain resolver
-	resolver := testutils.NewChainResolver()
-	t.Cleanup(func() { resolver.Close(func(err error) { t.Logf("error: %v\n", err) }) })
-
-	// Gets the blockchain client
-	chain, err := resolver.ResolveChain(blockchainOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Creates an error group so that we can create all containers in parallel
 	containerErrGrp := new(errgroup.Group)
@@ -101,7 +68,7 @@ func TestPerformance(t *testing.T) {
 
 	// Starts a mysql container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewMySqlContainer(ctx, t, MYSQL_VERSION)
+		container, err := testutils.NewMySqlContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -112,7 +79,7 @@ func TestPerformance(t *testing.T) {
 
 	// Starts a block store container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewTimescaleDBContainer(ctx, t, TIMESCALEDB_VERSION)
+		container, err := testutils.NewTimescaleDBContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -123,7 +90,7 @@ func TestPerformance(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -134,7 +101,7 @@ func TestPerformance(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, REDIS_VERSION, testutils.RedisDefaultCmd())
+		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -148,54 +115,34 @@ func TestPerformance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Creates a block poller service
-	blockPoller, err := testutils.NewBlockPoller(t,
-		cBlockPollerRedis.Conn.Url,
-		chain,
-		services.BlockPollerOpts{
-			MaxInFlightRequests: BLOCK_POLLER_MAX_IN_FLIGHT_REQUESTS,
-			BlockTimeoutMs:      BLOCK_POLLER_BLOCK_TIMEOUT_MS,
-			BatchSize:           BLOCK_POLLER_BATCH_SIZE,
-			PollMs:              BLOCK_POLLER_POLL_MS,
-		},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Creates a block consumer service
-	blockConsumer, err := testutils.NewBlockConsumer(t, ctx,
+	// Creates a flow block streamer service
+	flowBlockStreamer, err := testutils.NewFlowBlockStreamer(t, ctx,
+		string(FLOW_TESTNET_CHAIN_ID),
+		FLOW_TESTNET_URL,
 		cBlockPollerRedis.Conn.Url,
 		testutils.PostgresUrl(*cTimescaleDB.Conn,
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
 			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
-		services.StreamConsumerOpts{
-			ConsumerName:     BLOCK_CONSUMER_NAME,
-			ConsumerPoolSize: BLOCK_POOL_SIZE,
-			BlockTimeoutMs:   BLOCK_BLOCK_TIMEOUT_MS,
-		},
-		processors.BlockProcessorOpts{
-			ChainID: string(blockchainOpts.ChainID),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Creates a webhook flusher service
+	webhookFlusher, err := testutils.NewWebhookFlusher(t,
+		cWebhookRedis.Conn.Url,
+		cBlockPollerRedis.Conn.Url,
+		processing.WebhookFlusherOpts{
+			ChannelName: string(FLOW_TESTNET_CHAIN_ID),
 		},
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Creates a block flusher service
-	blockFlusher, err := testutils.NewBlockFlusher(t,
-		cWebhookRedis.Conn.Url,
-		cBlockPollerRedis.Conn.Url,
-		services.BlockFlusherOpts{
-			BlockTimeoutMs: BLOCK_FLUSHER_BLOCK_TIMEOUT_MS,
-		})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Creates multiple webhook consumer services
-	webhookConsumers := make([]*services.StreamConsumer, WEBHOOK_CONSUMER_REPLICAS)
+	webhookConsumers := make([]*processing.WebhookConsumer, WEBHOOK_CONSUMER_REPLICAS)
 	for i := 0; i < WEBHOOK_CONSUMER_REPLICAS; i++ {
 		webhookConsumer, err := testutils.NewWebhookConsumer(t, ctx,
 			cWebhookRedis.Conn.Url,
@@ -207,10 +154,9 @@ func TestPerformance(t *testing.T) {
 				testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
 				testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 			),
-			services.StreamConsumerOpts{
-				ConsumerName:     fmt.Sprintf("%s-%d", WEBHOOK_CONSUMER_NAME, i),
-				ConsumerPoolSize: WEBHOOK_CONSUMER_POOL_SIZE,
-				BlockTimeoutMs:   WEBHOOK_CONSUMER_BLOCK_TIMEOUT_MS,
+			&processing.WebhookConsumerOpts{
+				ConsumerName: fmt.Sprintf("%s-%d", WEBHOOK_CONSUMER_NAME, i),
+				Concurrency:  WEBHOOK_CONSUMER_POOL_SIZE,
 			},
 		)
 		if err != nil {
@@ -232,7 +178,8 @@ func TestPerformance(t *testing.T) {
 
 	// Creates and activates the webhooks
 	if err := testutils.SetupWebhooks(ctx, t,
-		chain,
+		string(FLOW_TESTNET_CHAIN_ID),
+		FLOW_TESTNET_URL,
 		cWebhookRedis.Conn.Url,
 		cMySql.Conn.Url,
 		serverURLs,
@@ -249,9 +196,8 @@ func TestPerformance(t *testing.T) {
 
 	// Runs all services in the background
 	eg := new(errgroup.Group)
-	eg.Go(func() error { return blockPoller.Run(timeoutCtx) })
-	eg.Go(func() error { return blockConsumer.Run(timeoutCtx) })
-	eg.Go(func() error { return blockFlusher.Run(timeoutCtx) })
+	eg.Go(func() error { return flowBlockStreamer.Run(timeoutCtx) })
+	eg.Go(func() error { return webhookFlusher.Run(timeoutCtx) })
 	for _, consumer := range webhookConsumers {
 		webhookConsumer := consumer
 		eg.Go(func() error { return webhookConsumer.Run(timeoutCtx) })

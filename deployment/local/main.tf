@@ -29,45 +29,17 @@ module "block_feed_storage" {
   mysql_db_name       = var.mysql_db_name
 }
 
-// module "block_feed_flow_mainnet" {
-//   source                         = "./modules/backend/block-feed"
-//   network_name                   = docker_network.block_feed_net.name
-//   tag                            = var.tag
-//   redis_image                    = docker_image.redis.name
-//   timescaledb_url                = module.block_feed_storage.timescaledb_url
-//   mysql_url                      = module.block_feed_storage.mysql_backend_url
-//   chain_url                      = "access.mainnet.nodes.onflow.org:9000"
-//   chain_id                       = "flow-mainnet"
-//   chain_name                     = "flow"
-//   etl_port                       = 6380
-//   poll_ms                        = 1000
-//   max_blocks_per_poll            = 10
-//   max_in_flight_requests         = 10
-//   processing_port                = 6381
-//   shards                         = 1
-//   processors_per_shard           = 1
-//   consumers_per_processor        = 3
-//   mysql_processor_conn_pool_size = 3
-//   activators_per_shard           = 1
-//   consumers_per_activator        = 3
-//   mysql_activator_conn_pool_size = 3
-//   depends_on                     = [module.block_feed_storage]
-// }
-
-module "block_feed_eth_mainnet" {
+module "block_feed_flow_testnet" {
   source                         = "./modules/backend/block-feed"
   network_name                   = docker_network.block_feed_net.name
   tag                            = var.tag
   redis_image                    = docker_image.redis.name
   timescaledb_url                = module.block_feed_storage.timescaledb_url
   mysql_url                      = module.block_feed_storage.mysql_backend_url
-  chain_url                      = "https://eth-mainnet.public.blastapi.io"
-  chain_id                       = "eth-mainnet"
-  chain_name                     = "eth"
+  chain_url                      = "access.devnet.nodes.onflow.org:9000"
+  chain_id                       = "flow-testnet"
+  chain_name                     = "flow"
   etl_port                       = 6382
-  poll_ms                        = 1000
-  max_blocks_per_poll            = 10
-  max_in_flight_requests         = 10
   processing_port                = 6383
   shards                         = 1
   processors_per_shard           = 1
@@ -79,6 +51,28 @@ module "block_feed_eth_mainnet" {
   depends_on                     = [module.block_feed_storage]
 }
 
+# module "block_feed_moonbeam_mainnet" {
+#   source                         = "./modules/backend/block-feed"
+#   network_name                   = docker_network.block_feed_net.name
+#   tag                            = var.tag
+#   redis_image                    = docker_image.redis.name
+#   timescaledb_url                = module.block_feed_storage.timescaledb_url
+#   mysql_url                      = module.block_feed_storage.mysql_backend_url
+#   chain_url                      = "wss://moonbeam-rpc.dwellir.com"
+#   chain_id                       = "moonbeam-mainnet"
+#   chain_name                     = "eth"
+#   etl_port                       = 6382
+#   processing_port                = 6383
+#   shards                         = 1
+#   processors_per_shard           = 1
+#   consumers_per_processor        = 3
+#   mysql_processor_conn_pool_size = 3
+#   activators_per_shard           = 1
+#   consumers_per_activator        = 3
+#   mysql_activator_conn_pool_size = 3
+#   depends_on                     = [module.block_feed_storage]
+# }
+
 module "block_feed_lb" {
   source       = "./modules/backend/block-feed-lb"
   tag          = var.tag
@@ -89,7 +83,8 @@ module "block_feed_lb" {
   replicas     = 1
   depends_on = [
     module.block_feed_storage,
-    module.block_feed_eth_mainnet,
+    module.block_feed_flow_testnet,
+    # module.block_feed_eth_mainnet,
   ]
 }
 

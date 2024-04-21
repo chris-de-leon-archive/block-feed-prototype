@@ -1,59 +1,51 @@
-package processors
+package processing
 
 import (
 	"block-feed/src/libs/blockstore"
-	"block-feed/src/libs/constants"
 	"block-feed/src/libs/messaging"
-	"block-feed/src/libs/services"
 	"block-feed/src/libs/sqlc"
+	"block-feed/src/libs/streaming"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
 type (
-	WebhookProcessorParams struct {
-		BlockStore  blockstore.IBlockStore
-		RedisClient *redis.Client
-		MySqlClient *sql.DB
+	WebhookConsumerOpts struct {
+		ConsumerName string
+		Concurrency  int
 	}
 
-	WebhookProcessor struct {
-		blockStore   blockstore.IBlockStore
-		redisClient  *redis.Client
-		mysqlClient  *sql.DB
-		mysqlQueries *sqlc.Queries
+	WebhookConsumerParams struct {
+		BlockStore      blockstore.IBlockStore
+		WebhookStream   *streaming.RedisWebhookStream
+		DatabaseQueries *sqlc.Queries
+		Opts            *WebhookConsumerOpts
+	}
+
+	WebhookConsumer struct {
+		blockStore      blockstore.IBlockStore
+		webhookStream   *streaming.RedisWebhookStream
+		databaseQueries *sqlc.Queries
+		opts            *WebhookConsumerOpts
 	}
 )
 
 // NOTE: multiple replicas of this service can be created
-func NewWebhookProcessor(params WebhookProcessorParams) services.IStreamProcessor {
-	return &WebhookProcessor{
-		redisClient:  params.RedisClient,
-		blockStore:   params.BlockStore,
-		mysqlClient:  params.MySqlClient,
-		mysqlQueries: sqlc.New(params.MySqlClient),
+func NewWebhookConsumer(params WebhookConsumerParams) *WebhookConsumer {
+	return &WebhookConsumer{
+		blockStore:      params.BlockStore,
+		webhookStream:   params.WebhookStream,
+		databaseQueries: params.DatabaseQueries,
+		opts:            params.Opts,
 	}
 }
 
-func (service *WebhookProcessor) OnStartup(ctx context.Context, metadata services.OnStartupMetadata) error {
-	return nil
-}
-
-func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.XMessage, isBacklogMsg bool, metadata services.ProcessMessageMetadata) error {
-	// Converts the incoming stream data to a strongly typed struct
-	msgData, err := messaging.ParseMessage[messaging.WebhookStreamMsgData](msg)
-	if err != nil {
-		return err
-	}
-
+func (service *WebhookConsumer) Run(ctx context.Context) error {
 	// NOTE: all webhooks that this processor deals with must have the same chain ID.
 	// In other words, webhook processors cannot mix and match messages that are related
 	// to different chains. This is because the redis instance that this processor is
@@ -63,12 +55,26 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// heights for each of these chains will most likely be drastically different, yet
 	// they will still be stored in redis. As a result, block flushing will not work
 	// correctly.
+	return service.webhookStream.Subscribe(
+		ctx,
+		service.opts.ConsumerName,
+		service.opts.Concurrency,
+		service.handleMessage,
+	)
+}
 
+func (service *WebhookConsumer) handleMessage(
+	ctx context.Context,
+	msgID string,
+	msgData *messaging.WebhookStreamMsgData,
+	isBacklogMsg bool,
+	metadata streaming.SubscribeMetadata,
+) error {
 	// Gets the webhook data - if it is no longer in the database then this
 	// stream entry will be ACK'd + deleted and we can exit early
-	webhook, err := service.mysqlQueries.GetWebhook(ctx, msgData.WebhookID)
+	webhook, err := service.databaseQueries.GetWebhook(ctx, msgData.WebhookID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return service.ack(ctx, msg, nil, metadata)
+		return service.webhookStream.Ack(ctx, msgID, nil)
 	}
 	if err != nil {
 		return err
@@ -78,39 +84,22 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// the number of times it has been retried and take action accordingly
 	if isBacklogMsg {
 		// Gets the pending data for this message
-		pendingMsgs, err := service.redisClient.XPendingExt(ctx, &redis.XPendingExtArgs{
-			Stream:   metadata.StreamName,
-			Group:    metadata.ConsumerGroupName,
-			Consumer: metadata.ConsumerName,
-			Start:    msg.ID,
-			End:      msg.ID,
-			Count:    1,
-		}).Result()
+		pendingMsg, err := service.webhookStream.GetPendingMsg(ctx, metadata.ConsumerName, msgID)
 		if err != nil {
 			return err
-		}
-
-		// Reports an error if we received no pending message data
-		if len(pendingMsgs) != 1 {
-			return fmt.Errorf("received an unexpected number of pending messages: %v", pendingMsgs)
-		}
-
-		// Checks that the pending message ID is the same as the ID of the message we're processing
-		pendingMsg := pendingMsgs[0]
-		if msg.ID != pendingMsg.ID {
-			return fmt.Errorf("claimed message ID \"%s\" differs from pending message ID \"%s\"", msg.ID, pendingMsg.ID)
 		}
 
 		// If the current retry count exceeds the XMaxRetries limit, then move onto a different range of blocks
 		if pendingMsg.RetryCount >= int64(webhook.MaxRetries) {
 			// TODO: is there a better way to handle repeated errors?
-			return service.ack(ctx, msg,
+			return service.webhookStream.Ack(
+				ctx,
+				msgID,
 				messaging.NewWebhookStreamMsg(
 					msgData.BlockHeight+1, // if we could not process [h1, h2], try [h1+1, h2+1]
 					msgData.WebhookID,
 					false,
 				),
-				metadata,
 			)
 		}
 	}
@@ -118,12 +107,14 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// If we're under the retry limit, then get the relevant blocks from the block store
 	var blocks []blockstore.BlockDocument
 	if msgData.IsNew {
-		blocks, err = service.blockStore.GetLatestBlocks(ctx,
+		blocks, err = service.blockStore.GetLatestBlocks(
+			ctx,
 			webhook.BlockchainID,
 			int64(webhook.MaxBlocks),
 		)
 	} else {
-		blocks, err = service.blockStore.GetBlocks(ctx,
+		blocks, err = service.blockStore.GetBlocks(
+			ctx,
 			webhook.BlockchainID,
 			msgData.BlockHeight,
 			msgData.BlockHeight+uint64(webhook.MaxBlocks)-1,
@@ -202,74 +193,13 @@ func (service *WebhookProcessor) ProcessMessage(ctx context.Context, msg redis.X
 	// code), then the client will receive the same request multiple times.
 
 	// Marks this entry as completed
-	return service.ack(ctx, msg,
+	return service.webhookStream.Ack(
+		ctx,
+		msgID,
 		messaging.NewWebhookStreamMsg(
 			nextBlockHeight,
 			msgData.WebhookID,
 			false,
 		),
-		metadata,
 	)
-}
-
-func (service *WebhookProcessor) ack(ctx context.Context, msg redis.XMessage, newMsg *messaging.StreamMessage[messaging.WebhookStreamMsgData], metadata services.ProcessMessageMetadata) error {
-	// Acknowledges the job and deletes it from the stream in one atomic operation
-	// if there is no new message to add
-	if newMsg == nil {
-		return xAckDel(
-			ctx,
-			service.redisClient,
-			metadata.StreamName,
-			metadata.ConsumerGroupName,
-			msg.ID,
-		)
-	}
-
-	// Acknowledges the job, deletes it from the stream, and either reschedules
-	// the job or adds it to the pending set in one atomic operation
-	ackScript := redis.NewScript(`
-    local latest_block_height_key = KEYS[1]
-    local pending_set_key = KEYS[2]
-    local webhook_stream_key = KEYS[3]
-    local webhook_stream_cg_key = KEYS[4]
-    local webhook_stream_msg_data_field = KEYS[5]
-    local webhook_stream_old_msg_id = KEYS[6]
-    local new_block_height = tonumber(ARGV[1])
-    local webhook_stream_new_msg_data = ARGV[2]
-
-    redis.call("XACK", webhook_stream_key, webhook_stream_cg_key, webhook_stream_old_msg_id)
-    redis.call("XDEL", webhook_stream_key, webhook_stream_old_msg_id)
-
-    local latest_block_height = redis.call("GET", latest_block_height_key)
-    if latest_block_height == false then
-      redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
-      return
-    end
-
-    if new_block_height >= tonumber(latest_block_height) then
-      redis.call("ZADD", pending_set_key, new_block_height, webhook_stream_new_msg_data)
-    else
-      redis.call("XADD", webhook_stream_key, "*", webhook_stream_msg_data_field, webhook_stream_new_msg_data)
-    end
-  `)
-
-	// Executes the script
-	if err := ackScript.Run(ctx, service.redisClient,
-		[]string{
-			constants.LATEST_BLOCK_HEIGHT_KEY,
-			constants.PENDING_SET_KEY,
-			metadata.StreamName,
-			metadata.ConsumerGroupName,
-			messaging.GetDataField(),
-			msg.ID,
-		},
-		[]any{
-			newMsg.Data.BlockHeight,
-			newMsg,
-		},
-	).Err(); err != nil && !errors.Is(err, redis.Nil) {
-		return err
-	} else {
-		return nil
-	}
 }
