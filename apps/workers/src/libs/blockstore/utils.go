@@ -50,10 +50,19 @@ type (
 	// IBlockStore defines a set of operations for querying and storing blocks
 	// from an external storage medium such as mongodb, redis, etc.
 	IBlockStore interface {
+		// Initializes the store
 		Init(ctx context.Context, chainID string) error
+
+		// Inserts the given blocks into the store ignoring duplicates
 		PutBlocks(ctx context.Context, chainID string, blocks []BlockDocument) error
+
+		// Gets all blocks within the range [startHeight, endHeight] from the store in ascending order of block height
 		GetBlocks(ctx context.Context, chainID string, startHeight uint64, endHeight uint64) ([]BlockDocument, error)
+
+		// Gets the block with the largest height from the store
 		GetLatestBlock(ctx context.Context, chainID string) (*BlockDocument, error)
+
+		// Gets `limit` blocks from the store - all blocks should be ordered in descending order of block height
 		GetLatestBlocks(ctx context.Context, chainID string, limit int64) ([]BlockDocument, error)
 	}
 )

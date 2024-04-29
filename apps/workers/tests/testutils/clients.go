@@ -144,3 +144,33 @@ func GetTempRedisClient[T any](url string, cb func(client *redis.Client) (T, err
 
 	return cb(client)
 }
+
+func GetRedisClusterClient(t *testing.T, url string) (*redis.ClusterClient, error) {
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:                 []string{url},
+		ContextTimeoutEnabled: true,
+	})
+
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Log(err)
+		}
+	})
+
+	return client, nil
+}
+
+func GetTempRedisClusterClient[T any](url string, cb func(client *redis.ClusterClient) (T, error)) (T, error) {
+	client := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:                 []string{url},
+		ContextTimeoutEnabled: true,
+	})
+
+	defer func() {
+		if err := client.Close(); err != nil {
+			common.LogError(nil, err)
+		}
+	}()
+
+	return cb(client)
+}

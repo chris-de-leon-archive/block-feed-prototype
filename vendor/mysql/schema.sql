@@ -14,6 +14,8 @@ CREATE TABLE `checkout_session` (
   FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`)
 );
 
+-- TODO: clean up tables
+
 CREATE TABLE `blockchain` (
   `id` VARCHAR(255) PRIMARY KEY,
   `url` TEXT NOT NULL

@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  redis-cluster:
+    image: ${REDIS_CLUSTER_IMAGE}
+    environment:
+      START_PORT: ${START_PORT}
+      END_PORT: ${END_PORT}
+    ports:
+      - ${START_PORT}-${END_PORT}:${START_PORT}-${END_PORT}

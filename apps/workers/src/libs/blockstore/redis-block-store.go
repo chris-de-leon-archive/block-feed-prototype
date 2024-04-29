@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func NewRedisBlockStore(client *redis.Client) IBlockStore {
+func NewRedisBlockStore(client *redis.Client) *RedisBlockStore {
 	return &RedisBlockStore{
 		client: client,
 	}
@@ -39,13 +39,22 @@ func (blockStore *RedisBlockStore) PutBlocks(ctx context.Context, chainID string
 }
 
 func (blockStore *RedisBlockStore) GetBlocks(ctx context.Context, chainID string, startHeight uint64, endHeight uint64) ([]BlockDocument, error) {
+	// Returns an empty slice if the range is invalid
+	if startHeight > endHeight {
+		return []BlockDocument{}, nil
+	}
+
 	// Gets the cached blocks (range is inclusive)
-	rawBlocks, err := blockStore.client.ZRangeByScore(ctx, chainID,
-		&redis.ZRangeBy{
-			Min: strconv.FormatUint(startHeight, 10),
-			Max: strconv.FormatUint(endHeight, 10),
-		},
-	).Result()
+	// NOTE: go-redis still uses the deprecated ZRANGEBYSCORE command (https://github.com/redis/go-redis/issues/1709),
+	// which has been replaced by ZRANGE with the BYSCORE argument. To avoid calling the deprecated command, we'll use
+	// a custom command to call the updated ZRANGE command.
+	rawBlocks, err := blockStore.client.Do(ctx,
+		"ZRANGE",
+		chainID,
+		strconv.FormatUint(startHeight, 10),
+		strconv.FormatUint(endHeight, 10),
+		"BYSCORE",
+	).StringSlice()
 	if err != nil {
 		return []BlockDocument{}, err
 	}
@@ -78,7 +87,7 @@ func (blockStore *RedisBlockStore) GetLatestBlock(ctx context.Context, chainID s
 
 func (blockStore *RedisBlockStore) GetLatestBlocks(ctx context.Context, chainID string, limit int64) ([]BlockDocument, error) {
 	// If this is not here, then we'll return everything from the store when limit is 0
-	if limit == 0 {
+	if limit <= 0 {
 		return []BlockDocument{}, nil
 	}
 
@@ -102,4 +111,12 @@ func (blockStore *RedisBlockStore) GetLatestBlocks(ctx context.Context, chainID 
 
 	// Returns the block
 	return blocks, nil
+}
+
+func (blockStore *RedisBlockStore) Count(ctx context.Context, chainID string) (int64, error) {
+	return blockStore.client.ZCard(ctx, chainID).Result()
+}
+
+func (blockStore *RedisBlockStore) Flush(ctx context.Context) error {
+	return blockStore.client.FlushAllAsync(ctx).Err()
 }

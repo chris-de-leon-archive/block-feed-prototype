@@ -3,7 +3,9 @@ package testutils
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"os/exec"
 	"path/filepath"
 	"reflect"
@@ -56,6 +58,27 @@ func JsonStringify(data any) ([]byte, error) {
 		return []byte{}, err
 	}
 	return bytes, nil
+}
+
+func GetFreePort() (port int, err error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	} else {
+		defer listener.Close()
+	}
+
+	tcpAddr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, errors.New("failed to convert listener address to a TCP address")
+	} else {
+		return tcpAddr.Port, nil
+	}
 }
 
 func GetBulkInsertQuery[T any](tableName string, rows []T) (string, []any) {

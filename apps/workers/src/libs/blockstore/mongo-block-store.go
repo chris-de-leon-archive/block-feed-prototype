@@ -65,7 +65,7 @@ func init() {
 	panic(errors.New("index column was not set"))
 }
 
-func NewMongoBlockStore(client *mongo.Client, databaseName string) IBlockStore {
+func NewMongoBlockStore(client *mongo.Client, databaseName string) *MongoBlockStore {
 	return &MongoBlockStore{
 		client: client,
 		db:     client.Database(databaseName),
@@ -147,6 +147,11 @@ func (blockStore *MongoBlockStore) PutBlocks(ctx context.Context, chainID string
 }
 
 func (blockStore *MongoBlockStore) GetBlocks(ctx context.Context, chainID string, startHeight uint64, endHeight uint64) ([]BlockDocument, error) {
+	// Returns an empty slice if the range is invalid
+	if startHeight > endHeight {
+		return []BlockDocument{}, nil
+	}
+
 	// Gets blocks in the inclusive range [startHeight, endHeight]
 	findFilter := bson.D{primitive.E{
 		Key: "$and",
@@ -209,8 +214,8 @@ func (blockStore *MongoBlockStore) GetLatestBlock(ctx context.Context, chainID s
 }
 
 func (blockStore *MongoBlockStore) GetLatestBlocks(ctx context.Context, chainID string, limit int64) ([]BlockDocument, error) {
-	// Returns an empty slice if limit is 0
-	if limit == 0 {
+	// Returns an empty slice if limit is invalid
+	if limit <= 0 {
 		return []BlockDocument{}, nil
 	}
 

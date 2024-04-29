@@ -13,7 +13,7 @@ DECLARE
     -- custom schema
     format('GRANT USAGE, CREATE ON SCHEMA %I TO %I;', schma, uname),
 
-    -- grant SELECT and INSERT on all current tables and all future tables: https://stackoverflow.com/a/22684537 
+    -- grant SELECT and INSERT on all existing tables and all future tables: https://stackoverflow.com/a/22684537 
     format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT, INSERT ON TABLES TO %I;', schma, uname)
   ];
 BEGIN

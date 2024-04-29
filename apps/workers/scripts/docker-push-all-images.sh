@@ -16,12 +16,11 @@ bash ./scripts/docker-build-all-images.sh "$IMAGE_TAG" "$CONCURRENCY"
 
 # Defines an array of Docker image names
 IMAGE_NAMES=(
-	"$DOCKERHUB_USERNAME/block-feed-backend-load-balancing-webhook-load-balancer:$IMAGE_TAG"
-	"$DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-activator:$IMAGE_TAG"
-	"$DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-consumer:$IMAGE_TAG"
-	"$DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-flusher:$IMAGE_TAG"
-	"$DOCKERHUB_USERNAME/block-feed-backend-etl-flow-block-streamer:$IMAGE_TAG"
-	"$DOCKERHUB_USERNAME/block-feed-backend-etl-eth-block-streamer:$IMAGE_TAG"
+	"$DOCKERHUB_USERNAME/block-feed-backend-webhook-consumer:$IMAGE_TAG"
+	"$DOCKERHUB_USERNAME/block-feed-backend-block-consumer:$IMAGE_TAG"
+	"$DOCKERHUB_USERNAME/block-feed-backend-block-flusher:$IMAGE_TAG"
+	"$DOCKERHUB_USERNAME/block-feed-backend-flow-block-streamer:$IMAGE_TAG"
+	"$DOCKERHUB_USERNAME/block-feed-backend-eth-block-streamer:$IMAGE_TAG"
 )
 
 # Uses xargs to run docker push in parallel

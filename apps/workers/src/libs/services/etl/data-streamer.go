@@ -20,12 +20,12 @@ type (
 )
 
 func NewDataStreamer[T any](
-	source DataStreamerProducer[T],
-	target DataStreamerConsumer[T],
+	producer DataStreamerProducer[T],
+	consumer DataStreamerConsumer[T],
 ) *DataStreamer[T] {
 	return &DataStreamer[T]{
-		producer: source,
-		consumer: target,
+		producer: producer,
+		consumer: consumer,
 	}
 }
 

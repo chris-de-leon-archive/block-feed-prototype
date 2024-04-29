@@ -6,15 +6,11 @@ variable "network_name" {
   type = string
 }
 
+variable "timescaledb_image" {
+  type = string
+}
+
 variable "redis_image" {
-  type = string
-}
-
-variable "timescaledb_url" {
-  type = string
-}
-
-variable "mysql_url" {
   type = string
 }
 
@@ -30,39 +26,35 @@ variable "chain_url" {
   type = string
 }
 
-variable "etl_port" {
+variable "redis_cluster_start_port" {
   type = number
 }
 
-variable "processing_port" {
+variable "redis_cluster_end_port" {
   type = number
 }
 
-variable "shards" {
+variable "redis_block_stream_port" {
   type = number
 }
 
-variable "processors_per_shard" {
+variable "redis_block_store_port" {
   type = number
 }
 
-variable "consumers_per_processor" {
+variable "timescaledb_port" {
   type = number
 }
 
-variable "mysql_processor_conn_pool_size" {
-  type = string
-}
-
-variable "activators_per_shard" {
+variable "shard_count" {
   type = number
 }
 
-variable "consumers_per_activator" {
+variable "replicas_per_shard" {
   type = number
 }
 
-variable "mysql_activator_conn_pool_size" {
+variable "workers_per_replica" {
   type = number
 }
 

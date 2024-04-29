@@ -13,12 +13,11 @@ fi
 
 # Defines an array of Docker build args
 DOCKER_BUILD_ARGS=(
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-load-balancing-webhook-load-balancer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/load-balancing/webhook-load-balancer/main.go"
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-activator:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/processing/webhook-activator/main.go"
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-consumer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/processing/webhook-consumer/main.go"
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-processing-webhook-flusher:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/processing/webhook-flusher/main.go"
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-etl-flow-block-streamer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/etl/flow/main.go"
-	"-t $DOCKERHUB_USERNAME/block-feed-backend-etl-eth-block-streamer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/etl/eth/main.go"
+	"-t $DOCKERHUB_USERNAME/block-feed-backend-webhook-consumer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/webhook-consumer/main.go"
+	"-t $DOCKERHUB_USERNAME/block-feed-backend-block-consumer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/block-consumer/main.go"
+	"-t $DOCKERHUB_USERNAME/block-feed-backend-block-flusher:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/block-flusher/main.go"
+	"-t $DOCKERHUB_USERNAME/block-feed-backend-flow-block-streamer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/block-streamers/flow/main.go"
+	"-t $DOCKERHUB_USERNAME/block-feed-backend-eth-block-streamer:$IMAGE_TAG --build-arg BUILD_PATH=./src/apps/block-streamers/eth/main.go"
 )
 
 # Uses xargs to run docker build in parallel
