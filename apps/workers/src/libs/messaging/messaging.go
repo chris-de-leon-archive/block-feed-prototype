@@ -50,26 +50,24 @@ import (
 var dataField string
 
 type (
+	ParsedStreamMessage[T any] struct {
+		Data T
+		ID   string
+	}
+
 	StreamMessage[T any] struct {
 		Data T `json:"Data"`
 	}
 
-	WebhookLoadBalancerStreamMsgData struct {
-		WebhookID string
-	}
-
-	WebhookActivationStreamMsgData struct {
-		WebhookID string
+	BlockStreamMsgData struct {
+		Data   []byte
+		Height uint64
 	}
 
 	WebhookStreamMsgData struct {
 		WebhookID   string
 		BlockHeight uint64
 		IsNew       bool
-	}
-
-	WebhookFlushStreamMsgData struct {
-		LatestBlockHeight uint64
 	}
 )
 
@@ -87,36 +85,21 @@ func GetDataField() string {
 	return dataField
 }
 
-func NewWebhookStreamMsg(blockHeight uint64, webhookID string, isNew bool) *StreamMessage[WebhookStreamMsgData] {
+func NewBlockStreamMsg(height uint64, data []byte) *StreamMessage[BlockStreamMsgData] {
+	return &StreamMessage[BlockStreamMsgData]{
+		Data: BlockStreamMsgData{
+			Height: height,
+			Data:   data,
+		},
+	}
+}
+
+func NewWebhookStreamMsg(webhookID string, blockHeight uint64, isNew bool) *StreamMessage[WebhookStreamMsgData] {
 	return &StreamMessage[WebhookStreamMsgData]{
 		Data: WebhookStreamMsgData{
 			WebhookID:   webhookID,
 			BlockHeight: blockHeight,
 			IsNew:       isNew,
-		},
-	}
-}
-
-func NewWebhookLoadBalancerStreamMsg(webhookID string) *StreamMessage[WebhookLoadBalancerStreamMsgData] {
-	return &StreamMessage[WebhookLoadBalancerStreamMsgData]{
-		Data: WebhookLoadBalancerStreamMsgData{
-			WebhookID: webhookID,
-		},
-	}
-}
-
-func NewWebhookActivationStreamMsg(webhookID string) *StreamMessage[WebhookActivationStreamMsgData] {
-	return &StreamMessage[WebhookActivationStreamMsgData]{
-		Data: WebhookActivationStreamMsgData{
-			WebhookID: webhookID,
-		},
-	}
-}
-
-func NewWebhookFlushStreamMsg(latestBlockHeight uint64) *StreamMessage[WebhookFlushStreamMsgData] {
-	return &StreamMessage[WebhookFlushStreamMsgData]{
-		Data: WebhookFlushStreamMsgData{
-			LatestBlockHeight: latestBlockHeight,
 		},
 	}
 }

@@ -2,20 +2,15 @@ package testutils
 
 import (
 	"block-feed/src/libs/blockstore"
-	"block-feed/src/libs/db"
-	"block-feed/src/libs/eventbus"
-	"block-feed/src/libs/messaging"
+	"block-feed/src/libs/redis/redicluster"
 	"block-feed/src/libs/services/etl"
 	etlconsumers "block-feed/src/libs/services/etl/consumers"
 	etlproducers "block-feed/src/libs/services/etl/producers"
-	"block-feed/src/libs/services/loadbalancing"
 	"block-feed/src/libs/services/processing"
 	"block-feed/src/libs/streams"
 	"context"
 	"testing"
 )
-
-const DEFAULT_MYSQL_CONN_POOL_SIZE = 3
 
 func NewFlowBlockStreamer(
 	t *testing.T,
@@ -23,16 +18,9 @@ func NewFlowBlockStreamer(
 	chainID string,
 	chainUrl string,
 	redisUrl string,
-	storeUrl string,
 ) (*etl.DataStreamer[blockstore.BlockDocument], error) {
 	// Creates a redis client
 	redisClient, err := GetRedisClient(t, redisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates a block store client
-	blockStoreClient, err := GetPostgresClient(t, ctx, storeUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -43,28 +31,13 @@ func NewFlowBlockStreamer(
 		return nil, err
 	}
 
-	// Creates a redis-backed event bus
-	redisEventBus := eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](redisClient)
-
-	// Creates a timescaledb-backed blockstore
-	timescaleBlockstore := blockstore.NewTimescaleBlockStore(blockStoreClient)
-
-	// Initializes the blockstore
-	if err := timescaleBlockstore.Init(ctx, chainID); err != nil {
-		return nil, err
-	}
+	// Creates a block stream
+	blockStream := streams.NewBlockStream(redisClient, chainID)
 
 	// Creates the streamer
 	return etl.NewDataStreamer(
-		etlproducers.NewFlowBlockProducer(
-			flowClient,
-			nil,
-			&etlproducers.FlowBlockProducerOpts{},
-		),
-		etlconsumers.NewBlockStoreConsumer(chainID,
-			timescaleBlockstore,
-			redisEventBus,
-		),
+		etlproducers.NewFlowBlockProducer(flowClient, nil, &etlproducers.FlowBlockProducerOpts{}),
+		etlconsumers.NewBlockForwarder(blockStream),
 	), nil
 }
 
@@ -74,16 +47,9 @@ func NewEthBlockStreamer(
 	chainID string,
 	chainUrl string,
 	redisUrl string,
-	storeUrl string,
 ) (*etl.DataStreamer[blockstore.BlockDocument], error) {
 	// Creates a redis client
 	redisClient, err := GetRedisClient(t, redisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates a block store client
-	blockStoreClient, err := GetPostgresClient(t, ctx, storeUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -94,139 +60,131 @@ func NewEthBlockStreamer(
 		return nil, err
 	}
 
-	// Creates a redis-backed event bus
-	redisEventBus := eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](redisClient)
-
-	// Creates a timescaledb-backed blockstore
-	timescaleBlockstore := blockstore.NewTimescaleBlockStore(blockStoreClient)
-
-	// Initializes the blockstore
-	if err := timescaleBlockstore.Init(ctx, chainID); err != nil {
-		return nil, err
-	}
+	// Creates a block stream
+	blockStream := streams.NewBlockStream(redisClient, chainID)
 
 	// Creates the streamer
 	return etl.NewDataStreamer(
-		etlproducers.NewEthBlockProducer(
-			ethClient,
-			nil,
-		),
-		etlconsumers.NewBlockStoreConsumer(chainID,
-			timescaleBlockstore,
-			redisEventBus,
-		),
+		etlproducers.NewEthBlockProducer(ethClient, nil),
+		etlconsumers.NewBlockForwarder(blockStream),
 	), nil
 }
 
-func NewWebhookFlusher(
-	t *testing.T,
-	webhookRedisUrl string,
-	blockPollerRedisUrl string,
-	opts processing.WebhookFlusherOpts,
-) (*processing.WebhookFlusher, error) {
-	// Creates a client for the redis instance where webhook processing takes place
-	webhookRedisClient, err := GetRedisClient(t, webhookRedisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates a client for the redis instance where where block processing takes place
-	blockPollerRedisClient, err := GetRedisClient(t, blockPollerRedisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates the service
-	return processing.NewWebhookFlusher(processing.WebhookFlusherParams{
-		WebhookStream: streams.NewRedisWebhookStream(webhookRedisClient),
-		EventBus:      eventbus.NewRedisEventBus[messaging.WebhookFlushStreamMsgData](blockPollerRedisClient),
-		Opts:          &opts,
-	}), nil
-}
-
-func NewWebhookConsumer(
+func NewRedisOptimizedBlockStore(
 	t *testing.T,
 	ctx context.Context,
+	chainID string,
 	redisUrl string,
-	mysqlUrl string,
 	storeUrl string,
-	opts *processing.WebhookConsumerOpts,
-) (*processing.WebhookConsumer, error) {
+) (*blockstore.RedisOptimizedBlockStore, error) {
 	// Creates a redis client
 	redisClient, err := GetRedisClient(t, redisUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	// Creates a database connection pool
-	mysqlClient, err := GetMySqlClient(t, mysqlUrl, DEFAULT_MYSQL_CONN_POOL_SIZE)
+	// Creates a postgres client
+	pgClient, err := GetPostgresClient(t, ctx, storeUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	// Creates a block store client
-	blockStoreClient, err := GetPostgresClient(t, ctx, storeUrl)
+	// Creates the block store
+	store := blockstore.NewRedisOptimizedBlockStore(
+		blockstore.NewTimescaleBlockStore(pgClient),
+		blockstore.NewRedisBlockStore(redisClient),
+	)
+
+	// Initializes the block store
+	if err := store.Init(ctx, chainID); err != nil {
+		return nil, err
+	}
+
+	// Returns the store
+	return store, nil
+}
+
+func NewTimescaleBlockStore(
+	t *testing.T,
+	ctx context.Context,
+	chainID string,
+	storeUrl string,
+) (*blockstore.TimescaleBlockStore, error) {
+	// Creates a postgres client
+	pgClient, err := GetPostgresClient(t, ctx, storeUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates the block store
+	store := blockstore.NewTimescaleBlockStore(pgClient)
+
+	// Initializes the block store
+	if err := store.Init(ctx, chainID); err != nil {
+		return nil, err
+	}
+
+	// Returns the store
+	return store, nil
+}
+
+func NewBlockStreamConsumer(
+	t *testing.T,
+	ctx context.Context,
+	shardCount int,
+	store blockstore.IBlockStore,
+	chainID string,
+	redisClusterUrl string,
+	redisUrl string,
+	opts *processing.BlockStreamConsumerOpts,
+) (*processing.BlockStreamConsumer, error) {
+	// Creates a redis client
+	redisClient, err := GetRedisClient(t, redisUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates a redis cluster client
+	redisClusterClient, err := GetRedisClusterClient(t, redisClusterUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Creates the webhook streams
+	webhookStreams := make([]*streams.WebhookStream, shardCount)
+	for shardNum := range shardCount {
+		webhookStreams[shardNum] = streams.NewWebhookStream(redisClusterClient, shardNum)
+	}
+
+	// Creates the consumer
+	return processing.NewBlockStreamConsumer(processing.BlockStreamConsumerParams{
+		BlockStream:    streams.NewBlockStream(redisClient, chainID),
+		RedisCluster:   redisClusterClient,
+		WebhookStreams: webhookStreams,
+		BlockStore:     store,
+		Opts:           opts,
+	}), nil
+}
+
+func NewWebhookStreamConsumer(
+	t *testing.T,
+	ctx context.Context,
+	store blockstore.IBlockStore,
+	redisClusterUrl string,
+	shardNum int,
+	opts *processing.WebhookStreamConsumerOpts,
+) (*processing.WebhookStreamConsumer, error) {
+	// Creates a redis client
+	redisClusterClient, err := GetRedisClusterClient(t, redisClusterUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates the service
-	return processing.NewWebhookConsumer(processing.WebhookConsumerParams{
-		BlockStore:    blockstore.NewTimescaleBlockStore(blockStoreClient),
-		WebhookStream: streams.NewRedisWebhookStream(redisClient),
-		Database:      db.NewDatabase(mysqlClient),
+	return processing.NewWebhookStreamConsumer(processing.WebhookStreamConsumerParams{
+		WebhookStream: streams.NewWebhookStream(redisClusterClient, shardNum),
+		RedisCluster:  redicluster.NewRedisCluster(redisClusterClient),
+		BlockStore:    store,
 		Opts:          opts,
-	}), nil
-}
-
-func NewWebhookLoadBalancerConsumer(
-	t *testing.T,
-	redisUrl string,
-	mysqlUrl string,
-	opts *loadbalancing.WebhookLoadBalancerOpts,
-) (*loadbalancing.WebhookLoadBalancer, error) {
-	// Creates a redis client
-	redisClient, err := GetRedisClient(t, redisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates a mysql client
-	mysqlClient, err := GetMySqlClient(t, mysqlUrl, DEFAULT_MYSQL_CONN_POOL_SIZE)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates the service
-	return loadbalancing.NewWebhookLoadBalancer(loadbalancing.WebhookLoadBalancerParams{
-		WebhookLoadBalancerStream: streams.NewRedisWebhookLoadBalancerStream(redisClient),
-		Database:                  db.NewDatabase(mysqlClient),
-		Opts:                      opts,
-	}), nil
-}
-
-func NewWebhookActivationConsumer(
-	t *testing.T,
-	redisUrl string,
-	mysqlUrl string,
-	opts *processing.WebhookActivatorOpts,
-) (*processing.WebhookActivator, error) {
-	// Creates a redis client
-	redisClient, err := GetRedisClient(t, redisUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates a mysql client
-	mysqlClient, err := GetMySqlClient(t, mysqlUrl, DEFAULT_MYSQL_CONN_POOL_SIZE)
-	if err != nil {
-		return nil, err
-	}
-
-	// Creates the service
-	return processing.NewWebhookActivator(processing.WebhookActivatorParams{
-		WebhookActivationStream: streams.NewRedisWebhookActivationStream(redisClient),
-		Database:                db.NewDatabase(mysqlClient),
-		Opts:                    opts,
 	}), nil
 }

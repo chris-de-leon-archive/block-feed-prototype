@@ -6,7 +6,7 @@ BLOCKSTORE_RFILE="/db/users/blockstore.user.sql"
 BLOCKSTORE_UNAME="blockstore"
 BLOCKSTORE_PWORD="password"
 
-# To change the default schema, you can use:
+# To change the default schema for psql, you can use:
 #
 #   PGOPTIONS="--search_path=$SCHEMA_NAME" psql ...
 #
