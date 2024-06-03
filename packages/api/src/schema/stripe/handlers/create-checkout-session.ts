@@ -165,32 +165,31 @@ export const handler = async (
   // of a ghost session is that it creates temporary bloat in the Stripe dashboard, but
   // even this can be mitigated by using a shorter session expiration time. It will not
   // lead to duplicate subscriptions / customers since the ghost session data is never
-  // returned to the user and remains completely private in our Stripe account.
+  // returned to the user.
   return await ctx.vendor.db.drizzle.transaction(async (tx) => {
     // The following code ensures that users are only able to see one checkout session link at a time
     // until it eventually expires or the subscription tied to it is canceled. Why is it necessary to
     // do this? If we leak multiple checkout session URLs to the user, then it is possible that they
-    // may accidently subscribe more than once leading to duplicate charges on their account, multiple
-    // Stripe customers being created for a single user, multiple subscriptions being tied to a single
-    // user, and additional headaches with regards to cleaning up the Stripe dashboard + database. The
-    // code below is designed to be concurrent safe and additional comments have been left behind to
-    // outline the thought process.
+    // may accidently subscribe more than once, which will lead to numerous problems like (1) duplicate
+    // charges on their account, (2) multiple Stripe customer accounts being created for a single API
+    // user, (3) multiple subscriptions being tied to a single user, and additional headaches cleaning
+    // up the Stripe dashboard + database. The code below is designed to be concurrent safe and further
+    // comments have been left behind to outline the thought process.
     if (result.stripeCustomerId != null) {
-      // If we're here, then we know the following:
+      // If we're here, then:
       //
-      //  - The current user has canceled their subscription abd is trying to renew their subscription
-      //    by purchasing a new one
+      //  - The current user has canceled their subscription and is trying to renew it by purchasing a
+      //    new one
       //  - Since this user has subscribed in the past, the database has a checkout session linked to
-      //    this user and `result.clientReferenceId` can be used to locate it
-      //  - The checkout session in the database is either expired or completed. If it is in a completed
-      //    state, then it is linked to a subscription that is in a canceled state
+      //    this user and `result.clientReferenceId` can be used to locate said checkout session
+      //  - The checkout session in the database is either expired or completed. If the checkout session
+      //    is in a completed state, then it is linked to a subscription that is in a canceled state
       //  - The database may or may not already be up to date (i.e. another process may have already
       //    updated the DB by the time we get here)
       //
-      // Regardless of whether the checkout session is expired or completed (with a canceled
-      // subscription), we need to replace the old checkout session data in the database with
-      // the newly created checkout session data. Our process may not be the only one running,
-      // so there's several cases that we need to keep in mind here:
+      // Regardless of whether the checkout session is expired or completed, we need to replace the old
+      // checkout session data in the database with the newly created checkout session data. Our process
+      // may not be the only one running, so there's several cases that we need to keep in mind here:
       //
       //  a. Our process could be executing at roughly the same time as another process
       //  b. Our process could be ahead of another process that's executing this code
@@ -238,7 +237,7 @@ export const handler = async (
           )
       }
     } else {
-      // If we're here, then we know the following:
+      // If we're here, then:
       //
       //  - The current user has not purchased a subscription in the past before
       //  - Since this user hasn't subscribed in the past, the database might not have a
