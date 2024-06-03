@@ -21,10 +21,21 @@ docker exec -it mysql-dev /bin/bash -c '
   mysql --password="password" --database="dev" -e"INSERT IGNORE INTO customer VALUES (\"'$1'\", DEFAULT)"
 '
 
-# Inserts some blockchains
-chains=("flow" "ethereum" "starknet" "tezos" "stellar" "scroll" "optimism" "fantom")
-for chain in ${chains[@]}; do
-	bash ./scripts/db/blockchains/insert.sh "$chain"
+# Inserts blockchains and redis cluster info
+chains=("flow" "ethereum")
+port=7001
+for ((i = 0; i < ${#chains[@]}; i++)); do
+	cport=$((port + (1000 * i)))
+	chain=${chains[$i]}
+	url=${chain_urls[$i]}
+	bash ./scripts/db/blockchains/insert.sh \
+		"$chain" \
+		"1283" \
+		"http://dummy-chain-url:3000" \
+		"http://dummy-pg-store-url:5432" \
+		"http://dummy-redis-store-url:6379" \
+		"localhost:$cport" \
+		"http://dummy-redis-stream-url:6379"
 done
 bash ./scripts/db/blockchains/list.sh
 

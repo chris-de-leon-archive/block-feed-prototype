@@ -1,6 +1,7 @@
+import { gqlInternalServerError } from "../../../graphql/errors"
 import { GraphQLAuthContext } from "../../../graphql/types"
-import { and, eq, inArray, notInArray } from "drizzle-orm"
 import { constants } from "@block-feed/shared"
+import { and, eq, inArray } from "drizzle-orm"
 import * as schema from "@block-feed/drizzle"
 import { z } from "zod"
 
@@ -15,84 +16,91 @@ export const handler = async (
   args: z.infer<typeof zInput>,
   ctx: GraphQLAuthContext,
 ) => {
-  // Exits early if no IDs were passed in
+  // Exits early if no ids were passed in
   if (args.ids.length === 0) {
     return { count: 0 }
   }
 
-  // Gets all webhooks that:
-  //
-  //  1. belong to the user making the request
-  //  2. have an ID that exists in the list of input ids
-  //  3. are not active
-  //  4. have not been queued already
-  //
-  const candidates = ctx.vendor.db.drizzle.$with("candidates").as(
-    ctx.vendor.db.drizzle
-      .select()
-      .from(schema.webhook)
-      .where(
-        and(
-          eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
-          inArray(schema.webhook.id, args.ids),
-          eq(schema.webhook.isActive, 0),
-          eq(schema.webhook.isQueued, 0),
-        ),
-      ),
-  )
+  // Gets the webhooks and their corresponding redis cluster connection info
+  const results = await ctx.vendor.db.drizzle.query.webhook.findMany({
+    where: and(
+      eq(schema.webhook.customerId, ctx.clerk.user.id),
+      eq(schema.webhook.isActive, 0),
+      inArray(schema.webhook.id, args.ids),
+    ),
+    with: {
+      blockchain: true,
+    },
+  })
 
-  // Filters out any candidate webhooks that have already been claimed or assigned to a node
-  const webhooks = await ctx.vendor.db.drizzle
-    .with(candidates)
-    .select()
-    .from(candidates)
-    .where(
-      and(
-        notInArray(
-          candidates.id,
-          ctx.vendor.db.drizzle
-            .selectDistinct({ webhookId: schema.webhookClaim.webhookId })
-            .from(schema.webhookClaim),
-        ),
-        notInArray(
-          candidates.id,
-          ctx.vendor.db.drizzle
-            .selectDistinct({ webhookId: schema.webhookLocation.webhookId })
-            .from(schema.webhookLocation),
-        ),
-      ),
-    )
-
-  // Exits early if no webhooks remain after filtering
-  if (webhooks.length === 0) {
+  // Exits early if no data was retrieved
+  if (results.length === 0) {
     return { count: 0 }
   }
 
-  // Forwards the request to the webhook load balancer
-  await ctx.vendor.redisWebhookLB.client.xaddbatch(
-    // NOTE: these fields are case sensitive and should match the names configured in the Go backend
-    ctx.vendor.redisWebhookLB.env.REDIS_WEBHOOK_STREAM_NAME,
-    "data",
-    ...args.ids.map((id) => JSON.stringify({ WebhookID: id })),
-  )
+  // Groups the webhooks into a nested map: Redis Cluster URL -> Shard ID -> Webhook IDs
+  const clusterMap = new Map<string, Map<number, string[]>>()
+  results.forEach((result) => {
+    const shards = clusterMap.get(result.blockchain.redisClusterUrl)
+    if (shards == null) {
+      clusterMap.set(
+        result.blockchain.redisClusterUrl,
+        new Map([[result.shardId, [result.id]]]),
+      )
+    } else {
+      const webhookIds = shards.get(result.shardId)
+      if (webhookIds == null) {
+        shards.set(result.shardId, [result.id])
+      } else {
+        shards.set(result.shardId, webhookIds.concat(result.id))
+      }
+    }
+  })
 
-  // Webhook activation is asynchronous so the `is_active` field might not be set to true immediately
-  // after this request completes. As a result, the frontend cannot rely on the `is_active` field alone
-  // to determine whether the activate button has already been clicked by the user. Thus, we need a way
-  // to indicate that the webhook is in the process of being activated so that the activate is not shown
-  // again after it has been pressed once. For this we use the `is_queued` field (which is purely meant
-  // for frontend rendering purposes and has no meaning on the backend side). It is trivially set to true
-  // after the job has been sent to redis.
-  await ctx.vendor.db.drizzle
-    .update(schema.webhook)
-    .set({ isQueued: 1 })
-    .where(
-      and(
-        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
-        inArray(schema.webhook.id, args.ids),
-      ),
-    )
+  // Collects all promises into an array
+  const promises = Array.from(Array.from(clusterMap.entries()))
+    .map(([url, shards]) => {
+      const redisClusterVendor = ctx.caches.redisClusterConn.getOrSet(url, {
+        REDIS_CLUSTER_URL: url,
+      })
+
+      return Array.from(shards.entries()).map(async ([shardId, webhookIds]) => {
+        // NOTE: these key names are case sensitive and should
+        // match the names in the Go backend
+        //
+        // TODO: it may be better to add these to a single configuration
+        // file that is read by both the Go code and the Typescript code
+        // instead of hardcoding it in two places
+        await redisClusterVendor.client.activate(
+          `block-feed:{s${shardId}}:webhook-set`,
+          `block-feed:{s${shardId}}:pending-set`,
+          ...webhookIds,
+        )
+
+        // TODO: if the request above succeeds but this query fails then
+        // this will cause the dashboard to display a misleading status
+        await ctx.vendor.db.drizzle
+          .update(schema.webhook)
+          .set({ isActive: 1 })
+          .where(
+            and(
+              eq(schema.webhook.customerId, ctx.clerk.user.id),
+              inArray(schema.webhook.id, webhookIds),
+            ),
+          )
+      })
+    })
+    .flat()
+
+  // Idempotently activates the webhooks
+  await Promise.allSettled(promises).then((results) => {
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        throw gqlInternalServerError(result.reason)
+      }
+    })
+  })
 
   // Returns a successful response if no errors occurred
-  return { count: webhooks.length }
+  return { count: 1 }
 }

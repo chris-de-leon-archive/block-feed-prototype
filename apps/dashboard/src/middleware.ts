@@ -1,10 +1,12 @@
-import { authMiddleware, redirectToSignIn } from "@clerk/nextjs"
+import { clerkMiddleware } from "@clerk/nextjs/server"
 import { GraphQLErrorCode } from "@block-feed/shared"
-import { isGraphQLErrorCode } from "./client/errors"
-import { ClientError } from "graphql-request"
-import { graphql } from "./client/generated"
-import { makeRequest } from "./client/edge"
 import { NextResponse } from "next/server"
+import { GraphQLError } from "graphql"
+import {
+  StripeSubscriptionDocument,
+  isGraphQLErrorCode,
+  makeRequest,
+} from "./client"
 
 export const config = {
   matcher: [
@@ -23,47 +25,44 @@ export const config = {
 //
 //  https://nextjs.org/docs/app/building-your-application/routing/middleware#runtime
 //
-export default authMiddleware({
-  afterAuth: async (auth, req) => {
+export default clerkMiddleware(
+  async (auth, req) => {
+    // Gets the session info
+    const sess = auth()
+
     // Handle unauthenticated users
-    if (auth.userId == null) {
-      return redirectToSignIn({ returnBackUrl: req.url })
+    if (sess.userId == null) {
+      return sess.redirectToSignIn({ returnBackUrl: req.url })
     }
 
     // If the user is not on the subscribe page, check their subscription status
     if (req.nextUrl.pathname !== "/subscribe") {
-      const result = await makeRequest(
-        graphql(
-          "query StripeSubscription {\n  stripeSubscription {\n    id\n    status\n  }\n}",
-        ),
+      const res = await makeRequest(
+        StripeSubscriptionDocument,
         {},
-        await auth.getToken(),
+        await sess.getToken(),
       )
 
-      if (result instanceof ClientError) {
+      if (res instanceof GraphQLError) {
+        const subscribeUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}/subscribe`
         if (
-          isGraphQLErrorCode(
-            result,
-            GraphQLErrorCode.INVALID_SUBSCRIPTION_ERROR,
-          )
+          isGraphQLErrorCode(res, GraphQLErrorCode.INVALID_SUBSCRIPTION_ERROR)
         ) {
-          return NextResponse.redirect(
-            `${req.nextUrl.protocol}//${req.nextUrl.host}/subscribe`,
-          )
+          return NextResponse.redirect(subscribeUrl)
         }
-        if (isGraphQLErrorCode(result, GraphQLErrorCode.NOT_SUBSCRIBED_ERROR)) {
-          return NextResponse.redirect(
-            `${req.nextUrl.protocol}//${req.nextUrl.host}/subscribe`,
-          )
+        if (isGraphQLErrorCode(res, GraphQLErrorCode.NOT_SUBSCRIBED_ERROR)) {
+          return NextResponse.redirect(subscribeUrl)
         }
-        if (isGraphQLErrorCode(result, GraphQLErrorCode.UNAUTHORIZED)) {
-          return redirectToSignIn({ returnBackUrl: req.url })
+        if (isGraphQLErrorCode(res, GraphQLErrorCode.UNAUTHORIZED)) {
+          console.log("redirect")
+          return sess.redirectToSignIn({ returnBackUrl: req.url })
         }
-        return Response.json(result, { status: 500 })
+        return Response.json(res, { status: 500 })
       }
     }
 
     // Allow users to view the page if they are authenticated and subscribed
     return NextResponse.next()
   },
-})
+  { debug: process.env.NODE_ENV !== "production" },
+)

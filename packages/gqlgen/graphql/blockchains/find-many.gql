@@ -1,6 +1,5 @@
 query Blockchains {
   blockchains {
     id
-    url
   }
 }

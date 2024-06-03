@@ -5,7 +5,7 @@ import { UserButton } from "@clerk/nextjs"
 // account
 export function Header() {
   return (
-    <div className="w-full border-b border-b-white border-opacity-30 bg-dashboard p-3">
+    <div className="bg-dashboard w-full border-b border-b-white border-opacity-30 p-3">
       <div className="flex flex-row items-center justify-between">
         <h1 className="ml-2 text-xl font-bold text-white">Dashboard</h1>
         <UserButton />

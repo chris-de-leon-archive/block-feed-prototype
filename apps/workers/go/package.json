@@ -1,0 +1,21 @@
+{
+  "name": "@block-feed/workers-go",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p node_modules/",
+    "build": "mkdir -p ./.bin && go build -o ./.bin ./src/apps/...",
+    "clean": "rm -r .bin .turbo",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
+    "go:clean": "go clean -x -i -r -cache -modcache",
+    "test:int:one": "f() { sqlc generate && go test -v ./tests/integration/$1_test.go; }; f",
+    "test:int:all": "sqlc generate && go test -v ./tests/integration/...",
+    "test:e2e:one": "f() { sqlc generate && go test -v ./tests/e2e/$1_test.go; }; f",
+    "test:e2e:all": "sqlc generate && go test -v ./tests/e2e/...",
+    "test:all": "sqlc generate && go test -v ./tests/...",
+    "docker:repos:delete:all": "bash ./scripts/docker-delete-all-repos.sh",
+    "docker:img:build:all": "bash ./scripts/docker-build-all-images.sh",
+    "docker:img:push:all": "bash ./scripts/docker-push-all-images.sh"
+  }
+}

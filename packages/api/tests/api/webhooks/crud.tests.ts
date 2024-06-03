@@ -1,28 +1,36 @@
-import { stripe, redis, db, StripeVendor, clerk } from "@block-feed/vendors"
+import { stripe, redis, db, clerk } from "@block-feed/vendors"
 import { after, before, describe, it } from "node:test"
-import * as testcontainers from "testcontainers"
+import * as testutils from "@block-feed/test-utils"
 import * as schema from "@block-feed/drizzle"
-import * as testutils from "../../utils"
 import { randomUUID } from "node:crypto"
 import assert from "node:assert"
-import Stripe from "stripe"
 import z from "zod"
 import {
-  STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
+  RedisCacheFactory,
+  LruCacheFactory,
   GraphQLContext,
   withClerkJWT,
   BaseContext,
-  ApiCache,
+  zStripeEnv,
+  builder,
 } from "../../../src"
+import {
+  ActivateWebhooksDocument,
+  RemoveWebhooksDocument,
+  UpdateWebhookDocument,
+  CreateWebhookDocument,
+  WebhooksDocument,
+  WebhookDocument,
+} from "../client"
 
 describe("CRUD Tests", () => {
   const testCleaner = new testutils.TestCleaner()
-  const webhookStreamName = "webhook-lb-stream"
   const blockchainId = "fake-blockchain"
+  const shardCount = 4
   const cacheExpMs = 30000
-  const fakeStripeEnv: StripeVendor["env"] = {
+  const fakeStripeApiKey = "fake api key"
+  const fakeStripeEnv: z.infer<typeof zStripeEnv> = {
     STRIPE_WEBHOOK_SECRET: "dummy-webhook-secret",
-    STRIPE_API_KEY: "dummy-api-key",
     STRIPE_PRICE_ID: "dummy-price-id",
     STRIPE_CHECKOUT_SUCCESS_URL: "http://dummy:3000",
     STRIPE_CHECKOUT_CANCEL_URL: "http://dummy:3000",
@@ -37,13 +45,12 @@ describe("CRUD Tests", () => {
     },
   }
 
-  let appServer: Awaited<ReturnType<typeof testutils.createAsyncServer>>
-  let redisCache: ReturnType<typeof redis.client.create>
-  let databaseC: testcontainers.StartedTestContainer
-  let redisC: testcontainers.StartedTestContainer
-  let adminDbUrl: string
-  let apiDbUrl: string
-  let redisUrl: string
+  let redisClusterC: Awaited<
+    ReturnType<typeof testutils.containers.rediscluster.spawn>
+  >
+  let databaseC: testutils.containers.StartedTestContainer
+  let redisC: testutils.containers.StartedTestContainer
+  let appServer: testutils.TestServer<GraphQLContext, {}>
   let ctx: BaseContext
   let headers = {}
 
@@ -51,45 +58,64 @@ describe("CRUD Tests", () => {
     try {
       // Creates containers
       process.stdout.write("Starting containers... ")
-      ;[redisC, databaseC] = await Promise.all([
+      ;[redisC, databaseC, redisClusterC] = await Promise.all([
         testutils.containers.redis.spawn(verbose.container),
         testutils.containers.db.spawn(verbose.container),
+        testutils.containers.rediscluster.spawn(),
       ])
       console.log("done!")
 
       // Schedule the containers for cleanup
-      testCleaner.cleanUp([() => redisC.stop(), () => databaseC.stop()])
+      testCleaner.add(
+        () => redisC.stop(),
+        () => databaseC.stop(),
+        () => redisClusterC.compose.down({ removeVolumes: true }),
+      )
 
-      // Assigns database urls
-      adminDbUrl = testutils.containers.db.getRootUserUrl(databaseC)
-      apiDbUrl = testutils.containers.db.getFrontendUserUrl(databaseC)
-      redisUrl = testutils.containers.redis.getRedisUrl(redisC)
+      // Assigns urls
+      const adminDbUrl = testutils.containers.db.getRootUserUrl(databaseC)
+      const apiDbUrl = testutils.containers.db.getApiUserUrl(databaseC)
+      const redisUrl = testutils.containers.redis.getRedisUrl(redisC)
+
+      // Creates a stripe API client
+      const stripeVendor = stripe.client.create({
+        STRIPE_API_KEY: fakeStripeApiKey,
+      })
 
       // Creates a redis cache client
-      redisCache = redis.client.create({
-        REDIS_WEBHOOK_STREAM_NAME: webhookStreamName,
+      const redisCacheVendor = redis.client.create({
         REDIS_URL: redisUrl,
+      })
+
+      // Creates a clerk vendor
+      const clerkVendor = clerk.client.create(
+        clerk.client.zEnv.parse(process.env),
+      )
+
+      // Creates a database vendor
+      const dbVendor = db.client.create({
+        DB_LOGGING: verbose.database,
+        DB_URL: apiDbUrl,
       })
 
       // Creates the API context
       ctx = {
         vendor: {
-          stripe: stripe.client.create(fakeStripeEnv),
-          clerk: clerk.client.create(clerk.client.zEnv.parse(process.env)),
-          redisWebhookLB: redis.client.create({
-            REDIS_WEBHOOK_STREAM_NAME: webhookStreamName,
-            REDIS_URL: redisUrl,
-          }),
-          db: db.client.create({
-            DB_LOGGING: verbose.database,
-            DB_URL: apiDbUrl,
-          }),
+          stripe: stripeVendor,
+          clerk: clerkVendor,
+          db: dbVendor,
         },
         caches: {
-          stripe: new ApiCache<Stripe.Response<Stripe.Checkout.Session>>(
-            redisCache,
+          redisClusterConn: LruCacheFactory.createRedisClusterConnCache(),
+          clerkUser: RedisCacheFactory.createClerkUsersCache(
+            clerkVendor,
+            redisCacheVendor,
             cacheExpMs,
-            STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
+          ),
+          stripeCheckoutSess: RedisCacheFactory.createCheckoutSessionCache(
+            stripeVendor,
+            redisCacheVendor,
+            cacheExpMs,
           ),
         },
         middlewares: {
@@ -98,52 +124,51 @@ describe("CRUD Tests", () => {
           // is mainly used to check if the user has subscribed to our service. To keep things
           // simple and avoid making unnecessary API calls to Stripe, let's assume that if a user
           // has a valid JWT, then they also have a valid subscription. To simulate this, we'll
-          // override the following middleware function with a no-op function.
+          // override the following middleware function such that it never throws.
           requireStripeSubscription: () => ({}) as any,
         },
         env: {
-          CACHE_EXP_SEC: cacheExpMs,
+          stripe: fakeStripeEnv,
         },
       }
 
       // Schedule the context for cleanup
-      testCleaner.cleanUp([
-        () => redisCache.client.quit(),
-        () => ctx.vendor.redisWebhookLB.client.quit(),
+      testCleaner.add(
+        () => redisCacheVendor.client.quit(),
         () =>
           new Promise((res, rej) => {
-            ctx.vendor.db.pool.end((err) => {
+            dbVendor.pool.end((err) => {
               if (err != null) {
                 rej(err)
               }
               res(null)
             })
           }),
-      ])
+      )
 
       // Prepares request headers
       // https://dev.to/mad/api-testing-with-clerk-and-express-2i56
       const clerkJWT = z.string().min(1).parse(process.env["CLERK_TEST_JWT"])
-      headers = { Authorization: `Bearer ${clerkJWT}` }
-      console.log("done!")
+      headers = { Authorization: `bearer ${clerkJWT}` }
 
       // Seeds the database with some fake data
-      await testutils.containers.db.withDatabaseConn(
-        adminDbUrl,
-        async ({ conn }) => {
-          await conn.transaction(async (tx) => {
-            // There's no need to add a user to the database
-            // The middleware will take care of that automatically
-            await tx.insert(schema.blockchain).values({
-              id: blockchainId,
-              url: "http://does-not-matter.com",
-            })
+      await testutils.withMySqlDatabaseConn(adminDbUrl, async ({ conn }) => {
+        await conn.transaction(async (tx) => {
+          await tx.insert(schema.blockchain).values({
+            id: blockchainId,
+            redisClusterUrl: redisClusterC.url,
+            shardCount,
+            redisStreamUrl: "not used by the API",
+            redisStoreUrl: "not used by the API",
+            pgStoreUrl: "not used by the API",
+            url: "not used by the API",
           })
-        },
-      )
+        })
+      })
 
       // Creates a mock API server from the context
-      appServer = await testutils.createAsyncServer({
+      appServer = await testutils.TestServer.build({
+        schema: builder.toSchema(),
         context: async (context) => {
           return {
             ...ctx,
@@ -157,28 +182,29 @@ describe("CRUD Tests", () => {
           withClerkJWT({
             clerk: ctx.vendor.clerk,
             db: ctx.vendor.db,
+            cache: RedisCacheFactory.createClerkUsersCache(
+              clerkVendor,
+              redisCacheVendor,
+            ),
           }),
         ],
       })
 
       // Schedule the server for cleanup
-      testCleaner.cleanUp(() => appServer.close())
+      testCleaner.add(() => appServer.close())
     } catch (err) {
       // The node test runner won't log any errors that occur in
-      // the before hook and hangs when an issue is encountered
+      // the before hook, so we need to log them manually
       console.error(err)
       throw err
     }
   })
 
   after(async () => {
-    await testCleaner.clean(console.error)
+    await testCleaner.cleanUp(console.error)
   })
 
   it("Integration Test", async () => {
-    // Gets the OpenAPI SDK
-    const sdk = testutils.withSdk(`${appServer.url}/graphql`)
-
     // Defines fake data
     const data = {
       url: "http://fakeurl.com",
@@ -188,8 +214,9 @@ describe("CRUD Tests", () => {
     }
 
     // Creates an item in the database
-    const id = await sdk
-      .CreateWebhook(
+    const id = await appServer
+      .makeRequest(
+        CreateWebhookDocument,
         {
           data: {
             ...data,
@@ -198,12 +225,22 @@ describe("CRUD Tests", () => {
         },
         headers,
       )
-      .then(({ data: { webhookCreate: result } }) => result.id)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        return data.webhookCreate.id
+      })
 
     // Updates the item
     const newMaxBlocks = 1
-    await sdk
-      .UpdateWebhook(
+    await appServer
+      .makeRequest(
+        UpdateWebhookDocument,
         {
           id,
           data: {
@@ -213,70 +250,136 @@ describe("CRUD Tests", () => {
         },
         headers,
       )
-      .then(({ data: { webhookUpdate: result } }) => {
-        assert.notEqual(result.count, 0)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.notEqual(data.webhookUpdate.count, 0)
       })
 
     // The created item should exist and be updated
-    await sdk.Webhook({ id }, headers).then(({ data: { webhook: result } }) => {
-      assert.equal(result.id, id)
-      assert.equal(result.isActive, 0)
-      assert.equal(result.maxBlocks, newMaxBlocks)
-    })
+    await appServer
+      .makeRequest(WebhookDocument, { id }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhook.id, id)
+        assert.equal(data.webhook.isActive, 0)
+        assert.equal(data.webhook.maxBlocks, newMaxBlocks)
+      })
 
     // Activate with an empty list should trivially return 0
-    await sdk
-      .ActivateWebhooks({ ids: [] }, headers)
-      .then(({ data: { webhookActivate: result } }) => {
-        assert.equal(result.count, 0)
+    await appServer
+      .makeRequest(ActivateWebhooksDocument, { ids: [] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookActivate.count, 0)
       })
 
     // Activating a nonexistent webhook should trivially return 0
-    await sdk
-      .ActivateWebhooks({ ids: [randomUUID()] }, headers)
-      .then(({ data: { webhookActivate: result } }) => {
-        assert.equal(result.count, 0)
+    await appServer
+      .makeRequest(ActivateWebhooksDocument, { ids: [randomUUID()] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookActivate.count, 0)
       })
 
     // Activates the webhook
-    await sdk
-      .ActivateWebhooks({ ids: [id] }, headers)
-      .then(({ data: { webhookActivate: result } }) => {
-        assert.equal(result.count, 1)
+    await appServer
+      .makeRequest(ActivateWebhooksDocument, { ids: [id] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookActivate.count, 1)
       })
 
     // Remove with an empty list should trivially return 0
-    await sdk
-      .RemoveWebhooks({ ids: [] }, headers)
-      .then(({ data: { webhookRemove: result } }) => {
-        assert.equal(result.count, 0)
+    await appServer
+      .makeRequest(RemoveWebhooksDocument, { ids: [] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookRemove.count, 0)
       })
 
     // Removing a nonexistent webhook should trivially return 0
-    await sdk
-      .RemoveWebhooks({ ids: [randomUUID()] }, headers)
-      .then(({ data: { webhookRemove: result } }) => {
-        assert.equal(result.count, 0)
+    await appServer
+      .makeRequest(RemoveWebhooksDocument, { ids: [randomUUID()] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookRemove.count, 0)
       })
 
     // Removes the webhook
-    await sdk
-      .RemoveWebhooks({ ids: [id] }, headers)
-      .then(({ data: { webhookRemove: result } }) => {
-        assert.equal(result.count, 1)
+    await appServer
+      .makeRequest(RemoveWebhooksDocument, { ids: [id] }, headers)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhookRemove.count, 1)
       })
 
     // No results should be returned
-    await sdk
-      .Webhooks(
+    await appServer
+      .makeRequest(
+        WebhooksDocument,
         {
           pagination: { limit: 10, cursor: null },
           filters: {},
         },
         headers,
       )
-      .then(({ data: { webhooks: result } }) => {
-        assert.equal(result.payload.length, 0)
+      .then((result) => {
+        const { data, errors } = result.payload
+        if (errors != null) {
+          assert.fail(new Error(JSON.stringify(errors, null, 2)))
+        }
+        if (data == null) {
+          assert.fail(JSON.stringify(result, null, 2))
+        }
+        assert.equal(data.webhooks.payload.length, 0)
       })
   })
 })

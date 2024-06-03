@@ -22,7 +22,7 @@ export function Accordian(props: AccordianProps) {
           <p className="text-2xl">{props.title}</p>
           <div
             className={"transition-all duration-[450ms] ease-in-out".concat(
-              isOpen ? " -rotate-180" : "",
+              isOpen ? "-rotate-180" : "",
             )}
           >
             <IoIosArrowUp />

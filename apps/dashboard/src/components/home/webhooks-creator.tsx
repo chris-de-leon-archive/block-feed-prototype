@@ -1,11 +1,13 @@
 "use client"
 
 import { WebhookCreateForm } from "@block-feed/dashboard/components/home/forms/webhook-create.form"
-import { useGraphQLDashboardMutation } from "@block-feed/dashboard/client/hooks"
 import { Modal } from "@block-feed/dashboard/components/shared/modal"
-import { graphql } from "@block-feed/dashboard/client/generated"
 import { useAuth } from "@clerk/nextjs"
 import { useState } from "react"
+import {
+  useGraphQLDashboardMutation,
+  CreateWebhookDocument,
+} from "@block-feed/dashboard/client"
 
 export type WebhookCreatorProps = Readonly<{
   blockchains: string[]
@@ -17,16 +19,14 @@ export function WebhookCreator(props: WebhookCreatorProps) {
   const { getToken } = useAuth()
 
   const webhookCreator = useGraphQLDashboardMutation(
-    graphql(
-      "mutation CreateWebhook($data: WebhookCreateInput!) {\n  webhookCreate(data: $data) {\n    id\n  }\n}",
-    ),
+    CreateWebhookDocument,
     getToken,
   )
 
   return (
     <>
       <Modal
-        className="flex w-1/4 flex-col items-center justify-center gap-y-5 rounded-lg border border-white border-opacity-50 bg-dashboard p-5 text-white"
+        className="bg-dashboard flex w-1/4 flex-col items-center justify-center gap-y-5 rounded-lg border border-white border-opacity-50 p-5 text-white"
         open={isCreateModalVisible}
         onClose={() => setCreateModalVisibility(false)}
       >
@@ -62,7 +62,7 @@ export function WebhookCreator(props: WebhookCreatorProps) {
       <div className="flex w-full flex-row items-center justify-between">
         <h2 className="text-2xl font-bold">Webhooks</h2>
         <button
-          className="rounded-lg border border-sky-blue p-3 transition-all ease-linear hover:opacity-50"
+          className="border-sky-blue rounded-lg border p-3 transition-all ease-linear hover:opacity-50"
           type="button"
           onClick={() => setCreateModalVisibility(true)}
         >

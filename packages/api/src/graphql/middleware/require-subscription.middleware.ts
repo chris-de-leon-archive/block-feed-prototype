@@ -1,12 +1,11 @@
-import type { DatabaseVendor, StripeVendor } from "@block-feed/vendors"
-import type { SignedInAuthObject } from "@clerk/clerk-sdk-node"
+import { DatabaseVendor, StripeVendor, ClerkUser } from "@block-feed/vendors"
+import { AsyncCallbackCache } from "../../caching"
 import * as schema from "@block-feed/drizzle"
-import { ApiCache } from "../../caching"
-import type { Stripe } from "stripe"
 import { eq } from "drizzle-orm"
+import Stripe from "stripe"
 import {
-  expandStripeSubscription,
-  expandStripeCustomer,
+  extractStripeSubscription,
+  extractStripeCustomer,
 } from "../../utils/stripe"
 import {
   gqlInvalidSubscriptionError,
@@ -15,10 +14,10 @@ import {
 } from "../errors"
 
 export type RequireStripeSubscriptionContext = Readonly<{
-  cache: ApiCache<Stripe.Response<Stripe.Checkout.Session>>
+  cache: AsyncCallbackCache<Stripe.Checkout.Session, string>
   stripe: StripeVendor
   db: DatabaseVendor
-  user: SignedInAuthObject
+  user: ClerkUser
 }>
 
 export const requireStripeSubscription = async (
@@ -26,7 +25,7 @@ export const requireStripeSubscription = async (
 ) => {
   // Queries the database for the authenticated user's stripe subscription data
   const apiSess = await ctx.db.drizzle.query.checkoutSession.findFirst({
-    where: eq(schema.checkoutSession.customerId, ctx.user.sessionClaims.sub),
+    where: eq(schema.checkoutSession.customerId, ctx.user.id),
   })
 
   // If the user has not checked out yet, throw an error
@@ -46,22 +45,19 @@ export const requireStripeSubscription = async (
   //
   // NOTE: ordering matters here - the customer object is only present on completed checkout
   // sessions
-  const stripeSess = await ctx.cache.getOrSet(
-    ctx.user.sessionClaims.sub,
-    async () =>
-      await ctx.stripe.client.checkout.sessions.retrieve(apiSess.sessionId, {
-        expand: ["subscription", "customer"],
-      }),
+  const stripeCheckoutSess = await ctx.cache.getOrSet(
+    ctx.user.id,
+    apiSess.sessionId,
   )
 
   // If the user has not completed their checkout session, throw an error
-  if (stripeSess.status !== "complete") {
+  if (stripeCheckoutSess.status !== "complete") {
     throw gqlNotSubscribedError("user must complete checkout session")
   }
 
   // Gets the customer data from the checkout session - since we
   // expanded the customer, this will not result in an extra API call
-  const customer = await expandStripeCustomer(ctx.stripe, stripeSess)
+  const customer = await extractStripeCustomer(ctx.stripe, stripeCheckoutSess)
 
   // If the checkout session is missing the customer data, then this is a bug
   if (customer == null) {
@@ -70,12 +66,17 @@ export const requireStripeSubscription = async (
 
   // If the user was deleted, they should purchase another subscription
   if (customer.deleted != null || customer.deleted) {
-    throw gqlNotSubscribedError("user must subscribe")
+    throw gqlNotSubscribedError(
+      "user has been deleted and must subscribe again",
+    )
   }
 
   // Gets the subscription data from the checkout session - since we
   // expanded the subscription, this will not result in an extra API call
-  const stripeSub = await expandStripeSubscription(ctx.stripe, stripeSess)
+  const stripeSub = await extractStripeSubscription(
+    ctx.stripe,
+    stripeCheckoutSess,
+  )
 
   // If the checkout session is missing the subscription data, then this is a bug
   if (stripeSub == null) {

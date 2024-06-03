@@ -32,6 +32,12 @@ resource "docker_network" "block_feed_net" {
   driver = "bridge"
 }
 
+module "block_feed_storage" {
+  source        = "./modules/storage"
+  tag           = var.tag
+  network_name  = docker_network.block_feed_net.name
+  mysql_version = var.mysql_version
+}
 
 module "block_feed_moonbeam_mainnet" {
   source                   = "./modules/backend/block-feed"
@@ -39,6 +45,7 @@ module "block_feed_moonbeam_mainnet" {
   network_name             = docker_network.block_feed_net.name
   timescaledb_image        = docker_image.timescaledb_dev.name
   redis_image              = docker_image.redis.name
+  mysql_workers_url        = module.block_feed_storage.mysql_workers_url
   chain_url                = "wss://moonbeam-rpc.dwellir.com"
   chain_id                 = "moonbeam-mainnet"
   chain_name               = "eth"
@@ -50,6 +57,8 @@ module "block_feed_moonbeam_mainnet" {
   shard_count              = 1
   replicas_per_shard       = 1
   workers_per_replica      = 1
+
+  depends_on = [module.block_feed_storage]
 }
 
 # module "block_feed_flow_testnet" {
@@ -58,6 +67,7 @@ module "block_feed_moonbeam_mainnet" {
 #   network_name             = docker_network.block_feed_net.name
 #   timescaledb_image        = docker_image.timescaledb_dev.name
 #   redis_image              = docker_image.redis.name
+#   mysql_workers_url        = module.block_feed_storage.mysql_workers_url
 #   chain_url                = "access.devnet.nodes.onflow.org:9000"
 #   chain_id                 = "flow-testnet"
 #   chain_name               = "flow"
@@ -69,4 +79,6 @@ module "block_feed_moonbeam_mainnet" {
 #   shard_count              = 1
 #   replicas_per_shard       = 1
 #   workers_per_replica      = 1
+#
+#   depends_on = [module.block_feed_storage]
 # }

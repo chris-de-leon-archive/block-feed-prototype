@@ -5,6 +5,7 @@ import { Header } from "../components/shared/header"
 import { Titillium_Web } from "next/font/google"
 import type { Metadata } from "next"
 import Providers from "./providers"
+import { ReactNode } from "react"
 
 const inter = Titillium_Web({
   subsets: ["latin"],
@@ -19,15 +20,15 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <div className="flex h-screen flex-col bg-dashboard">
+          <div className="bg-dashboard flex h-screen flex-col">
             <main>
-              <div className="flex flex-row bg-dashboard">
+              <div className="bg-dashboard flex flex-row">
                 <Sidebar />
                 <div className="flex w-full flex-col items-center">
                   <Header />

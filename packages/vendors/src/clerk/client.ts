@@ -1,7 +1,11 @@
-import clerkClient from "@clerk/clerk-sdk-node"
+import { clerkClient } from "@clerk/clerk-sdk-node"
 import { z } from "zod"
 
 export type ClerkVendor = ReturnType<typeof create>
+
+export type ClerkUser = Readonly<{
+  id: string
+}>
 
 export const zEnv = z.object({
   CLERK_SECRET_KEY: z.string().min(1),

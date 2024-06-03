@@ -14,6 +14,10 @@ variable "redis_image" {
   type = string
 }
 
+variable "mysql_workers_url" {
+  type = string
+}
+
 variable "chain_id" {
   type = string
 }

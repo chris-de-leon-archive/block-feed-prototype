@@ -6,50 +6,41 @@ import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth"
 import { stripe, redis, clerk, db } from "@block-feed/vendors"
 import { initContextCache } from "@pothos/core"
 import { createYoga } from "graphql-yoga"
-import Stripe from "stripe"
 import { z } from "zod"
 import {
-  STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
   withStripeWebhookEventHandler,
+  StripeWebhookEventProducer,
   requireStripeSubscription,
-  handleStripeWebhookEvent,
+  RedisCacheFactory,
+  LruCacheFactory,
   GraphQLContext,
   withClerkJWT,
-  ApiCache,
+  zStripeEnv,
   builder,
 } from "@block-feed/api"
 
 const envvars = z
   .object({
-    CACHE_EXP_SEC: z.coerce.number().int().min(0),
+    REDIS_STREAM_URL: z.string().url().min(1),
+    REDIS_CACHE_URL: z.string().url().min(1),
+    REDIS_CACHE_EXP_MS: z.coerce.number().min(1),
   })
+  .and(zStripeEnv)
   .parse(process.env)
 
-const redisWebhookLoadBalancerClient = redis.client.create(
-  redis.client.zEnv.parse({
-    ...process.env,
-    REDIS_URL: process.env["REDIS_WEBHOOK_LB_URL"],
-  }),
-)
+const stripeVendor = stripe.client.create(stripe.client.zEnv.parse(process.env))
 
-const redisCacheClient = redis.client.create(
-  redis.client.zEnv.parse({
-    ...process.env,
-    REDIS_URL: process.env["REDIS_CACHE_URL"],
-  }),
-)
+const clerkVendor = clerk.client.create(clerk.client.zEnv.parse(process.env))
 
-const stripeClient = stripe.client.create(stripe.client.zEnv.parse(process.env))
+const dbVendor = db.client.create(db.client.zEnv.parse(process.env))
 
-const clerkClient = clerk.client.create(clerk.client.zEnv.parse(process.env))
+const redisStreamVendor = redis.client.create({
+  REDIS_URL: envvars.REDIS_STREAM_URL,
+})
 
-const dbClient = db.client.create(db.client.zEnv.parse(process.env))
-
-const stripeCache = new ApiCache<Stripe.Response<Stripe.Checkout.Session>>(
-  redisCacheClient,
-  envvars.CACHE_EXP_SEC,
-  STRIPE_CHECKOUT_SESSION_CACHE_KEY_PREFIX,
-)
+const redisCacheVendor = redis.client.create({
+  REDIS_URL: envvars.REDIS_CACHE_URL,
+})
 
 const { handleRequest } = createYoga({
   graphqlEndpoint: "/api/graphql",
@@ -60,19 +51,30 @@ const { handleRequest } = createYoga({
       // Adding this will prevent any issues if you server implementation copies
       // or extends the context object before passing it to your resolvers
       ...initContextCache(),
-      env: envvars,
       yoga: ctx,
       vendor: {
-        redisWebhookLB: redisWebhookLoadBalancerClient,
-        stripe: stripeClient,
-        clerk: clerkClient,
-        db: dbClient,
+        stripe: stripeVendor,
+        clerk: clerkVendor,
+        db: dbVendor,
       },
       caches: {
-        stripe: stripeCache,
+        redisClusterConn: LruCacheFactory.createRedisClusterConnCache(),
+        clerkUser: RedisCacheFactory.createClerkUsersCache(
+          clerkVendor,
+          redisCacheVendor,
+          envvars.REDIS_CACHE_EXP_MS,
+        ),
+        stripeCheckoutSess: RedisCacheFactory.createCheckoutSessionCache(
+          stripeVendor,
+          redisCacheVendor,
+          envvars.REDIS_CACHE_EXP_MS,
+        ),
       },
       middlewares: {
         requireStripeSubscription,
+      },
+      env: {
+        stripe: envvars,
       },
     }) satisfies GraphQLContext,
   plugins: [
@@ -83,24 +85,22 @@ const { handleRequest } = createYoga({
     costLimitPlugin(),
     maxDepthPlugin(),
 
-    // Stripe webhook handler: https://docs.stripe.com/webhooks#webhooks-summary
+    // Stripe webhook event handler: https://docs.stripe.com/webhooks#webhooks-summary
     // This does not need to be protected via JWTs since it verifies the stripe signature header
     withStripeWebhookEventHandler({
-      stripe: stripeClient,
-      context: {
-        stripe: stripeClient,
-        cache: stripeCache,
-        db: dbClient,
-      },
-      handler: handleStripeWebhookEvent,
+      stripeProducer: new StripeWebhookEventProducer(redisStreamVendor),
+      stripeVendor: stripeVendor,
+      webhookSecret: envvars.STRIPE_WEBHOOK_SECRET,
     }),
 
-    // Verifies that each request has a valid JWT in the authorization header.
-    // If the JWT is valid, then we'll use it to retrieve the user's profile
-    // data and attach it to the context.
+    // Verifies that each request has a valid JWT in the authorization header
     withClerkJWT({
-      clerk: clerkClient,
-      db: dbClient,
+      clerk: clerkVendor,
+      db: dbVendor,
+      cache: RedisCacheFactory.createClerkUsersCache(
+        clerkVendor,
+        redisCacheVendor,
+      ),
     }),
   ],
 })

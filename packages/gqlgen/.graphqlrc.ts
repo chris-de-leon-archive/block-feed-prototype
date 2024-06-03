@@ -1,9 +1,11 @@
 import { CodegenConfig } from "@graphql-codegen/cli"
-import type { IGraphQLConfig } from "graphql-config"
+import { IGraphQLConfig } from "graphql-config"
 import { execSync } from "node:child_process"
 import { builder } from "@block-feed/api"
 import { printSchema } from "graphql"
 import path from "node:path"
+
+// TODO: should this be moved to the api package?
 
 // NOTE: right now, this will output artifacts directly to other packages.
 // Another way to do this would be to generate the codegen artifacts here,
@@ -27,9 +29,9 @@ const apiOutputPath = path.join(
   "packages",
   "api",
   "tests",
-  "utils",
   "api",
-  "client.ts",
+  "client",
+  "generated/",
 )
 
 /**
@@ -49,14 +51,9 @@ export default {
           },
         },
         [apiOutputPath]: {
-          plugins: [
-            "typescript",
-            "typescript-operations",
-            "typescript-graphql-request",
-          ],
+          preset: "client",
           config: {
-            rawRequest: true,
-            documentMode: "documentNode",
+            enumsAsTypes: true,
           },
         },
         "schema.graphql": {

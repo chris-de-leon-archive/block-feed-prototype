@@ -1,10 +1,7 @@
 "use client"
 
-import { useGraphQLDashboardMutation } from "@block-feed/dashboard/client/hooks"
-import { WebhooksQuery } from "@block-feed/dashboard/client/generated/graphql"
 import { FaArrowCircleLeft, FaArrowCircleRight } from "react-icons/fa"
 import { Modal } from "@block-feed/dashboard/components/shared/modal"
-import { graphql } from "@block-feed/dashboard/client/generated"
 import { MdDeleteForever } from "react-icons/md"
 import { IoRefresh } from "react-icons/io5"
 import { useEffect, useState } from "react"
@@ -16,7 +13,14 @@ import {
   WebhookEditForm,
 } from "@block-feed/dashboard/components/home/forms/webhook-update.form"
 import {
-  interpretWebhookStatus,
+  useGraphQLDashboardMutation,
+  ActivateWebhooksDocument,
+  RemoveWebhooksDocument,
+  UpdateWebhookDocument,
+  WebhooksQuery,
+} from "@block-feed/dashboard/client"
+import {
+  formatWebhookStatus,
   formatUTCDateStr,
 } from "@block-feed/dashboard/utils"
 
@@ -62,21 +66,15 @@ export function WebhooksTable(props: WebhooksTableProps) {
 
   // Gets mutations for webhooks
   const webhookActivator = useGraphQLDashboardMutation(
-    graphql(
-      "mutation ActivateWebhooks($ids: [String!]!) {\n  webhookActivate(ids: $ids) {\n    count\n  }\n}",
-    ),
+    ActivateWebhooksDocument,
     getToken,
   )
   const webhookRemover = useGraphQLDashboardMutation(
-    graphql(
-      "mutation RemoveWebhooks($ids: [String!]!) {\n  webhookRemove(ids: $ids) {\n    count\n  }\n}",
-    ),
+    RemoveWebhooksDocument,
     getToken,
   )
   const webhookEditor = useGraphQLDashboardMutation(
-    graphql(
-      "mutation UpdateWebhook($id: String!, $data: WebhookUpdateInput!) {\n  webhookUpdate(id: $id, data: $data) {\n    count\n  }\n}",
-    ),
+    UpdateWebhookDocument,
     getToken,
   )
 
@@ -121,9 +119,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
     },
     canActivate: () => {
       const checked = Array.from(selected.values()).filter((v) => v.isChecked)
-      const inactive = checked.filter(
-        (v) => v.webhook.isActive === 0 && v.webhook.isQueued === 0,
-      )
+      const inactive = checked.filter((v) => v.webhook.isActive === 0)
       return (
         !props.isFetching &&
         !webhookActivator.isPending &&
@@ -143,7 +139,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
   return (
     <>
       <Modal
-        className="flex w-1/4 flex-col items-center justify-center gap-y-5 rounded-lg border border-white border-opacity-50 bg-dashboard p-5 text-white"
+        className="bg-dashboard flex w-1/4 flex-col items-center justify-center gap-y-5 rounded-lg border border-white border-opacity-50 p-5 text-white"
         open={webhookToEdit != null}
         onClose={() => setWebhookToEdit(null)}
       >
@@ -184,12 +180,12 @@ export function WebhooksTable(props: WebhooksTableProps) {
           </div>
           <div className="flex flex-row items-center gap-x-5">
             <button
-              className={"rounded-lg border border-sky-blue p-3".concat(
+              className={"border-sky-blue rounded-lg border p-3".concat(
                 props.isFetching ||
                   props.isFetchingPrevPage ||
                   !props.hasPrevPage
-                  ? " opacity-50"
-                  : " transition-all ease-linear hover:opacity-50",
+                  ? "opacity-50"
+                  : "transition-all ease-linear hover:opacity-50",
               )}
               type="button"
               disabled={
@@ -203,7 +199,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
             >
               {props.isFetchingPrevPage ? (
                 <div className="flex flex-row items-center gap-x-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+                  <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -214,12 +210,12 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"rounded-lg border border-sky-blue p-3".concat(
+              className={"border-sky-blue rounded-lg border p-3".concat(
                 props.isFetching ||
                   props.isFetchingNextPage ||
                   !props.hasNextPage
-                  ? " opacity-50"
-                  : " transition-all ease-linear hover:opacity-50",
+                  ? "opacity-50"
+                  : "transition-all ease-linear hover:opacity-50",
               )}
               type="button"
               disabled={
@@ -233,7 +229,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
             >
               {props.isFetchingNextPage ? (
                 <div className="flex flex-row items-center gap-x-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+                  <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -246,10 +242,10 @@ export function WebhooksTable(props: WebhooksTableProps) {
           </div>
           <div className="flex flex-row items-center gap-x-5">
             <button
-              className={"rounded-lg border border-sky-blue p-3".concat(
+              className={"border-sky-blue rounded-lg border p-3".concat(
                 props.isFetching
-                  ? " opacity-50"
-                  : " transition-all ease-linear hover:opacity-50",
+                  ? "opacity-50"
+                  : "transition-all ease-linear hover:opacity-50",
               )}
               type="button"
               disabled={props.isFetching}
@@ -261,7 +257,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
               !props.isFetchingNextPage &&
               !props.isFetchingPrevPage ? (
                 <div className="flex flex-row items-center gap-x-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+                  <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -272,8 +268,8 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"rounded-lg border border-sky-blue p-3 transition-all ease-linear".concat(
-                checkboxes.canActivate() ? " hover:opacity-50" : " opacity-50",
+              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear".concat(
+                checkboxes.canActivate() ? "hover:opacity-50" : "opacity-50",
               )}
               type="button"
               disabled={!checkboxes.canActivate()}
@@ -292,7 +288,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
             >
               {webhookActivator.isPending ? (
                 <div className="flex flex-row items-center gap-x-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+                  <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -303,8 +299,8 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"rounded-lg border border-sky-blue p-3 transition-all ease-linear".concat(
-                checkboxes.canDelete() ? " hover:opacity-50" : " opacity-50",
+              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear".concat(
+                checkboxes.canDelete() ? "hover:opacity-50" : "opacity-50",
               )}
               type="button"
               disabled={!checkboxes.canDelete()}
@@ -323,7 +319,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
             >
               {webhookRemover.isPending ? (
                 <div className="flex flex-row items-center gap-x-2">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+                  <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -384,7 +380,7 @@ export function WebhooksTable(props: WebhooksTableProps) {
                     </td>
                     <td>{webhook.url}</td>
                     <td>{formatUTCDateStr(webhook.createdAt)}</td>
-                    <td>{interpretWebhookStatus(webhook)}</td>
+                    <td>{formatWebhookStatus(webhook.isActive)}</td>
                     <td>{webhook.maxRetries}</td>
                     <td>{webhook.maxBlocks}</td>
                     <td>{webhook.timeoutMs}</td>

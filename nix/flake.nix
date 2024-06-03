@@ -26,6 +26,7 @@
             pkgs.redis # v7.2.4
             pkgs.flow # v1.17.1
             pkgs.go #v1.22.2
+            pkgs.sqlc # v1.26.0
             pkgs.atlas # v0.21.1
             pkgs.stripe-cli # v1.19.4
           ];

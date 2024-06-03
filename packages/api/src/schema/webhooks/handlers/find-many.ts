@@ -1,5 +1,4 @@
 import { GraphQLAuthContext } from "../../../graphql/types"
-import { WebhookStatus } from "@block-feed/shared"
 import * as schema from "@block-feed/drizzle"
 import { z } from "zod"
 import {
@@ -24,9 +23,9 @@ export const zInput = z.object({
           })
           .nullable()
           .optional(),
-        status: z
+        isActive: z
           .object({
-            eq: z.nativeEnum(WebhookStatus).optional().nullable(),
+            eq: z.boolean().optional().nullable(),
           })
           .nullable()
           .optional(),
@@ -66,7 +65,7 @@ export const handler = async (
   if (args.pagination.cursor != null) {
     const webhook = await ctx.vendor.db.drizzle.query.webhook.findFirst({
       where: and(
-        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.id),
         eq(schema.webhook.id, args.pagination.cursor.id),
       ),
     })
@@ -81,7 +80,7 @@ export const handler = async (
   return await ctx.vendor.db.drizzle.query.webhook
     .findMany({
       where: and(
-        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.id),
         args.filters.and?.blockchain?.eq != null &&
           args.filters.and.blockchain.eq !== ""
           ? eq(schema.webhook.blockchainId, args.filters.and.blockchain.eq)
@@ -89,23 +88,8 @@ export const handler = async (
         args.filters.and?.url?.like != null && args.filters.and.url.like !== ""
           ? like(schema.webhook.url, `%${args.filters.and.url.like}%`)
           : undefined,
-        args.filters.and?.status?.eq != null
-          ? args.filters.and.status.eq === WebhookStatus.INACTIVE
-            ? and(
-                eq(schema.webhook.isActive, 0),
-                eq(schema.webhook.isQueued, 0),
-              )
-            : args.filters.and.status.eq === WebhookStatus.PENDING
-              ? and(
-                  eq(schema.webhook.isActive, 0),
-                  eq(schema.webhook.isQueued, 1),
-                )
-              : args.filters.and.status.eq === WebhookStatus.ACTIVE
-                ? and(
-                    eq(schema.webhook.isActive, 1),
-                    eq(schema.webhook.isQueued, 1),
-                  )
-                : undefined
+        args.filters.and?.isActive?.eq != null && args.filters.and.isActive.eq
+          ? eq(schema.webhook.isActive, args.filters.and.isActive.eq ? 1 : 0)
           : undefined,
         cursor != null
           ? cursor.data.reverse

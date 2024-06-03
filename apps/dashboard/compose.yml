@@ -3,6 +3,7 @@ version: "3"
 services:
   mysql:
     container_name: "mysql-dev"
+    network_mode: bridge
     build:
       dockerfile: ./Dockerfile
       context: ../../vendor/mysql
@@ -16,16 +17,34 @@ services:
     ports:
       - "3306:3306"
 
-  redis-webhook-lb:
-    container_name: "redis-dev-webhook-lb"
+  redis:
+    container_name: "redis-dev"
+    network_mode: bridge
     image: docker.io/redis:7.2.1-alpine3.18
     command: ["--port", "6379", "--loglevel", "debug"]
     ports:
       - "6379:6379"
 
-  redis-cache:
-    container_name: "redis-dev-cache"
-    image: docker.io/redis:7.2.1-alpine3.18
-    command: ["--port", "6379", "--loglevel", "debug"]
+  redis-cluster-flow:
+    container_name: "redis-cluster-flow-dev"
+    network_mode: bridge
+    build:
+      dockerfile: ./Dockerfile
+      context: ../../vendor/redis-cluster
+    environment:
+      START_PORT: 7001
+      END_PORT: 7006
     ports:
-      - "6380:6379"
+      - "7001-7006:7001-7006"
+
+  redis-cluster-eth:
+    container_name: "redis-cluster-eth-dev"
+    network_mode: bridge
+    build:
+      dockerfile: ./Dockerfile
+      context: ../../vendor/redis-cluster
+    environment:
+      START_PORT: 8001
+      END_PORT: 8006
+    ports:
+      - "8001-8006:8001-8006"

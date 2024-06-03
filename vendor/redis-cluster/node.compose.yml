@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  redis-cluster:
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      START_PORT: ${START_PORT}
+      END_PORT: ${END_PORT}
+    ports:
+      - ${START_PORT}-${END_PORT}:${START_PORT}-${END_PORT}

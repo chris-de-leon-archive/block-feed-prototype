@@ -42,7 +42,7 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
     >
       <label className="flex flex-col gap-y-2">
         <input
-          className="border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50 focus:border-sky-blue"
+          className="focus:border-sky-blue border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50"
           value={form.url ?? ""}
           type="url"
           required
@@ -54,7 +54,7 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
       </label>
       <label className="flex flex-col gap-y-2">
         <input
-          className="border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50 focus:border-sky-blue"
+          className="focus:border-sky-blue border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50"
           value={form.maxBlocks ?? ""}
           type="number"
           required
@@ -68,7 +68,7 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
       </label>
       <label className="flex flex-col gap-y-2">
         <input
-          className="border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50 focus:border-sky-blue"
+          className="focus:border-sky-blue border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50"
           value={form.maxRetries ?? ""}
           type="number"
           required
@@ -82,7 +82,7 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
       </label>
       <label className="flex flex-col gap-y-2">
         <input
-          className="border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50 focus:border-sky-blue"
+          className="focus:border-sky-blue border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white placeholder:opacity-50"
           value={form.timeoutMs ?? ""}
           type="number"
           required
@@ -96,7 +96,7 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
       </label>
       <label className="flex flex-col gap-y-2">
         <select
-          className="border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white focus:border-sky-blue"
+          className="focus:border-sky-blue border-b bg-transparent py-3 text-xs text-white outline-none transition-all placeholder:text-white"
           required
           value={form.blockchainId ?? ""}
           onChange={(e) =>
@@ -113,17 +113,17 @@ export function WebhookCreateForm(props: WebhookCreateFormProps) {
         <span className="text-sm opacity-50">Blockchain</span>
       </label>
       <button
-        className={"mt-3 flex w-full flex-col items-center rounded-lg border border-sky-blue p-3".concat(
+        className={"border-sky-blue mt-3 flex w-full flex-col items-center rounded-lg border p-3".concat(
           props.disabled
-            ? " opacity-50"
-            : " transition-all ease-linear hover:opacity-50",
+            ? "opacity-50"
+            : "transition-all ease-linear hover:opacity-50",
         )}
         disabled={props.disabled}
         type="submit"
       >
         {props.disabled ? (
           <div className="flex flex-row items-center gap-x-2">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-blue border-t-white" />
+            <div className="border-sky-blue h-5 w-5 animate-spin rounded-full border-2 border-t-white" />
             <span>Loading...</span>
           </div>
         ) : (

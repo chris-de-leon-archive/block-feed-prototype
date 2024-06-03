@@ -26,7 +26,7 @@ builder.mutationField("createBillingPortalSession", (t) =>
     },
     resolve: async (_, args, ctx) => {
       const subscription = await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -48,7 +48,7 @@ builder.queryField("stripeSubscription", (t) =>
     },
     resolve: async (_, args, ctx) => {
       const subscription = await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,

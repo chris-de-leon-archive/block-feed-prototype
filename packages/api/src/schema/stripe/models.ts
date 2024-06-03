@@ -1,5 +1,5 @@
 import { builder } from "../../graphql/builder"
-import type { Stripe } from "stripe"
+import { Stripe } from "stripe"
 
 const StripeSubscriptionStatusValues: Record<
   Stripe.Subscription.Status,

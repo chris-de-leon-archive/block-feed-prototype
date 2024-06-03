@@ -2,6 +2,7 @@
   "name": "@block-feed/drizzle",
   "version": "0.0.0",
   "private": true,
+  "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -9,10 +10,9 @@
     "introspect": "bash ./scripts/introspect.sh ./src/generated"
   },
   "devDependencies": {
-    "@block-feed/typescript-config": "workspace:*",
-    "drizzle-kit": "0.20.14",
-    "drizzle-orm": "0.30.8",
-    "eslint": "8.57.0",
-    "typescript": "5.3.3"
+    "@block-feed/config-typescript": "workspace:*",
+    "drizzle-kit": "0.22.1",
+    "drizzle-orm": "0.31.0",
+    "typescript": "5.4.5"
   }
 }

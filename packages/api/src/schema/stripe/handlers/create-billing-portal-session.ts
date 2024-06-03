@@ -15,7 +15,7 @@ export const handler = async (
   return await ctx.vendor.stripe.client.billingPortal.sessions
     .create({
       customer: stripeCustomerId,
-      return_url: ctx.vendor.stripe.env.STRIPE_BILLING_PORTAL_RETURN_URL,
+      return_url: ctx.env.stripe.STRIPE_BILLING_PORTAL_RETURN_URL,
     })
     .then((sess) => {
       return { url: sess.url }

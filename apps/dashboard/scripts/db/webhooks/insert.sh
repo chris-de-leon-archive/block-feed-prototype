@@ -18,6 +18,7 @@ fi
 rand_max_blocks=$(((RANDOM % 10) + 1))
 rand_max_retries=$(((RANDOM % 10) + 1))
 rand_max_timeout_ms=$(((RANDOM % 10000) + 1000))
+rand_shard_id=$((RANDOM % 4))
 docker exec -it mysql-dev /bin/bash -c '
-mysql --password="password" --database="dev" -e"INSERT IGNORE INTO webhook VALUES (UUID(), DEFAULT, 0, 0, \"'$1'\", '$rand_max_blocks', '$rand_max_retries', '$rand_max_timeout_ms', \"'$2'\", \"'$3'\")"
+  mysql --password="password" --database="dev" -e"INSERT IGNORE INTO webhook VALUES (UUID(), DEFAULT, 0, \"'$1'\", '$rand_max_blocks', '$rand_max_retries', '$rand_max_timeout_ms', \"'$2'\", \"'$3'\", '$rand_shard_id')"
 '

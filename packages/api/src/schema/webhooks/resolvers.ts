@@ -25,7 +25,7 @@ builder.queryField("webhook", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -53,7 +53,7 @@ builder.queryField("webhooks", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -77,7 +77,7 @@ builder.mutationField("webhookCreate", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -102,7 +102,7 @@ builder.mutationField("webhookUpdate", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -123,7 +123,7 @@ builder.mutationField("webhookRemove", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,
@@ -144,7 +144,7 @@ builder.mutationField("webhookActivate", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,

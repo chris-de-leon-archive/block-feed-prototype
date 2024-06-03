@@ -11,7 +11,7 @@ builder.queryField("blockchains", (t) =>
     },
     resolve: async (_, args, ctx) => {
       await ctx.middlewares.requireStripeSubscription({
-        cache: ctx.caches.stripe,
+        cache: ctx.caches.stripeCheckoutSess,
         stripe: ctx.vendor.stripe,
         db: ctx.vendor.db,
         user: ctx.clerk.user,

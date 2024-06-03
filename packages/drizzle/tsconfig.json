@@ -1,5 +1,5 @@
 {
-  "extends": "@block-feed/typescript-config/base.json",
+  "extends": "@block-feed/config-typescript/base.json",
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
 }

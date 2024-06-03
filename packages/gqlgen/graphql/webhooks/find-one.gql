@@ -6,7 +6,6 @@ query Webhook($id: String!) {
     customerId
     blockchainId
     isActive
-    isQueued
     maxBlocks
     maxRetries
     timeoutMs

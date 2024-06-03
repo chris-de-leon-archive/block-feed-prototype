@@ -1,30 +1,38 @@
-import type { requireStripeSubscription } from "./middleware/require-subscription.middleware"
-import type { SignedInAuthObject } from "@clerk/clerk-sdk-node"
-import type { YogaInitialContext } from "graphql-yoga"
-import type { ApiCache } from "../caching/api.cache"
-import type { Stripe } from "stripe"
-import type {
+import { requireStripeSubscription } from "./middleware/require-subscription.middleware"
+import { AsyncCallbackCache, CallbackCache } from "../caching"
+import { YogaInitialContext } from "graphql-yoga"
+import { User } from "@clerk/clerk-sdk-node"
+import { zStripeEnv } from "./env"
+import { Stripe } from "stripe"
+import { z } from "zod"
+import {
+  RedisClusterVendor,
   DatabaseVendor,
   StripeVendor,
-  RedisVendor,
   ClerkVendor,
+  ClerkUser,
+  redis,
 } from "@block-feed/vendors"
 
 export type BaseContext = Readonly<{
   vendor: Readonly<{
-    redisWebhookLB: RedisVendor
     stripe: StripeVendor
     clerk: ClerkVendor
     db: DatabaseVendor
   }>
   caches: Readonly<{
-    stripe: ApiCache<Stripe.Response<Stripe.Checkout.Session>>
+    stripeCheckoutSess: AsyncCallbackCache<Stripe.Checkout.Session, string>
+    clerkUser: AsyncCallbackCache<User, string>
+    redisClusterConn: CallbackCache<
+      RedisClusterVendor,
+      z.infer<typeof redis.cluster.zEnv>
+    >
   }>
   middlewares: Readonly<{
     requireStripeSubscription: typeof requireStripeSubscription
   }>
   env: Readonly<{
-    CACHE_EXP_SEC?: number | undefined
+    stripe: z.infer<typeof zStripeEnv>
   }>
 }>
 
@@ -33,8 +41,9 @@ export type YogaContext = Readonly<{
 }>
 
 export type ClerkContext = Readonly<{
+  // NOTE: this property is only availble if the clerk plugin is added to Yoga
   clerk: Readonly<{
-    user: SignedInAuthObject
+    user: ClerkUser
   }>
 }>
 

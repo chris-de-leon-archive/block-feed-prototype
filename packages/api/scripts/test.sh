@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # Example(s):
 #   pnpm test
@@ -18,12 +18,16 @@ fi
 
 printf "\n\nRunning tests...\n\n"
 cd "$(git rev-parse --show-toplevel)/packages/api"
-find ./tests -type f -name '*.tests.ts' |
-	tr '\n' ' ' |
-	xargs node \
-		--env-file ".env" \
-		--require ts-node/register \
-		--test \
-		--test-concurrency 1 \
-		--test-reporter \
-		spec
+TEST_FILES=$(
+	find ./tests -type f -name '*.tests.ts' |
+		tr '\n' ' ' |
+		xargs echo
+)
+
+# https://github.com/nodejs/help/issues/3902#issuecomment-1307124174
+node \
+	--env-file=.env \
+	--import=tsx \
+	--test-concurrency=1 \
+	--test-reporter=spec \
+	--test $TEST_FILES

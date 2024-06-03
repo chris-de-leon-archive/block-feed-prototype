@@ -1,11 +1,6 @@
-import { WebhookStatus } from "@block-feed/shared"
 import { builder } from "../../graphql/builder"
 import { InferSelectModel } from "drizzle-orm"
 import * as schema from "@block-feed/drizzle"
-
-export const gqlWebhookStatusEnum = builder.enumType(WebhookStatus, {
-  name: "WebhookStatus",
-})
 
 export const gqlWebhook =
   builder.objectRef<InferSelectModel<typeof schema.webhook>>("Webhook")
@@ -14,7 +9,6 @@ builder.objectType(gqlWebhook, {
   fields: (t) => ({
     id: t.exposeString("id"),
     createdAt: t.exposeString("createdAt"),
-    isQueued: t.exposeInt("isQueued"),
     isActive: t.exposeInt("isActive"),
     url: t.exposeString("url"),
     maxBlocks: t.exposeInt("maxBlocks"),

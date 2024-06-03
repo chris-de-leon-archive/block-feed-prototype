@@ -34,3 +34,9 @@ export const gqlStringEqFilterInput = builder.inputType("StringEqFilterInput", {
     eq: t.string({ required: false }),
   }),
 })
+
+export const gqlBoolEqFilterInput = builder.inputType("BoolEqFilterInput", {
+  fields: (t) => ({
+    eq: t.boolean({ required: false }),
+  }),
+})

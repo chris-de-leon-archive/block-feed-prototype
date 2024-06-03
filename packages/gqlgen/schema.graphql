@@ -1,6 +1,9 @@
 type Blockchain {
   id: String!
-  url: String!
+}
+
+input BoolEqFilterInput {
+  eq: Boolean
 }
 
 type Count {
@@ -76,7 +79,6 @@ type Webhook {
   customerId: String!
   id: String!
   isActive: Int!
-  isQueued: Int!
   maxBlocks: Int!
   maxRetries: Int!
   timeoutMs: Int!
@@ -93,22 +95,12 @@ input WebhookCreateInput {
 
 input WebhookFiltersBodyInput {
   blockchain: StringEqFilterInput
-  status: WebhookStatusFilterInput
+  isActive: BoolEqFilterInput
   url: StringLikeFilterInput
 }
 
 input WebhookFiltersInput {
   and: WebhookFiltersBodyInput
-}
-
-enum WebhookStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
-}
-
-input WebhookStatusFilterInput {
-  eq: WebhookStatus
 }
 
 input WebhookUpdateInput {

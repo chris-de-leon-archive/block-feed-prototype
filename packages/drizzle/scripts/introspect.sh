@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Drizzle configs
-DRIZZLE_TMP_CONF_FILE_NAME="tmp.drizzle.config.ts"
-DRIZZLE_SCHEMA_OUTPUT_PATH="$1"
-if [ -z "$DRIZZLE_SCHEMA_OUTPUT_PATH" ]; then
-	echo "first argument is missing (schema output path)"
-	exit 1
-fi
-
 # Docker configs
 MYSQL_VERSION="8.3.0"
 RANDM_UUID="$(uuidgen)"
@@ -22,7 +14,6 @@ MYSQL_DB="drizzle"
 
 # Defines a helper function for cleaning up resources
 cleanup() {
-	rm "$DRIZZLE_TMP_CONF_FILE_NAME"
 	docker stop "$RANDM_UUID"
 	docker image rm "$IMAGE_NAME"
 }
@@ -58,21 +49,6 @@ while ! docker exec "$RANDM_UUID" mysqladmin --user="root" --password="$MYSQL_RO
 	((TOTAL_SECONDS += $PING_SECONDS))
 done
 
-# The introspect:mysql command does not work correctly if used purely with flags rather than a config file
-#
-# The current workaround is to create a temporary drizzle config file for introspection
-#
-cat <<EOF >"$DRIZZLE_TMP_CONF_FILE_NAME"
-import type { Config } from "drizzle-kit";
-export default {
-  out: "$DRIZZLE_SCHEMA_OUTPUT_PATH",
-  driver: "mysql2",
-  verbose: true,
-  dbCredentials: {
-    uri: "mysql://root:$MYSQL_ROOT_PWORD@host.docker.internal:$MYSQL_PORT/$MYSQL_DB",
-  },
-} satisfies Config;
-EOF
-
 # Generates a drizzle schema
-drizzle-kit introspect:mysql --config="$DRIZZLE_TMP_CONF_FILE_NAME"
+export DB_URL="mysql://root:$MYSQL_ROOT_PWORD@host.docker.internal:$MYSQL_PORT/$MYSQL_DB"
+drizzle-kit introspect

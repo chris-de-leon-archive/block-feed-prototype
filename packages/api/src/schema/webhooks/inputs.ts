@@ -1,8 +1,8 @@
 import { builder } from "../../graphql/builder"
-import { gqlWebhookStatusEnum } from "./models"
 import {
   gqlStringLikeFilterInput,
   gqlStringEqFilterInput,
+  gqlBoolEqFilterInput,
 } from "../../graphql/inputs"
 
 export const gqlWebhookUpdateInput = builder.inputType("WebhookUpdateInput", {
@@ -24,18 +24,6 @@ export const gqlWebhookCreateInput = builder.inputType("WebhookCreateInput", {
   }),
 })
 
-export const gqlWebhookStatusFilterInput = builder.inputType(
-  "WebhookStatusFilterInput",
-  {
-    fields: (t) => ({
-      eq: t.field({
-        type: gqlWebhookStatusEnum,
-        required: false,
-      }),
-    }),
-  },
-)
-
 export const gqlWebhookFiltersBodyInput = builder.inputType(
   "WebhookFiltersBodyInput",
   {
@@ -44,8 +32,8 @@ export const gqlWebhookFiltersBodyInput = builder.inputType(
         type: gqlStringEqFilterInput,
         required: false,
       }),
-      status: t.field({
-        type: gqlWebhookStatusFilterInput,
+      isActive: t.field({
+        type: gqlBoolEqFilterInput,
         required: false,
       }),
       url: t.field({

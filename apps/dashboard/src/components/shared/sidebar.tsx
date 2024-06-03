@@ -10,7 +10,7 @@ import Link from "next/link"
 export function Sidebar() {
   const path = usePathname()
   return (
-    <div className="sticky top-0 h-screen border-r border-r-white border-opacity-30 bg-dashboard text-white">
+    <div className="bg-dashboard sticky top-0 h-screen border-r border-r-white border-opacity-30 text-white">
       <div className="flex flex-col">
         <Link
           className="mb-5 mr-10 flex flex-row items-center gap-x-2 p-5 text-3xl font-bold"
@@ -25,7 +25,7 @@ export function Sidebar() {
               className={"ml-5 mr-20".concat(
                 path === item.route
                   ? ""
-                  : " opacity-50 transition-all ease-linear hover:opacity-100",
+                  : "opacity-50 transition-all ease-linear hover:opacity-100",
               )}
               key={i}
               href={item.route}

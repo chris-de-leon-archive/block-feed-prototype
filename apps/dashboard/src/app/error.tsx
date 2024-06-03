@@ -16,7 +16,7 @@ export default function DashboardError({
           An error occurred while loading the dashboard
         </span>
         <button
-          className="rounded-lg border border-sky-blue p-3 transition-all ease-linear hover:opacity-50"
+          className="border-sky-blue rounded-lg border p-3 transition-all ease-linear hover:opacity-50"
           type="button"
           onClick={() => reset()}
         >

@@ -1,2 +1,2 @@
-export * from "./relations/relations"
+export * from "./generated/relations"
 export * from "./generated/schema"

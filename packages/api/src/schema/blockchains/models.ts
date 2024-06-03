@@ -9,7 +9,6 @@ builder.objectType(gqlBlockchain, {
   fields: (t) => {
     return {
       id: t.exposeString("id"),
-      url: t.exposeString("url"),
     }
   },
 })

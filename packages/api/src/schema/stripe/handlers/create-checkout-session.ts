@@ -1,16 +1,17 @@
-import { gqlInternalServerError } from "../../../graphql/errors"
 import { GraphQLAuthContext } from "../../../graphql/types"
-import { doesObjectHaveKey } from "@block-feed/shared"
 import * as schema from "@block-feed/drizzle"
 import { randomUUID } from "crypto"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import {
+  gqlInternalServerError,
+  gqlBadRequestError,
+} from "../../../graphql/errors"
+import {
   zStripeCheckoutSessionMetadata,
   zStripeSubscriptionMetadata,
-  expandStripeSubscription,
-  expandStripeCustomer,
-  fromZodType,
+  extractStripeSubscription,
+  extractStripeCustomer,
 } from "../../../utils/stripe"
 
 export const zInput = z.object({})
@@ -42,22 +43,22 @@ export const zInput = z.object({})
 //  https://docs.stripe.com/payments/checkout/limit-subscriptions
 //
 // NOTE: Unfortunately, enforcing that emails are UNIQUE and VERIFIED can get very tricky when users are allowed
-// to sign in / sign up with multiple OAuth providers. For example, if we were using Auth0 and enable Github
+// to sign in / sign up with multiple OAuth providers. For example, suppose we're using Auth0 and enable Github
 // auth and Google auth with account linking. Due to potential security risks, account linking is not automatic
 // so there's a possibility that there will still be multiple users with the same email in our system. Furthermore,
 // some providers don't include an `email_verified` field and some providers require additional steps to ensure
 // emails are verified (e.g. in the traditional username-password flow, users need to verify their account by
 // clicking a verification link in their email). With these obstacles in mind, this checkout flow takes on a
 // different mental model. Instead of enforcing unique and verified emails and using the built-in Stripe feature
-// that restricts customers to exactly one subscription, the handler below manages to prevent duplicate customers,
-// subscriptions, and charges from being created while allowing multiple users of our service to have identical
-// emails. Furthermore, calling the handler multiple times won't lead to race conditions either. More details on
-// how this is accomplished are provided in the code below.
+// that restricts customers to exactly one subscription, the handler below prevents duplicate customers, subs,
+// and charges from being created while allowing multiple users of our service to have identical emails. Furthermore,
+// calling the handler multiple times won't lead to race conditions either. More details on how this is accomplished
+// are provided in the code below.
 //
 // NOTE: suppose a customer signs up for a subscription, cancels it, and renews it. In this case, we won't lose
 // the stripe customer ID. When the customer renews their subscription (by purchasing a new one), the database
-// will still store the checkout session that's linked to the user's canceled subscription. This can be used to
-// obtain the Stripe customer ID, which can then be attached to future checkout sessions. This allows us to
+// will still store the old checkout session that's linked to the user's canceled subscription. This can be used
+// to obtain the Stripe customer ID, which can then be attached to future checkout sessions. This allows us to
 // determine whether the user is offered a free trial or not.
 //
 // NOTE: According to Stripe, subscription cancellation cannot be reversed (see link below). Also, subscriptions
@@ -72,13 +73,13 @@ export const zInput = z.object({})
 //
 //    https://docs.stripe.com/billing/subscriptions/trials#metered-billing-with-paused-subscriptions
 //
-// NOTE: if a BlockFeed user's Stripe customer account is deleted then recreated - they will get another free trial.
-// Furthermore, if an BlockFeed user's Stripe customer account is deleted, and the checkout_session linked to the user
-// is NOT deleted from the database (potentially due to slow or failed webhook processing), then the stripe subscription
-// middleware will throw a not subscribed error and the frontend will redirect the user back to checkout. This will
-// lead them back to this handler. In this case, we would be creating a checkout session for a deleted customer which
-// this handler will detect. Upon detecting that the customer is deleted, it will clean up the database and go through
-// the normal flow as if this is the user's first time checking out.
+// NOTE: if a user's Stripe customer account is deleted then recreated, then they will get another free trial. Also,
+// if a user's Stripe customer account is deleted, and the checkout session linked to the user is NOT deleted from the
+// database (potentially due to slow or failed webhook processing), then the stripe subscription middleware will throw
+// a not subscribed error and the frontend will redirect the user back to checkout, which will lead them back to this
+// handler. In this case, we would be creating a checkout session for a deleted customer which this handler will detect.
+// Upon detecting that the customer is deleted, it will clean up the database and go through the normal flow as if this
+// is the user's first time checking out.
 //
 export const handler = async (
   _: z.infer<typeof zInput>,
@@ -90,19 +91,22 @@ export const handler = async (
     return { url: result.url }
   }
 
-  // Gets the user from the context
-  const user = ctx.clerk.user.sessionClaims
+  // Gets the user ID from the context
+  const userId = ctx.clerk.user.id
 
-  // Extracts the email from the JWT if it exists (if Clerk is
-  // configured to include the user's primary email address in
-  // the session claims, then this should always exist):
-  //
-  //  https://clerk.com/docs/backend-requests/making/custom-session-token#add-custom-claims-to-your-session-token
-  //
-  const email =
-    doesObjectHaveKey(user, "email") && typeof user.email === "string"
-      ? user.email
-      : undefined
+  // Gets the user's primary email address
+  const { primaryEmailAddress } = await ctx.caches.clerkUser.getOrSet(
+    userId,
+    userId,
+  )
+  if (primaryEmailAddress == null) {
+    throw gqlBadRequestError(
+      "user has no primary email address linked to their account",
+    )
+  }
+
+  // Gets the email address
+  const email = primaryEmailAddress.emailAddress
 
   // If there's no cached URL that we can return back to the user, then we need to generate a new checkout session.
   const clientReferenceId = randomUUID()
@@ -113,15 +117,15 @@ export const handler = async (
     mode: "subscription",
     line_items: [
       {
-        price: ctx.vendor.stripe.env.STRIPE_PRICE_ID,
+        price: ctx.env.stripe.STRIPE_PRICE_ID,
       },
     ],
     // The stripe customer ID will be defined if the user has subscribed in the past
     ...(result.stripeCustomerId == null
       ? { customer_email: email }
       : { customer: result.stripeCustomerId }),
-    success_url: ctx.vendor.stripe.env.STRIPE_CHECKOUT_SUCCESS_URL,
-    cancel_url: ctx.vendor.stripe.env.STRIPE_CHECKOUT_CANCEL_URL,
+    success_url: ctx.env.stripe.STRIPE_CHECKOUT_SUCCESS_URL,
+    cancel_url: ctx.env.stripe.STRIPE_CHECKOUT_CANCEL_URL,
     client_reference_id: clientReferenceId,
     subscription_data: {
       // Only offer a free trial if the user has never subscribed before
@@ -135,13 +139,13 @@ export const handler = async (
             },
           }
         : {}),
-      metadata: fromZodType<typeof zStripeSubscriptionMetadata>({
-        userId: user.sub,
-      }),
+      metadata: { userId } satisfies z.infer<
+        typeof zStripeSubscriptionMetadata
+      >,
     },
-    metadata: fromZodType<typeof zStripeCheckoutSessionMetadata>({
-      userId: user.sub,
-    }),
+    metadata: { userId } satisfies z.infer<
+      typeof zStripeCheckoutSessionMetadata
+    >,
     automatic_tax: {
       enabled: true,
     },
@@ -221,7 +225,7 @@ export const handler = async (
         await tx
           .update(schema.checkoutSession)
           .set({
-            customerId: user.sub,
+            customerId: userId,
             sessionId: session.id,
             clientReferenceId,
             url,
@@ -275,7 +279,7 @@ export const handler = async (
       if (result.clientReferenceId == null) {
         await tx.insert(schema.checkoutSession).ignore().values({
           id: randomUUID(),
-          customerId: user.sub,
+          customerId: userId,
           sessionId: session.id,
           clientReferenceId,
           url,
@@ -296,7 +300,7 @@ export const handler = async (
           await tx
             .update(schema.checkoutSession)
             .set({
-              customerId: user.sub,
+              customerId: userId,
               sessionId: session.id,
               clientReferenceId,
               url,
@@ -315,7 +319,7 @@ export const handler = async (
     // we'll query it and return it to the client.
     return await tx.query.checkoutSession
       .findFirst({
-        where: eq(schema.checkoutSession.customerId, user.sub),
+        where: eq(schema.checkoutSession.customerId, userId),
       })
       .then((res) => {
         if (res == null) {
@@ -328,7 +332,7 @@ export const handler = async (
 
 const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
   // Gets the user from the context
-  const user = ctx.clerk.user.sessionClaims
+  const userId = ctx.clerk.user.id
 
   // Defines helper variable(s)
   const empty = {
@@ -340,7 +344,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
   // Queries the database for any existing sessions
   const existingSession =
     await ctx.vendor.db.drizzle.query.checkoutSession.findFirst({
-      where: eq(schema.checkoutSession.customerId, user.sub),
+      where: eq(schema.checkoutSession.customerId, userId),
     })
 
   // If the database does not have a checkout session, then we need to create a new one
@@ -350,13 +354,9 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
 
   // If an existing session was found, we need to handle it based on its status. First
   // let's query the cache / Stripe API for the additional checkout session details
-  const sess = await ctx.caches.stripe.getOrSet(
-    user.sub,
-    async () =>
-      await ctx.vendor.stripe.client.checkout.sessions.retrieve(
-        existingSession.sessionId,
-        { expand: ["subscription", "customer"] },
-      ),
+  const sess = await ctx.caches.stripeCheckoutSess.getOrSet(
+    userId,
+    existingSession.sessionId,
   )
 
   // If the session is open, then we'll return the existing checkout session URL
@@ -379,7 +379,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
     // in the database is also deleted. This will also reset the free trial offer. In
     // this case, we want to mimic a situation where no existing session existed in the
     // database.
-    const customer = await expandStripeCustomer(ctx.vendor.stripe, sess)
+    const customer = await extractStripeCustomer(ctx.vendor.stripe, sess)
     if (customer != null && customer.deleted) {
       return await ctx.vendor.db.drizzle
         .delete(schema.checkoutSession)
@@ -389,7 +389,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
 
     // If the subscription associated with the checkout session has been cancelled, then we
     // need to generate a new checkout session.
-    const sub = await expandStripeSubscription(ctx.vendor.stripe, sess)
+    const sub = await extractStripeSubscription(ctx.vendor.stripe, sess)
     if (sub != null && sub.status === "canceled") {
       return {
         clientReferenceId: existingSession.clientReferenceId,
@@ -401,7 +401,7 @@ const resolveCheckoutSession = async (ctx: GraphQLAuthContext) => {
     // Otherwise, the subscription is still active, and we return the URL to the customer's
     // portal. Notice here that we intentionally DO NOT create a billing portal session using
     // the Stripe customer ID. This helps us avoid making an additional API calls to Stripe.
-    return { url: ctx.vendor.stripe.env.STRIPE_CUSTOMER_PORTAL_URL }
+    return { url: ctx.env.stripe.STRIPE_CUSTOMER_PORTAL_URL }
   }
 
   // Any other status code is considered unexpected and should cause an error

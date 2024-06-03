@@ -1,5 +1,5 @@
 {
-  "extends": "@block-feed/typescript-config/nextjs.json",
+  "extends": "@block-feed/config-typescript/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {
@@ -13,7 +13,7 @@
   },
   "include": [
     "next-env.d.ts",
-    "next.config.mjs",
+    "next.config.js",
     "postcss.config.js",
     "**/*.ts",
     "**/*.tsx",

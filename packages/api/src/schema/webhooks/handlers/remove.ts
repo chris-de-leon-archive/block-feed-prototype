@@ -23,7 +23,7 @@ export const handler = async (
     .delete(schema.webhook)
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.id),
         inArray(schema.webhook.id, args.ids),
       ),
     )

@@ -1,6 +1,6 @@
 "use client"
 
-import { WebhookStatus } from "@block-feed/shared"
+import { WebhookStatus } from "@block-feed/dashboard/utils"
 import { useState } from "react"
 import { z } from "zod"
 
@@ -41,7 +41,7 @@ export function WebhookSearchForm(props: WebhookSearchFormProps) {
         <label className="flex w-1/4 flex-col gap-y-2">
           <span className="text-md">What URL are you looking for?</span>
           <input
-            className="w-full border-b bg-transparent py-3 text-xs outline-none transition-all focus:border-sky-blue"
+            className="focus:border-sky-blue w-full border-b bg-transparent py-3 text-xs outline-none transition-all"
             value={form.url ?? ""}
             type="text"
             onChange={(e) => setForm({ ...form, url: e.currentTarget.value })}
@@ -50,7 +50,7 @@ export function WebhookSearchForm(props: WebhookSearchFormProps) {
         <label className="flex w-1/4 flex-col gap-y-2">
           <span className="text-md">Status</span>
           <select
-            className="w-full border-b bg-transparent py-3 text-xs outline-none transition-all focus:border-sky-blue"
+            className="focus:border-sky-blue w-full border-b bg-transparent py-3 text-xs outline-none transition-all"
             value={form.status ?? ""}
             onChange={(e) =>
               setForm({ ...form, status: e.currentTarget.value })
@@ -67,7 +67,7 @@ export function WebhookSearchForm(props: WebhookSearchFormProps) {
         <label className="flex w-1/4 flex-col gap-y-2">
           <span className="text-md">Blockchain</span>
           <select
-            className="w-full border-b bg-transparent py-3 text-xs outline-none transition-all focus:border-sky-blue"
+            className="focus:border-sky-blue w-full border-b bg-transparent py-3 text-xs outline-none transition-all"
             value={form.blockchain ?? ""}
             onChange={(e) =>
               setForm({ ...form, blockchain: e.currentTarget.value })
@@ -82,10 +82,10 @@ export function WebhookSearchForm(props: WebhookSearchFormProps) {
           </select>
         </label>
         <button
-          className={"mt-3 flex w-1/4 flex-col items-center rounded-lg border border-sky-blue p-3".concat(
+          className={"border-sky-blue mt-3 flex w-1/4 flex-col items-center rounded-lg border p-3".concat(
             props.disabled
-              ? " opacity-50"
-              : " transition-all ease-linear hover:opacity-50",
+              ? "opacity-50"
+              : "transition-all ease-linear hover:opacity-50",
           )}
           disabled={props.disabled}
           type="submit"

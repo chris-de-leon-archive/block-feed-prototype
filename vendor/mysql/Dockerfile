@@ -7,5 +7,4 @@ COPY ./docker/entrypoint/*.sh /docker-entrypoint-initdb.d/
 COPY ./docker/utils/*.sh /db/utils/
 COPY ./users/*.sql /db/users/
 COPY ./schema.sql /db/schema.sql
-COPY ./triggers.sql /db/triggers.sql
 

@@ -19,7 +19,6 @@ const zFormParser = z.object({
   message: z.string(),
 })
 
-// TODO: use server components
 export function ContactForm(props: ContactFormProps) {
   const [state, setState] = useState<FormState>({
     isLoading: false,
@@ -121,7 +120,7 @@ export function ContactForm(props: ContactFormProps) {
         className={"button-base mt-5 flex w-full flex-col items-center border-2 border-sky-blue border-opacity-50".concat(
           state.isLoading
             ? ""
-            : " transition-all ease-linear hover:border-opacity-100",
+            : "transition-all ease-linear hover:border-opacity-100",
         )}
         disabled={state.isLoading}
         type="submit"

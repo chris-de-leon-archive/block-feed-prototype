@@ -56,7 +56,7 @@ export const handler = async (
     })
     .where(
       and(
-        eq(schema.webhook.customerId, ctx.clerk.user.sessionClaims.sub),
+        eq(schema.webhook.customerId, ctx.clerk.user.id),
         eq(schema.webhook.id, args.id),
       ),
     )

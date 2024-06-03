@@ -3,18 +3,19 @@
 import { WebhookSearchForm } from "@block-feed/dashboard/components/home/forms/webhook-search.form"
 import { WebhookCreator } from "@block-feed/dashboard/components/home/webhooks-creator"
 import { WebhooksTable } from "@block-feed/dashboard/components/home/webhooks-table"
-import { interpretWebhookStatusString } from "@block-feed/dashboard/utils"
-import { graphql } from "@block-feed/dashboard/client/generated"
 import { constants } from "@block-feed/shared"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { WebhookStatus } from "../utils"
 import { useAuth } from "@clerk/nextjs"
 import {
-  makeAuthenticatedRequest,
   useGraphQLDashboardQuery,
   defaultQueryRetryHandler,
   handleDashboardError,
-} from "@block-feed/dashboard/client/hooks"
+  BlockchainsDocument,
+  makeRequestOrThrow,
+  WebhooksDocument,
+} from "@block-feed/dashboard/client"
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -32,7 +33,7 @@ export default function Dashboard() {
     Readonly<
       Partial<{
         blockchain: string
-        status: string
+        isActive: boolean
         url: string
       }>
     >
@@ -40,7 +41,7 @@ export default function Dashboard() {
 
   // Gets a list of blockchains
   const blockchains = useGraphQLDashboardQuery(
-    graphql("query Blockchains {\n  blockchains {\n    id\n    url\n  }\n}"),
+    BlockchainsDocument,
     {},
     getToken,
   )
@@ -50,10 +51,8 @@ export default function Dashboard() {
   const webhooks = useInfiniteQuery({
     queryKey: ["webhooks", filters, blockchains],
     queryFn: async (ctx) => {
-      return await makeAuthenticatedRequest(
-        graphql(
-          "query Webhooks($filters: WebhookFiltersInput!, $pagination: CursorPaginationInput!) {\n  webhooks(filters: $filters, pagination: $pagination) {\n    payload {\n      id\n      createdAt\n      url\n      customerId\n      blockchainId\n      isActive\n      isQueued\n      maxBlocks\n      maxRetries\n      timeoutMs\n    }\n    pagination {\n      hasNext\n      hasPrev\n    }\n  }\n}",
-        ),
+      return await makeRequestOrThrow(
+        WebhooksDocument,
         {
           pagination: {
             limit: constants.pagination.limits.LIMIT.MAX,
@@ -67,8 +66,8 @@ export default function Dashboard() {
           },
           filters: {
             and: {
-              status: { eq: interpretWebhookStatusString(filters.status) },
               blockchain: { eq: filters.blockchain },
+              isActive: { eq: filters.isActive },
               url: { like: filters.url },
             },
           },
@@ -121,7 +120,7 @@ export default function Dashboard() {
   // If an error occurred, handle it accordingly
   useEffect(() => {
     if (webhooks.error != null) {
-      return handleDashboardError(router, webhooks.error)
+      handleDashboardError(router, webhooks.error)
     }
   }, [webhooks.error])
 
@@ -152,10 +151,23 @@ export default function Dashboard() {
           blockchains={blockchainIds}
           disabled={webhooks.isFetching}
           onSubmit={(data) => {
+            const blockchain =
+              data.blockchain != null && data.blockchain !== ""
+                ? data.blockchain
+                : undefined
+
+            const isActive =
+              data.status == null && data.status !== ""
+                ? data.status === WebhookStatus.ACTIVE
+                : undefined
+
+            const url =
+              data.url != null && data.url !== "" ? data.url : undefined
+
             setFilters({
-              blockchain: data.blockchain,
-              status: data.status,
-              url: data.url,
+              blockchain,
+              isActive,
+              url,
             })
           }}
           onParseError={(err) => {

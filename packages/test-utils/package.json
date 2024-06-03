@@ -1,0 +1,25 @@
+{
+  "name": "@block-feed/test-utils",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@block-feed/drizzle": "workspace:*",
+    "@block-feed/shared": "workspace:*",
+    "@graphql-typed-document-node/core": "3.2.0",
+    "drizzle-orm": "0.31.0",
+    "graphql": "16.8.1",
+    "graphql-yoga": "5.3.1"
+  },
+  "devDependencies": {
+    "@block-feed/config-eslint": "workspace:*",
+    "@block-feed/config-typescript": "workspace:*",
+    "eslint": "9.4.0",
+    "mysql2": "3.10.0",
+    "testcontainers": "10.9.0",
+    "typescript": "5.4.5"
+  }
+}

@@ -1,30 +1,31 @@
-import { isGraphQLErrorCode } from "@block-feed/dashboard/client/errors"
-import { graphql } from "@block-feed/dashboard/client/generated"
-import { makeRequest } from "@block-feed/dashboard/client/node"
 import { GraphQLErrorCode } from "@block-feed/shared"
-import { ClientError } from "graphql-request"
+import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
-import { auth } from "@clerk/nextjs"
+import { GraphQLError } from "graphql"
+import {
+  CreateCheckoutSessionDocument,
+  isGraphQLErrorCode,
+  makeRequest,
+} from "@block-feed/dashboard/client"
 
 export default async function Subscribe() {
   // Gets the session
-  const { getToken } = auth()
+  const sess = auth()
 
   // Creates a checkout session
   const result = await makeRequest(
-    graphql(
-      "mutation CreateCheckoutSession {\n  createCheckoutSession {\n    url\n  }\n}",
-    ),
+    CreateCheckoutSessionDocument,
     {},
-    await getToken(),
+    await sess.getToken(),
   )
 
   // Handles any API errors
-  if (result instanceof ClientError) {
+  if (result instanceof GraphQLError) {
     // NOTE: we don't need to handle NOT_SUBSCRIBED or INVALID_SUBSCRIPTION
     // errors here since the user is currently in the process of subscribing
     if (isGraphQLErrorCode(result, GraphQLErrorCode.UNAUTHORIZED)) {
-      redirect("http://localhost:3000/api/auth/logout")
+      sess.redirectToSignIn()
+      return
     }
     throw result
   }

@@ -1,7 +1,10 @@
-import * as client from "./client"
+import * as redisClusterClient from "./cluster"
+import * as redisClient from "./client"
 
+export type { RedisClusterVendor } from "./cluster"
 export type { RedisVendor } from "./client"
 
 export const redis = {
-  client,
+  cluster: redisClusterClient,
+  client: redisClient,
 }

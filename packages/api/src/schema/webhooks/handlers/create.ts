@@ -1,7 +1,7 @@
 import { GraphQLAuthContext } from "../../../graphql/types"
 import { constants } from "@block-feed/shared"
+import { randomUUID, randomInt } from "crypto"
 import * as schema from "@block-feed/drizzle"
-import { randomUUID } from "crypto"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import {
@@ -42,12 +42,10 @@ export const handler = async (
   args: z.infer<typeof zInput>,
   ctx: GraphQLAuthContext,
 ) => {
-  const blockchainExists =
-    await ctx.vendor.db.drizzle.query.blockchain.findFirst({
-      where: eq(schema.blockchain.id, args.data.blockchainId),
-    })
-
-  if (blockchainExists == null) {
+  const blockchain = await ctx.vendor.db.drizzle.query.blockchain.findFirst({
+    where: eq(schema.blockchain.id, args.data.blockchainId),
+  })
+  if (blockchain == null) {
     throw gqlBadRequestError(
       `invalid blockchain ID "${args.data.blockchainId}"`,
     )
@@ -59,13 +57,13 @@ export const handler = async (
     .values({
       id: uuid,
       isActive: 0,
-      isQueued: 0,
       url: args.data.url,
       maxBlocks: args.data.maxBlocks,
       maxRetries: args.data.maxRetries,
       timeoutMs: args.data.timeoutMs,
-      customerId: ctx.clerk.user.sessionClaims.sub,
+      customerId: ctx.clerk.user.id,
       blockchainId: args.data.blockchainId,
+      shardId: randomInt(0, blockchain.shardCount),
     })
     .then(([result]) => {
       if (result.affectedRows === 0) {

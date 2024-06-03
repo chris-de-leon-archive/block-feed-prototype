@@ -1,28 +1,28 @@
-import type { StripeVendor } from "@block-feed/vendors"
+import { StripeWebhookEventProducer } from "../../utils/stripe/stripe-webhook-event-producer"
+import { StripeVendor } from "@block-feed/vendors"
 import { Plugin } from "graphql-yoga"
-import type { Stripe } from "stripe"
 
-export type StripeWebhookEventHandler<T> = (
-  ctx: T & { req: Request },
-  event: Stripe.Event,
-) => void | Promise<void>
-
-export type StripeWebhookEventHandlerPluginParams<T> = Readonly<{
-  stripe: StripeVendor
-  handler: StripeWebhookEventHandler<T>
-  context: T
+export type StripeWebhookEventHandlerPluginParams = Readonly<{
+  stripeProducer: StripeWebhookEventProducer
+  stripeVendor: StripeVendor
+  webhookSecret: string
 }>
 
 // https://github.com/dotansimha/graphql-yoga/discussions/2139
-export function withStripeWebhookEventHandler<T>(
-  params: StripeWebhookEventHandlerPluginParams<T>,
+export function withStripeWebhookEventHandler(
+  params: StripeWebhookEventHandlerPluginParams,
 ): Plugin {
   return {
     async onRequest(opts) {
       const sig = opts.request.headers.get("stripe-signature")
       if (sig != null) {
         // Verifies the webhook signature and gets the event
-        const result = await getEvent(params.stripe, sig, opts.request)
+        const result = await getEvent(
+          params.stripeVendor,
+          sig,
+          params.webhookSecret,
+          opts.request,
+        )
 
         // Handles any errors
         if (result.status !== 200) {
@@ -39,28 +39,8 @@ export function withStripeWebhookEventHandler<T>(
           )
         }
 
-        // TODO: add webhook event to a redis stream for processing
-
-        // Processes the event
-        try {
-          await params.handler(
-            { ...params.context, req: opts.request },
-            result.data,
-          )
-        } catch (err) {
-          console.error(
-            `an unhandled error occurred while processing event: ${JSON.stringify(result.data, null, 2)}`,
-          )
-          console.error(err)
-          return opts.endResponse(
-            new opts.fetchAPI.Response(null, {
-              status: 500,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }),
-          )
-        }
+        // Forward the event to a redis stream for processing
+        await params.stripeProducer.produce(result.data)
 
         // Returns a success message
         return opts.endResponse(
@@ -77,8 +57,9 @@ export function withStripeWebhookEventHandler<T>(
 }
 
 const getEvent = async (
-  { client, env }: StripeVendor,
+  vendor: StripeVendor,
   signature: string,
+  secret: string,
   req: Request,
 ) => {
   const body = await req.text().catch(() => null)
@@ -92,11 +73,7 @@ const getEvent = async (
   try {
     return {
       status: 200,
-      data: client.webhooks.constructEvent(
-        body,
-        signature,
-        env.STRIPE_WEBHOOK_SECRET,
-      ),
+      data: vendor.client.webhooks.constructEvent(body, signature, secret),
     } as const
   } catch (err) {
     return {

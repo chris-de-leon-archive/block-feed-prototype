@@ -1,0 +1,13 @@
+node_modules
+.pnp
+.pnp.js
+
+.git
+.gitignore
+
+*.md
+
+.next/
+out/
+build
+dist
