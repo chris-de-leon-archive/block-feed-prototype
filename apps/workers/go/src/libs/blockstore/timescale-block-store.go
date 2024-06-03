@@ -1,7 +1,6 @@
 package blockstore
 
 import (
-	"block-feed/src/libs/common"
 	"context"
 	"database/sql"
 	"errors"
@@ -100,7 +99,8 @@ func (blockStore *TimescaleBlockStore) PutBlocks(ctx context.Context, chainID st
 	)
 
 	return pgx.BeginTxFunc(ctx, blockStore.client, pgx.TxOptions{}, func(tx pgx.Tx) error {
-		return common.PickError(tx.Exec(ctx, query, sqlVals...))
+		_, err := tx.Exec(ctx, query, sqlVals...)
+		return err
 	})
 }
 

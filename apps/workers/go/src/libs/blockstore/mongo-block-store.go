@@ -1,7 +1,6 @@
 package blockstore
 
 import (
-	"block-feed/src/libs/common"
 	"context"
 	"errors"
 	"reflect"
@@ -35,18 +34,20 @@ func init() {
 
 	// Defines the collection column properties
 	properties := bson.M{"_id": bson.M{"bsonType": "objectId"}}
+	fieldNames := make([]string, st.NumField())
 	for i := 0; i < st.NumField(); i++ {
 		field := st.Field(i)
-		properties[field.Tag.Get("bson")] = bson.M{
-			"bsonType": field.Tag.Get("bsonType"),
-		}
+		fName := field.Tag.Get("bson")
+		fType := field.Tag.Get("bsonType")
+		properties[fName] = bson.M{"bsonType": fType}
+		fieldNames[i] = fName
 	}
 
 	// Defines the JSON schema validator for the collection
 	schema = bson.M{
 		"$jsonSchema": bson.M{
 			"bsonType":             "object",
-			"required":             common.Keys(properties),
+			"required":             fieldNames,
 			"properties":           properties,
 			"additionalProperties": false,
 		},
@@ -92,24 +93,23 @@ func (blockStore *MongoBlockStore) Init(ctx context.Context, chainID string) err
 	// Creates a collection and an index on the collection using a transaction
 	// If the collection and index already exist, then this will do nothing
 	return blockStore.db.Client().UseSession(ctx, func(sess mongo.SessionContext) error {
-		return common.PickError(
-			sess.WithTransaction(
-				ctx,
-				func(tx mongo.SessionContext) (interface{}, error) {
-					if err := blockStore.db.CreateCollection(tx, chainID, collectionOpts); err != nil {
-						isCollectionNamespaceError := strings.Contains(err.Error(), "(NamespaceExists) Collection")
-						isAlreadyExistsError := strings.Contains(err.Error(), "already exists")
-						if isCollectionNamespaceError && isAlreadyExistsError {
-							return nil, tx.AbortTransaction(tx)
-						} else {
-							return nil, err
-						}
+		_, err := sess.WithTransaction(
+			ctx,
+			func(tx mongo.SessionContext) (interface{}, error) {
+				if err := blockStore.db.CreateCollection(tx, chainID, collectionOpts); err != nil {
+					isCollectionNamespaceError := strings.Contains(err.Error(), "(NamespaceExists) Collection")
+					isAlreadyExistsError := strings.Contains(err.Error(), "already exists")
+					if isCollectionNamespaceError && isAlreadyExistsError {
+						return nil, tx.AbortTransaction(tx)
+					} else {
+						return nil, err
 					}
-					return blockStore.db.Collection(chainID).Indexes().CreateOne(tx, indexModel)
-				},
-				txOpts,
-			),
+				}
+				return blockStore.db.Collection(chainID).Indexes().CreateOne(tx, indexModel)
+			},
+			txOpts,
 		)
+		return err
 	})
 }
 
@@ -134,15 +134,14 @@ func (blockStore *MongoBlockStore) PutBlocks(ctx context.Context, chainID string
 
 	// Performs an atomic bulk write to store the blocks
 	return blockStore.db.Client().UseSession(ctx, func(sess mongo.SessionContext) error {
-		return common.PickError(
-			sess.WithTransaction(
-				ctx,
-				func(tx mongo.SessionContext) (interface{}, error) {
-					return blockStore.db.Collection(chainID).BulkWrite(tx, writes, bulkWriteOpts)
-				},
-				txOpts,
-			),
+		_, err := sess.WithTransaction(
+			ctx,
+			func(tx mongo.SessionContext) (interface{}, error) {
+				return blockStore.db.Collection(chainID).BulkWrite(tx, writes, bulkWriteOpts)
+			},
+			txOpts,
 		)
+		return err
 	})
 }
 
