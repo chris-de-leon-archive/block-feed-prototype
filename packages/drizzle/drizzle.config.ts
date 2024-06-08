@@ -6,7 +6,7 @@ export default defineConfig({
   verbose: true,
   strict: true,
   dbCredentials: {
-    url: process.env.DB_URL ?? "",
+    url: process.env.DRIZZLE_DB_URL ?? "",
   },
   introspect: {
     casing: "camel",

@@ -75,8 +75,9 @@ func (service *BlockStreamConsumer) handleMessages(
 	// Idempotently reschedules the webhooks for processing
 	eg := new(errgroup.Group)
 	for _, webhookStream := range service.webhookStreams {
+		stream := webhookStream
 		eg.Go(func() error {
-			return webhookStream.Flush(ctx, height)
+			return stream.Flush(ctx, height)
 		})
 	}
 

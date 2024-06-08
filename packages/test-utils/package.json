@@ -10,7 +10,7 @@
     "@block-feed/drizzle": "workspace:*",
     "@block-feed/shared": "workspace:*",
     "@graphql-typed-document-node/core": "3.2.0",
-    "drizzle-orm": "0.31.0",
+    "drizzle-orm": "0.31.2",
     "graphql": "16.8.1",
     "graphql-yoga": "5.3.1"
   },

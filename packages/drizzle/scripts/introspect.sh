@@ -28,7 +28,7 @@ set -e
 docker build \
 	-t "$IMAGE_NAME" \
 	--build-arg MYSQL_VERSION="$MYSQL_VERSION" \
-	"$(git rev-parse --show-toplevel)"/vendor/mysql
+	"$(git rev-parse --show-toplevel)/vendor/mysql"
 
 # Creates a database container and applies the setup scripts
 docker run --rm -d \
@@ -50,5 +50,5 @@ while ! docker exec "$RANDM_UUID" mysqladmin --user="root" --password="$MYSQL_RO
 done
 
 # Generates a drizzle schema
-export DB_URL="mysql://root:$MYSQL_ROOT_PWORD@host.docker.internal:$MYSQL_PORT/$MYSQL_DB"
+export DRIZZLE_DB_URL="mysql://root:$MYSQL_ROOT_PWORD@host.docker.internal:$MYSQL_PORT/$MYSQL_DB"
 drizzle-kit introspect
