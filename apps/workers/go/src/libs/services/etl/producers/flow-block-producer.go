@@ -13,9 +13,9 @@ import (
 
 type (
 	FlowBlockProducerOpts struct {
-		reconnectInitDelayMs *int
-		reconnectRandDelayMs *int
-		reconnectAttempts    *int
+		ReconnectInitDelayMs *int
+		ReconnectRandDelayMs *int
+		ReconnectAttempts    *int
 	}
 
 	FlowBlockProducer struct {
@@ -28,25 +28,25 @@ type (
 func NewFlowBlockProducer(client *grpc.Client, startHeight *uint64, opts *FlowBlockProducerOpts) *FlowBlockProducer {
 	options := &FlowBlockProducerOpts{}
 
-	if opts != nil && opts.reconnectInitDelayMs != nil && *opts.reconnectInitDelayMs >= 0 {
-		options.reconnectInitDelayMs = opts.reconnectInitDelayMs
+	if opts != nil && opts.ReconnectInitDelayMs != nil && *opts.ReconnectInitDelayMs >= 0 {
+		options.ReconnectInitDelayMs = opts.ReconnectInitDelayMs
 	} else {
-		options.reconnectInitDelayMs = new(int)
-		*options.reconnectInitDelayMs = 500
+		options.ReconnectInitDelayMs = new(int)
+		*options.ReconnectInitDelayMs = 500
 	}
 
-	if opts != nil && opts.reconnectRandDelayMs != nil && *opts.reconnectRandDelayMs >= 0 {
-		options.reconnectRandDelayMs = opts.reconnectRandDelayMs
+	if opts != nil && opts.ReconnectRandDelayMs != nil && *opts.ReconnectRandDelayMs >= 0 {
+		options.ReconnectRandDelayMs = opts.ReconnectRandDelayMs
 	} else {
-		options.reconnectRandDelayMs = new(int)
-		*options.reconnectRandDelayMs = 500
+		options.ReconnectRandDelayMs = new(int)
+		*options.ReconnectRandDelayMs = 500
 	}
 
-	if opts != nil && opts.reconnectAttempts != nil && *opts.reconnectAttempts >= 0 {
-		options.reconnectAttempts = opts.reconnectAttempts
+	if opts != nil && opts.ReconnectAttempts != nil && *opts.ReconnectAttempts >= 0 {
+		options.ReconnectAttempts = opts.ReconnectAttempts
 	} else {
-		options.reconnectAttempts = new(int)
-		*options.reconnectAttempts = 3
+		options.ReconnectAttempts = new(int)
+		*options.ReconnectAttempts = 3
 	}
 
 	return &FlowBlockProducer{
@@ -89,9 +89,9 @@ func (producer *FlowBlockProducer) Subscribe(ctx context.Context, handler func(c
 		// Establish a new subscription
 		_, err = common.ExponentialBackoff(
 			ctx,
-			*producer.opts.reconnectInitDelayMs,
-			*producer.opts.reconnectAttempts,
-			*producer.opts.reconnectRandDelayMs,
+			*producer.opts.ReconnectInitDelayMs,
+			*producer.opts.ReconnectAttempts,
+			*producer.opts.ReconnectRandDelayMs,
 			func(retryCount int) (bool, error) {
 				newData, newErrs, err := producer.client.SubscribeExecutionDataByBlockHeight(ctx, *producer.currHeight)
 				if err != nil {
@@ -155,15 +155,12 @@ func (producer *FlowBlockProducer) Subscribe(ctx context.Context, handler func(c
 	}
 }
 
-func (producer *FlowBlockProducer) getBlockByID(
-	ctx context.Context,
-	id flow.Identifier,
-) (*blockstore.BlockDocument, error) {
+func (producer *FlowBlockProducer) getBlockByID(ctx context.Context, id flow.Identifier) (*blockstore.BlockDocument, error) {
 	block, err := common.ExponentialBackoff(
 		ctx,
-		*producer.opts.reconnectInitDelayMs,
-		*producer.opts.reconnectAttempts,
-		*producer.opts.reconnectRandDelayMs,
+		*producer.opts.ReconnectInitDelayMs,
+		*producer.opts.ReconnectAttempts,
+		*producer.opts.ReconnectRandDelayMs,
 		func(retryCount int) (*flow.Block, error) {
 			return producer.client.GetBlockByID(ctx, id)
 		},
@@ -175,15 +172,12 @@ func (producer *FlowBlockProducer) getBlockByID(
 	}
 }
 
-func (producer *FlowBlockProducer) getBlockByHeight(
-	ctx context.Context,
-	height uint64,
-) (*blockstore.BlockDocument, error) {
+func (producer *FlowBlockProducer) getBlockByHeight(ctx context.Context, height uint64) (*blockstore.BlockDocument, error) {
 	block, err := common.ExponentialBackoff(
 		ctx,
-		*producer.opts.reconnectInitDelayMs,
-		*producer.opts.reconnectAttempts,
-		*producer.opts.reconnectRandDelayMs,
+		*producer.opts.ReconnectInitDelayMs,
+		*producer.opts.ReconnectAttempts,
+		*producer.opts.ReconnectRandDelayMs,
 		func(retryCount int) (*flow.Block, error) {
 			return producer.client.GetBlockByHeight(ctx, height)
 		},
@@ -195,9 +189,7 @@ func (producer *FlowBlockProducer) getBlockByHeight(
 	}
 }
 
-func (producer *FlowBlockProducer) formatBlock(
-	block *flow.Block,
-) (*blockstore.BlockDocument, error) {
+func (producer *FlowBlockProducer) formatBlock(block *flow.Block) (*blockstore.BlockDocument, error) {
 	data, err := producer.stringifyBlock(block)
 	if err != nil {
 		return nil, err
@@ -206,9 +198,7 @@ func (producer *FlowBlockProducer) formatBlock(
 	}
 }
 
-func (producer *FlowBlockProducer) stringifyBlock(
-	block *flow.Block,
-) ([]byte, error) {
+func (producer *FlowBlockProducer) stringifyBlock(block *flow.Block) ([]byte, error) {
 	return json.MarshalIndent(map[string]any{
 		"id":             block.ID.String(),
 		"parent_id":      block.ParentID.String(),
