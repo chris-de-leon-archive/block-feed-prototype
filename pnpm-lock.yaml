@@ -20,6 +20,9 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: 0.6.2
         version: 0.6.2(prettier@3.3.1)
+      tsx:
+        specifier: 4.14.1
+        version: 4.14.1
       turbo:
         specifier: 2.0.3
         version: 2.0.3
@@ -278,9 +281,6 @@ importers:
       stripe:
         specifier: 15.10.0
         version: 15.10.0
-      tsx:
-        specifier: 4.14.1
-        version: 4.14.1
       typescript:
         specifier: 5.4.5
         version: 5.4.5

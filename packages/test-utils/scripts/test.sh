@@ -8,18 +8,15 @@ set -ex
 
 if [ ! -z $1 ]; then
 	printf "\n\nGenerating Drizzle schema...\n\n"
-	cd "$(git rev-parse --show-toplevel)/packages/drizzle"
-	pnpm introspect
+	pnpm --filter=@block-feed/drizzle introspect
 
 	printf "\n\nGenerating GraphQL SDK...\n\n"
-	cd "$(git rev-parse --show-toplevel)/packages/gqlgen"
-	pnpm codegen
+	pnpm --filter=@block-feed/gqlgen codegen
 fi
 
 printf "\n\nRunning tests...\n\n"
-cd "$(git rev-parse --show-toplevel)/packages/api"
 TEST_FILES=$(
-	find ./tests -type f -name '*.tests.ts' |
+	find . -type f -name '*.tests.ts' |
 		tr '\n' ' ' |
 		xargs echo
 )
