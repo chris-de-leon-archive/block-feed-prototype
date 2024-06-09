@@ -6,7 +6,7 @@ services:
     network_mode: bridge
     build:
       dockerfile: ./Dockerfile
-      context: ../../vendor/mysql
+      context: ./vendor/mysql
       args:
         MYSQL_VERSION: "8.3.0"
     environment:
@@ -30,7 +30,7 @@ services:
     network_mode: bridge
     build:
       dockerfile: ./Dockerfile
-      context: ../../vendor/redis-cluster
+      context: ./vendor/redis-cluster
     environment:
       START_PORT: 7001
       END_PORT: 7006
@@ -42,7 +42,7 @@ services:
     network_mode: bridge
     build:
       dockerfile: ./Dockerfile
-      context: ../../vendor/redis-cluster
+      context: ./vendor/redis-cluster
     environment:
       START_PORT: 8001
       END_PORT: 8006

@@ -100,11 +100,13 @@ export function WebhookEditForm(props: WebhookEditFormProps) {
         <span className="text-sm opacity-50">HTTP Timeout (ms)</span>
       </label>
       <button
-        className={"border-sky-blue mt-3 flex w-full flex-col items-center rounded-lg border p-3".concat(
-          props.disabled
-            ? "opacity-50"
-            : "transition-all ease-linear hover:opacity-50",
-        )}
+        className={"border-sky-blue mt-3 flex w-full flex-col items-center rounded-lg border p-3"
+          .concat(" ")
+          .concat(
+            props.disabled
+              ? "opacity-50"
+              : "transition-all ease-linear hover:opacity-50",
+          )}
         disabled={props.disabled}
         type="submit"
       >

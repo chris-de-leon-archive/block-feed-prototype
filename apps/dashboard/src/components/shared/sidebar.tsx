@@ -1,9 +1,8 @@
 "use client"
 
-import { IoHome, IoSettingsSharp } from "react-icons/io5"
-import { IoStatsChart } from "react-icons/io5"
 import { usePathname } from "next/navigation"
 import { TfiMoney } from "react-icons/tfi"
+import { IoHome } from "react-icons/io5"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -25,7 +24,9 @@ export function Sidebar() {
               className={"ml-5 mr-20".concat(
                 path === item.route
                   ? ""
-                  : "opacity-50 transition-all ease-linear hover:opacity-100",
+                  : " ".concat(
+                      "opacity-50 transition-all ease-linear hover:opacity-100",
+                    ),
               )}
               key={i}
               href={item.route}
@@ -49,18 +50,8 @@ const items = [
     icon: <IoHome />,
   },
   {
-    route: "/monitoring",
-    name: "Monitoring",
-    icon: <IoStatsChart />,
-  },
-  {
     route: "/billing",
     name: "Billing",
     icon: <TfiMoney />,
-  },
-  {
-    route: "/settings",
-    name: "Settings",
-    icon: <IoSettingsSharp />,
   },
 ]

@@ -180,13 +180,15 @@ export function WebhooksTable(props: WebhooksTableProps) {
           </div>
           <div className="flex flex-row items-center gap-x-5">
             <button
-              className={"border-sky-blue rounded-lg border p-3".concat(
-                props.isFetching ||
-                  props.isFetchingPrevPage ||
-                  !props.hasPrevPage
-                  ? "opacity-50"
-                  : "transition-all ease-linear hover:opacity-50",
-              )}
+              className={"border-sky-blue rounded-lg border p-3"
+                .concat(" ")
+                .concat(
+                  props.isFetching ||
+                    props.isFetchingPrevPage ||
+                    !props.hasPrevPage
+                    ? "opacity-50"
+                    : "transition-all ease-linear hover:opacity-50",
+                )}
               type="button"
               disabled={
                 props.isFetching ||
@@ -210,13 +212,15 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"border-sky-blue rounded-lg border p-3".concat(
-                props.isFetching ||
-                  props.isFetchingNextPage ||
-                  !props.hasNextPage
-                  ? "opacity-50"
-                  : "transition-all ease-linear hover:opacity-50",
-              )}
+              className={"border-sky-blue rounded-lg border p-3"
+                .concat(" ")
+                .concat(
+                  props.isFetching ||
+                    props.isFetchingNextPage ||
+                    !props.hasNextPage
+                    ? "opacity-50"
+                    : "transition-all ease-linear hover:opacity-50",
+                )}
               type="button"
               disabled={
                 props.isFetching ||
@@ -242,11 +246,13 @@ export function WebhooksTable(props: WebhooksTableProps) {
           </div>
           <div className="flex flex-row items-center gap-x-5">
             <button
-              className={"border-sky-blue rounded-lg border p-3".concat(
-                props.isFetching
-                  ? "opacity-50"
-                  : "transition-all ease-linear hover:opacity-50",
-              )}
+              className={"border-sky-blue rounded-lg border p-3"
+                .concat(" ")
+                .concat(
+                  props.isFetching
+                    ? "opacity-50"
+                    : "transition-all ease-linear hover:opacity-50",
+                )}
               type="button"
               disabled={props.isFetching}
               onClick={() => {
@@ -268,9 +274,11 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear".concat(
-                checkboxes.canActivate() ? "hover:opacity-50" : "opacity-50",
-              )}
+              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear"
+                .concat(" ")
+                .concat(
+                  checkboxes.canActivate() ? "hover:opacity-50" : "opacity-50",
+                )}
               type="button"
               disabled={!checkboxes.canActivate()}
               onClick={() =>
@@ -299,9 +307,11 @@ export function WebhooksTable(props: WebhooksTableProps) {
               )}
             </button>
             <button
-              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear".concat(
-                checkboxes.canDelete() ? "hover:opacity-50" : "opacity-50",
-              )}
+              className={"border-sky-blue rounded-lg border p-3 transition-all ease-linear"
+                .concat(" ")
+                .concat(
+                  checkboxes.canDelete() ? "hover:opacity-50" : "opacity-50",
+                )}
               type="button"
               disabled={!checkboxes.canDelete()}
               onClick={() =>

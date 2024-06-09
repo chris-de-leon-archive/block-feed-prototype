@@ -82,11 +82,13 @@ export function WebhookSearchForm(props: WebhookSearchFormProps) {
           </select>
         </label>
         <button
-          className={"border-sky-blue mt-3 flex w-1/4 flex-col items-center rounded-lg border p-3".concat(
-            props.disabled
-              ? "opacity-50"
-              : "transition-all ease-linear hover:opacity-50",
-          )}
+          className={"border-sky-blue mt-3 flex w-1/4 flex-col items-center rounded-lg border p-3"
+            .concat(" ")
+            .concat(
+              props.disabled
+                ? "opacity-50"
+                : "transition-all ease-linear hover:opacity-50",
+            )}
           disabled={props.disabled}
           type="submit"
         >

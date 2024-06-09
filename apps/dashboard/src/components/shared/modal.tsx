@@ -11,7 +11,7 @@ export function Modal(props: ModalProps) {
   return (
     <div
       className={"fixed inset-0 z-[2] flex items-center justify-center bg-black bg-opacity-50".concat(
-        props.open ? "" : "hidden",
+        props.open ? "" : " ".concat("hidden"),
       )}
       onClick={props.onClose}
     >

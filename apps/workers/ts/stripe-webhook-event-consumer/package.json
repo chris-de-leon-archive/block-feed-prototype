@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "tsnode": "f() { TS_NODE_PROJECT=tsconfig.json node --env-file=../../../dashboard/.env --require ts-node/register $1; }; f",
-    "dev": "pnpm tsnode ./src/main.ts",
+    "dev": "node --env-file=../../../dashboard/.env --import=tsx ./src/main.ts",
     "build": "node ./esbuild.config.js",
     "start": "node ./dist/main.js",
     "lint": "eslint . --max-warnings 0"
@@ -24,7 +23,6 @@
     "@types/node": "20.14.2",
     "esbuild": "0.21.4",
     "eslint": "9.4.0",
-    "ts-node": "10.9.2",
     "typescript": "5.4.5"
   }
 }

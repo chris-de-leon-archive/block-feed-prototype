@@ -1,9 +1,4 @@
 {
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
-  },
   "extends": "@block-feed/config-typescript/base.json",
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
