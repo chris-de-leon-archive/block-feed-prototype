@@ -1,5 +1,8 @@
-import { StripeWebhookEventConsumer, RedisCacheFactory } from "@block-feed/api"
-import { db, redis, stripe } from "@block-feed/vendors"
+import {
+  StripeWebhookEventConsumer,
+  RedisCacheFactory,
+} from "@block-feed/node-api"
+import { db, redis, stripe } from "@block-feed/node-vendors"
 import { z } from "zod"
 
 async function main() {

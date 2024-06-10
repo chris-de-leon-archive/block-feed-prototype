@@ -1,0 +1,17 @@
+{
+  "name": "@block-feed/node-gqlgen",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "codegen": "graphql-codegen --config .graphqlrc.ts"
+  },
+  "devDependencies": {
+    "@block-feed/node-api": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
+    "@graphql-codegen/cli": "5.0.2",
+    "@graphql-codegen/client-preset": "4.2.6",
+    "@graphql-codegen/schema-ast": "4.0.2",
+    "graphql": "16.8.1",
+    "graphql-config": "5.0.3"
+  }
+}

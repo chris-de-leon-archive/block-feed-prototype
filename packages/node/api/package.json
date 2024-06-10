@@ -1,0 +1,36 @@
+{
+  "name": "@block-feed/node-api",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "./node_modules/.bin/nptest"
+  },
+  "dependencies": {
+    "@block-feed/node-db": "workspace:*",
+    "@block-feed/node-shared": "workspace:*",
+    "@clerk/clerk-sdk-node": "5.0.10",
+    "@pothos/core": "3.41.1",
+    "@pothos/plugin-validation": "3.10.1",
+    "drizzle-orm": "0.31.2",
+    "graphql": "16.8.1",
+    "graphql-yoga": "5.3.1",
+    "jsonwebtoken": "9.0.2",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
+    "@block-feed/node-testutils": "workspace:*",
+    "@block-feed/node-vendors": "workspace:*",
+    "@graphql-typed-document-node/core": "3.2.0",
+    "@types/jsonwebtoken": "9.0.6",
+    "eslint": "9.4.0",
+    "stripe": "15.10.0",
+    "typescript": "5.4.5"
+  }
+}

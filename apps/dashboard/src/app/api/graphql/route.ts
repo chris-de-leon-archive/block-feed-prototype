@@ -3,7 +3,7 @@ import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases"
 import { maxTokensPlugin } from "@escape.tech/graphql-armor-max-tokens"
 import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit"
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth"
-import { stripe, redis, clerk, db } from "@block-feed/vendors"
+import { stripe, redis, clerk, db } from "@block-feed/node-vendors"
 import { initContextCache } from "@pothos/core"
 import { createYoga } from "graphql-yoga"
 import { z } from "zod"
@@ -17,7 +17,7 @@ import {
   withClerkJWT,
   zStripeEnv,
   builder,
-} from "@block-feed/api"
+} from "@block-feed/node-api"
 
 const envvars = z
   .object({

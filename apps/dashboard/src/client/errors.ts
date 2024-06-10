@@ -6,7 +6,7 @@ import {
   doesObjectHaveKey,
   GraphQLErrorCode,
   constants,
-} from "@block-feed/shared"
+} from "@block-feed/node-shared"
 
 export type ErrorCallbacks = Readonly<{
   onInvalidSubscriptionError?: (err: GraphQLError) => void

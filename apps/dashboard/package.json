@@ -14,9 +14,9 @@
     "./.next"
   ],
   "dependencies": {
-    "@block-feed/api": "workspace:*",
-    "@block-feed/shared": "workspace:*",
-    "@block-feed/vendors": "workspace:*",
+    "@block-feed/node-api": "workspace:*",
+    "@block-feed/node-shared": "workspace:*",
+    "@block-feed/node-vendors": "workspace:*",
     "@clerk/nextjs": "5.1.4",
     "@escape.tech/graphql-armor-cost-limit": "2.2.0",
     "@escape.tech/graphql-armor-max-aliases": "2.4.0",
@@ -35,8 +35,8 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@block-feed/config-eslint": "workspace:*",
-    "@block-feed/config-typescript": "workspace:*",
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
     "@types/eslint": "8.56.10",
     "@types/node": "20.14.2",
     "@types/react": "18.3.3",

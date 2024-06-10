@@ -1,0 +1,18 @@
+{
+  "name": "@block-feed/node-db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "introspect": "bash ./scripts/introspect.sh"
+  },
+  "devDependencies": {
+    "@block-feed/node-config-typescript": "workspace:*",
+    "drizzle-kit": "0.22.6",
+    "drizzle-orm": "0.31.2",
+    "typescript": "5.4.5"
+  }
+}

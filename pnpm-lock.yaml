@@ -8,12 +8,12 @@ importers:
 
   .:
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
-        version: link:packages/config/eslint
-      '@block-feed/config-typescript':
+        version: link:packages/node/config/eslint
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
-        version: link:packages/config/typescript
+        version: link:packages/node/config/typescript
       prettier:
         specifier: 3.3.1
         version: 3.3.1
@@ -27,17 +27,27 @@ importers:
         specifier: 2.0.3
         version: 2.0.3
 
+  apps/block-feed/block-flusher: {}
+
+  apps/block-feed/block-forwarders/eth-forwarder: {}
+
+  apps/block-feed/block-forwarders/flow-forwarder: {}
+
+  apps/block-feed/block-processors/webhook-processor: {}
+
+  apps/block-feed/block-router: {}
+
   apps/dashboard:
     dependencies:
-      '@block-feed/api':
+      '@block-feed/node-api':
         specifier: workspace:*
-        version: link:../../packages/api
-      '@block-feed/shared':
+        version: link:../../packages/node/api
+      '@block-feed/node-shared':
         specifier: workspace:*
-        version: link:../../packages/shared
-      '@block-feed/vendors':
+        version: link:../../packages/node/shared
+      '@block-feed/node-vendors':
         specifier: workspace:*
-        version: link:../../packages/vendors
+        version: link:../../packages/node/vendors
       '@clerk/nextjs':
         specifier: 5.1.4
         version: 5.1.4(next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -87,12 +97,12 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
-        version: link:../../packages/config/eslint
-      '@block-feed/config-typescript':
+        version: link:../../packages/node/config/eslint
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
-        version: link:../../packages/config/typescript
+        version: link:../../packages/node/config/typescript
       '@types/eslint':
         specifier: 8.56.10
         version: 8.56.10
@@ -145,12 +155,12 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
-        version: link:../../packages/config/eslint
-      '@block-feed/config-typescript':
+        version: link:../../packages/node/config/eslint
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
-        version: link:../../packages/config/typescript
+        version: link:../../packages/node/config/typescript
       '@next/eslint-plugin-next':
         specifier: 14.2.3
         version: 14.2.3
@@ -185,26 +195,24 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  apps/workers/go: {}
-
   apps/workers/ts/stripe-webhook-event-consumer:
     dependencies:
       zod:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
-      '@block-feed/api':
+      '@block-feed/node-api':
         specifier: workspace:*
-        version: link:../../../../packages/api
-      '@block-feed/config-eslint':
+        version: link:../../../../packages/node/api
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
-        version: link:../../../../packages/config/eslint
-      '@block-feed/config-typescript':
+        version: link:../../../../packages/node/config/eslint
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
-        version: link:../../../../packages/config/typescript
-      '@block-feed/vendors':
+        version: link:../../../../packages/node/config/typescript
+      '@block-feed/node-vendors':
         specifier: workspace:*
-        version: link:../../../../packages/vendors
+        version: link:../../../../packages/node/vendors
       '@types/eslint':
         specifier: 8.56.10
         version: 8.56.10
@@ -221,12 +229,46 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/api:
+  packages/go/appenv: {}
+
+  packages/go/block-sources/ethsrc: {}
+
+  packages/go/block-sources/flowsrc: {}
+
+  packages/go/block-stores/blockstore: {}
+
+  packages/go/block-stores/cachedstore: {}
+
+  packages/go/block-stores/mongostore: {}
+
+  packages/go/block-stores/redistore: {}
+
+  packages/go/block-stores/timescalestore: {}
+
+  packages/go/common: {}
+
+  packages/go/queries: {}
+
+  packages/go/services/blockforwarder: {}
+
+  packages/go/services/blockrelay: {}
+
+  packages/go/services/blockrouter: {}
+
+  packages/go/streams: {}
+
+  packages/go/tests: {}
+
+  packages/go/testutils: {}
+
+  packages/go/validation: {}
+
+  packages/node/api:
     dependencies:
-      '@block-feed/drizzle':
+      '@block-feed/node-db':
         specifier: workspace:*
-        version: link:../drizzle
-      '@block-feed/shared':
+        version: link:../db
+      '@block-feed/node-shared':
         specifier: workspace:*
         version: link:../shared
       '@clerk/clerk-sdk-node':
@@ -254,16 +296,16 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
         version: link:../config/eslint
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
-      '@block-feed/test-utils':
+      '@block-feed/node-testutils':
         specifier: workspace:*
-        version: link:../test-utils
-      '@block-feed/vendors':
+        version: link:../testutils
+      '@block-feed/node-vendors':
         specifier: workspace:*
         version: link:../vendors
       '@graphql-typed-document-node/core':
@@ -282,7 +324,7 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/config/eslint:
+  packages/node/config/eslint:
     devDependencies:
       '@eslint/eslintrc':
         specifier: 3.1.0
@@ -315,11 +357,11 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/config/typescript: {}
+  packages/node/config/typescript: {}
 
-  packages/drizzle:
+  packages/node/db:
     devDependencies:
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
       drizzle-kit:
@@ -332,12 +374,12 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/gqlgen:
+  packages/node/gqlgen:
     devDependencies:
-      '@block-feed/api':
+      '@block-feed/node-api':
         specifier: workspace:*
         version: link:../api
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
       '@graphql-codegen/cli':
@@ -356,12 +398,12 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@20.14.2)(graphql@16.8.1)(typescript@5.4.5)
 
-  packages/shared:
+  packages/node/shared:
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
         version: link:../config/eslint
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
       eslint:
@@ -371,12 +413,12 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/test-utils:
+  packages/node/testutils:
     dependencies:
-      '@block-feed/drizzle':
+      '@block-feed/node-db':
         specifier: workspace:*
-        version: link:../drizzle
-      '@block-feed/shared':
+        version: link:../db
+      '@block-feed/node-shared':
         specifier: workspace:*
         version: link:../shared
       '@graphql-typed-document-node/core':
@@ -392,10 +434,10 @@ importers:
         specifier: 5.3.1
         version: 5.3.1(graphql@16.8.1)
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
         version: link:../config/eslint
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
       eslint:
@@ -411,11 +453,11 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/vendors:
+  packages/node/vendors:
     dependencies:
-      '@block-feed/drizzle':
+      '@block-feed/node-db':
         specifier: workspace:*
-        version: link:../drizzle
+        version: link:../db
       '@clerk/clerk-sdk-node':
         specifier: 5.0.10
         version: 5.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -435,10 +477,10 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
     devDependencies:
-      '@block-feed/config-eslint':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
         version: link:../config/eslint
-      '@block-feed/config-typescript':
+      '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
       eslint:

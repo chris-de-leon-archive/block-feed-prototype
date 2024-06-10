@@ -1,6 +1,6 @@
 "use client"
 
-import { constants } from "@block-feed/shared"
+import { constants } from "@block-feed/node-shared"
 import { useState } from "react"
 import { z } from "zod"
 

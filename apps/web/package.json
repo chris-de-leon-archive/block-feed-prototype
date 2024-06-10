@@ -20,8 +20,8 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@block-feed/config-eslint": "workspace:*",
-    "@block-feed/config-typescript": "workspace:*",
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
     "@next/eslint-plugin-next": "14.2.3",
     "@types/eslint": "8.56.10",
     "@types/node": "20.14.2",

@@ -13,13 +13,13 @@
     "build": "turbo build",
     "clean": "turbo clean",
     "test": "turbo test",
-    "dev": "pnpm run dev:compose && turbo dev",
     "lint": "turbo lint",
+    "dev": "pnpm run dev:compose && turbo dev",
     "fmt": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "@block-feed/config-eslint": "workspace:*",
-    "@block-feed/config-typescript": "workspace:*",
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
     "prettier": "3.3.1",
     "prettier-plugin-tailwindcss": "0.6.2",
     "tsx": "4.15.1",
