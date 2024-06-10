@@ -9,7 +9,10 @@
     "turbo:pkg": "turbo gen workspace --type package",
     "deps:outdated": "pnpm outdated -r",
     "deps:up": "pnpm up --latest -r",
+    "setup": "turbo setup",
     "build": "turbo build",
+    "clean": "turbo clean",
+    "test": "turbo test",
     "dev": "pnpm run dev:compose && turbo dev",
     "lint": "turbo lint",
     "fmt": "prettier --write \"**/*.{ts,tsx,md}\""

@@ -119,44 +119,44 @@ resource "docker_container" "timescaledb" {
   }
 }
 
-resource "docker_image" "block_streamer" {
-  name         = "block-streamer:${var.tag}"
+resource "docker_image" "block_forwarder" {
+  name         = "block-forwarder:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/workers/go"
-    dockerfile = "./Dockerfile"
+    context    = path.cwd
+    dockerfile = "./go.Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/block-streamers/${var.chain_name}/main.go"
+      BUILD_DIR = "apps/block-feed/block-forwarders/${var.chain_name}-forwarder"
     }
   }
 }
 
-resource "docker_container" "block_streamer" {
-  name    = "block-streamer-${var.chain_id}"
+resource "docker_container" "block_forwarder" {
+  name    = "block-forwarder-${var.chain_id}"
   restart = "always"
-  image   = docker_image.block_streamer.name
+  image   = docker_image.block_forwarder.name
   env     = local.envvars
   networks_advanced {
     name = var.network_name
   }
 }
 
-resource "docker_image" "block_consumer" {
-  name         = "block-consumer:${var.tag}"
+resource "docker_image" "block_router" {
+  name         = "block-router:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/workers/go"
-    dockerfile = "./Dockerfile"
+    context    = path.cwd
+    dockerfile = "./go.Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/block-consumer/main.go"
+      BUILD_DIR = "apps/block-feed/block-router"
     }
   }
 }
 
-resource "docker_container" "block_consumer" {
-  name    = "block-consumer-${var.chain_id}"
+resource "docker_container" "block_router" {
+  name    = "block-router-${var.chain_id}"
   restart = "always"
-  image   = docker_image.block_consumer.name
+  image   = docker_image.block_router.name
   env = concat(local.envvars, [
     "BLOCK_CONSUMER_BATCH_SIZE=100",
   ])
@@ -169,10 +169,10 @@ resource "docker_image" "block_flusher" {
   name         = "block-flusher:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/workers/go"
-    dockerfile = "./Dockerfile"
+    context    = path.cwd
+    dockerfile = "./go.Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/block-flusher/main.go"
+      BUILD_DIR = "apps/block-feed/block-flusher"
     }
   }
 }
@@ -190,23 +190,23 @@ resource "docker_container" "block_flusher" {
   }
 }
 
-resource "docker_image" "webhook_consumer" {
-  name         = "webhook-consumer:${var.tag}"
+resource "docker_image" "webhook_processor" {
+  name         = "webhook-processor:${var.tag}"
   keep_locally = true
   build {
-    context    = "${path.cwd}/apps/workers/go"
-    dockerfile = "./Dockerfile"
+    context    = path.cwd
+    dockerfile = "./go.Dockerfile"
     build_args = {
-      BUILD_PATH = "./src/apps/webhook-consumer/main.go"
+      BUILD_DIR = "apps/block-feed/block-processors/webhook-processor"
     }
   }
 }
 
-resource "docker_container" "webhook_consumer" {
+resource "docker_container" "webhook_processor" {
   count   = var.shard_count * var.replicas_per_shard
-  name    = "webhook-consumer-${var.chain_id}-${count.index}"
+  name    = "webhook-processor-${var.chain_id}-${count.index}"
   restart = "always"
-  image   = docker_image.webhook_consumer.name
+  image   = docker_image.webhook_processor.name
   env = concat(local.envvars, [
     "WEBHOOK_CONSUMER_NAME=webhook-consumer-replica-${var.chain_id}-${count.index}",
     "WEBHOOK_CONSUMER_POOL_SIZE=${var.workers_per_replica}",

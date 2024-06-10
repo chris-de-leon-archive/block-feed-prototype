@@ -1,0 +1,13 @@
+{
+  "name": "@block-feed/block-feed-block-streamers-flow-streamer",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p node_modules/",
+    "build": "f(){ go build -o ${1:-\".bin\"} ./main.go; }; f",
+    "clean": "rm -rf .bin .turbo",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
+    "go:clean": "go clean -x -i -r -cache -modcache"
+  }
+}
