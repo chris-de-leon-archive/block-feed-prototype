@@ -8,10 +8,8 @@ set -ex
 
 if [ ! -z $1 ]; then
 	printf "\n\nGenerating Drizzle schema...\n\n"
-	pnpm --filter=@block-feed/drizzle introspect
+	pnpm --filter=@block-feed/node-db introspect
 
-	printf "\n\nGenerating GraphQL SDK...\n\n"
-	pnpm --filter=@block-feed/gqlgen codegen
 fi
 
 printf "\n\nRunning tests...\n\n"

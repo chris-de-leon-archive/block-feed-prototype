@@ -1,0 +1,27 @@
+{
+  "name": "@block-feed/node-caching",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@block-feed/node-providers-stripe": "workspace:*",
+    "@block-feed/node-providers-clerk": "workspace:*",
+    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-db": "workspace:*",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
+    "@clerk/clerk-sdk-node": "5.0.10",
+    "eslint": "9.4.0",
+    "stripe": "15.10.0",
+    "typescript": "5.4.5"
+  }
+}

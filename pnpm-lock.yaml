@@ -39,18 +39,36 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@block-feed/node-api':
+      '@block-feed/node-caching':
         specifier: workspace:*
-        version: link:../../packages/node/api
+        version: link:../../packages/node/caching
+      '@block-feed/node-db':
+        specifier: workspace:*
+        version: link:../../packages/node/db
+      '@block-feed/node-providers-clerk':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/clerk
+      '@block-feed/node-providers-mysql':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/mysql
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/stripe
+      '@block-feed/node-services-stripe-webhook-producer':
+        specifier: workspace:*
+        version: link:../../packages/node/services/stripe-webhook/producer
       '@block-feed/node-shared':
         specifier: workspace:*
         version: link:../../packages/node/shared
-      '@block-feed/node-vendors':
-        specifier: workspace:*
-        version: link:../../packages/node/vendors
+      '@clerk/clerk-sdk-node':
+        specifier: 5.0.10
+        version: 5.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@clerk/nextjs':
         specifier: 5.1.4
-        version: 5.1.4(next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 5.1.4(next@14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@escape.tech/graphql-armor-cost-limit':
         specifier: 2.2.0
         version: 2.2.0
@@ -72,18 +90,27 @@ importers:
       '@pothos/core':
         specifier: 3.41.1
         version: 3.41.1(graphql@16.8.1)
+      '@pothos/plugin-validation':
+        specifier: 3.10.1
+        version: 3.10.1(@pothos/core@3.41.1(graphql@16.8.1))(graphql@16.8.1)(zod@3.23.8)
       '@tanstack/react-query':
         specifier: 5.40.1
         version: 5.40.1(react@18.3.1)
+      drizzle-orm:
+        specifier: 0.31.2
+        version: 0.31.2(@types/react@18.3.3)(mysql2@3.10.0)(react@18.3.1)
       graphql:
         specifier: 16.8.1
         version: 16.8.1
       graphql-yoga:
         specifier: 5.3.1
         version: 5.3.1(graphql@16.8.1)
+      jsonwebtoken:
+        specifier: 9.0.2
+        version: 9.0.2
       next:
         specifier: 14.2.3
-        version: 14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -103,9 +130,24 @@ importers:
       '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../../packages/node/config/typescript
+      '@block-feed/node-testutils':
+        specifier: workspace:*
+        version: link:../../packages/node/testutils
+      '@graphql-codegen/cli':
+        specifier: 5.0.2
+        version: 5.0.2(@types/node@20.14.2)(graphql@16.8.1)(typescript@5.4.5)
+      '@graphql-codegen/client-preset':
+        specifier: 4.2.6
+        version: 4.2.6(graphql@16.8.1)
+      '@graphql-codegen/schema-ast':
+        specifier: 4.0.2
+        version: 4.0.2(graphql@16.8.1)
       '@types/eslint':
         specifier: 8.56.10
         version: 8.56.10
+      '@types/jsonwebtoken':
+        specifier: 9.0.6
+        version: 9.0.6
       '@types/node':
         specifier: 20.14.2
         version: 20.14.2
@@ -121,6 +163,9 @@ importers:
       eslint:
         specifier: 9.4.0
         version: 9.4.0
+      graphql-config:
+        specifier: 5.0.3
+        version: 5.0.3(@types/node@20.14.2)(graphql@16.8.1)(typescript@5.4.5)
       postcss:
         specifier: 8.4.38
         version: 8.4.38
@@ -134,6 +179,49 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
+  apps/stripe-webhook-event-consumer:
+    dependencies:
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../packages/node/caching
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/node/config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../packages/node/config/typescript
+      '@block-feed/node-providers-mysql':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/mysql
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../../packages/node/providers/stripe
+      '@block-feed/node-services-stripe-webhook-consumer':
+        specifier: workspace:*
+        version: link:../../packages/node/services/stripe-webhook/consumer
+      '@types/eslint':
+        specifier: 8.56.10
+        version: 8.56.10
+      '@types/node':
+        specifier: 20.14.2
+        version: 20.14.2
+      esbuild:
+        specifier: 0.21.4
+        version: 0.21.4
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
   apps/web:
     dependencies:
       '@next/third-parties':
@@ -141,7 +229,7 @@ importers:
         version: 14.2.3(next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       next:
         specifier: 14.2.3
-        version: 14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -195,40 +283,6 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  apps/workers/ts/stripe-webhook-event-consumer:
-    dependencies:
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
-    devDependencies:
-      '@block-feed/node-api':
-        specifier: workspace:*
-        version: link:../../../../packages/node/api
-      '@block-feed/node-config-eslint':
-        specifier: workspace:*
-        version: link:../../../../packages/node/config/eslint
-      '@block-feed/node-config-typescript':
-        specifier: workspace:*
-        version: link:../../../../packages/node/config/typescript
-      '@block-feed/node-vendors':
-        specifier: workspace:*
-        version: link:../../../../packages/node/vendors
-      '@types/eslint':
-        specifier: 8.56.10
-        version: 8.56.10
-      '@types/node':
-        specifier: 20.14.2
-        version: 20.14.2
-      esbuild:
-        specifier: 0.21.4
-        version: 0.21.4
-      eslint:
-        specifier: 9.4.0
-        version: 9.4.0
-      typescript:
-        specifier: 5.4.5
-        version: 5.4.5
-
   packages/go/appenv: {}
 
   packages/go/block-sources/ethsrc: {}
@@ -263,35 +317,20 @@ importers:
 
   packages/go/validation: {}
 
-  packages/node/api:
+  packages/node/caching:
     dependencies:
       '@block-feed/node-db':
         specifier: workspace:*
         version: link:../db
-      '@block-feed/node-shared':
+      '@block-feed/node-providers-clerk':
         specifier: workspace:*
-        version: link:../shared
-      '@clerk/clerk-sdk-node':
-        specifier: 5.0.10
-        version: 5.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@pothos/core':
-        specifier: 3.41.1
-        version: 3.41.1(graphql@16.8.1)
-      '@pothos/plugin-validation':
-        specifier: 3.10.1
-        version: 3.10.1(@pothos/core@3.41.1(graphql@16.8.1))(graphql@16.8.1)(zod@3.23.8)
-      drizzle-orm:
-        specifier: 0.31.2
-        version: 0.31.2(@types/react@18.3.3)(mysql2@3.10.0)(react@18.3.1)
-      graphql:
-        specifier: 16.8.1
-        version: 16.8.1
-      graphql-yoga:
-        specifier: 5.3.1
-        version: 5.3.1(graphql@16.8.1)
-      jsonwebtoken:
-        specifier: 9.0.2
-        version: 9.0.2
+        version: link:../providers/clerk
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../providers/stripe
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -302,18 +341,9 @@ importers:
       '@block-feed/node-config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
-      '@block-feed/node-testutils':
-        specifier: workspace:*
-        version: link:../testutils
-      '@block-feed/node-vendors':
-        specifier: workspace:*
-        version: link:../vendors
-      '@graphql-typed-document-node/core':
-        specifier: 3.2.0
-        version: 3.2.0(graphql@16.8.1)
-      '@types/jsonwebtoken':
-        specifier: 9.0.6
-        version: 9.0.6
+      '@clerk/clerk-sdk-node':
+        specifier: 5.0.10
+        version: 5.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       eslint:
         specifier: 9.4.0
         version: 9.4.0
@@ -374,29 +404,200 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
 
-  packages/node/gqlgen:
+  packages/node/providers/clerk:
+    dependencies:
+      '@clerk/clerk-sdk-node':
+        specifier: 5.0.10
+        version: 5.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
-      '@block-feed/node-api':
+      '@block-feed/node-config-eslint':
         specifier: workspace:*
-        version: link:../api
+        version: link:../../config/eslint
       '@block-feed/node-config-typescript':
         specifier: workspace:*
-        version: link:../config/typescript
-      '@graphql-codegen/cli':
-        specifier: 5.0.2
-        version: 5.0.2(@types/node@20.14.2)(graphql@16.8.1)(typescript@5.4.5)
-      '@graphql-codegen/client-preset':
-        specifier: 4.2.6
-        version: 4.2.6(graphql@16.8.1)
-      '@graphql-codegen/schema-ast':
-        specifier: 4.0.2
-        version: 4.0.2(graphql@16.8.1)
-      graphql:
-        specifier: 16.8.1
-        version: 16.8.1
-      graphql-config:
-        specifier: 5.0.3
-        version: 5.0.3(@types/node@20.14.2)(graphql@16.8.1)(typescript@5.4.5)
+        version: link:../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/providers/mysql:
+    dependencies:
+      '@block-feed/node-db':
+        specifier: workspace:*
+        version: link:../../db
+      drizzle-orm:
+        specifier: 0.31.2
+        version: 0.31.2(@types/react@18.3.3)(mysql2@3.10.0)(react@18.3.1)
+      mysql2:
+        specifier: 3.10.0
+        version: 3.10.0
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/providers/redis:
+    dependencies:
+      ioredis:
+        specifier: 5.4.1
+        version: 5.4.1
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/providers/stripe:
+    dependencies:
+      stripe:
+        specifier: 15.10.0
+        version: 15.10.0
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/services/stripe-webhook/consumer:
+    dependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../../caching
+      '@block-feed/node-db':
+        specifier: workspace:*
+        version: link:../../../db
+      '@block-feed/node-providers-mysql':
+        specifier: workspace:*
+        version: link:../../../providers/mysql
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../../../providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../../../providers/stripe
+      drizzle-orm:
+        specifier: 0.31.2
+        version: 0.31.2(@types/react@18.3.3)(mysql2@3.10.0)(react@18.3.1)
+    devDependencies:
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      stripe:
+        specifier: 15.10.0
+        version: 15.10.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/services/stripe-webhook/producer:
+    dependencies:
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../../../providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../../../providers/stripe
+    devDependencies:
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../../config/typescript
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      stripe:
+        specifier: 15.10.0
+        version: 15.10.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+
+  packages/node/services/stripe-webhook/tests:
+    devDependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../../caching
+      '@block-feed/node-config-eslint':
+        specifier: workspace:*
+        version: link:../../../config/eslint
+      '@block-feed/node-config-typescript':
+        specifier: workspace:*
+        version: link:../../../config/typescript
+      '@block-feed/node-providers-mysql':
+        specifier: workspace:*
+        version: link:../../../providers/mysql
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../../../providers/redis
+      '@block-feed/node-providers-stripe':
+        specifier: workspace:*
+        version: link:../../../providers/stripe
+      '@block-feed/node-services-stripe-webhook-consumer':
+        specifier: workspace:*
+        version: link:../consumer
+      '@block-feed/node-services-stripe-webhook-producer':
+        specifier: workspace:*
+        version: link:../producer
+      '@block-feed/node-testutils':
+        specifier: workspace:*
+        version: link:../../../testutils
+      eslint:
+        specifier: 9.4.0
+        version: 9.4.0
+      stripe:
+        specifier: 15.10.0
+        version: 15.10.0
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
 
   packages/node/shared:
     devDependencies:
@@ -5245,14 +5446,14 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/nextjs@5.1.4(next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@clerk/nextjs@5.1.4(next@14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@clerk/backend': 1.2.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@clerk/clerk-react': 5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@clerk/shared': 2.2.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@clerk/types': 4.6.0
       crypto-js: 4.2.0
-      next: 14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next: 14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       path-to-regexp: 6.2.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -6114,7 +6315,7 @@ snapshots:
 
   '@next/third-parties@14.2.3(next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
     dependencies:
-      next: 14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next: 14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       third-party-capital: 1.0.20
 
@@ -7112,7 +7313,7 @@ snapshots:
   dot-case@3.0.4:
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.3
 
   dotenv@16.0.3: {}
 
@@ -8437,7 +8638,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next@14.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@14.2.3(@babel/core@7.24.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@next/env': 14.2.3
       '@swc/helpers': 0.5.5
@@ -8447,7 +8648,7 @@ snapshots:
       postcss: 8.4.31
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      styled-jsx: 5.1.1(react@18.3.1)
+      styled-jsx: 5.1.1(@babel/core@7.24.7)(react@18.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.2.3
       '@next/swc-darwin-x64': 14.2.3
@@ -8465,7 +8666,7 @@ snapshots:
   no-case@3.0.4:
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.3
 
   node-fetch@2.7.0:
     dependencies:
@@ -9011,7 +9212,7 @@ snapshots:
   snake-case@3.0.4:
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.3
 
   snakecase-keys@5.4.4:
     dependencies:
@@ -9167,10 +9368,12 @@ snapshots:
       '@types/node': 20.14.2
       qs: 6.12.1
 
-  styled-jsx@5.1.1(react@18.3.1):
+  styled-jsx@5.1.1(@babel/core@7.24.7)(react@18.3.1):
     dependencies:
       client-only: 0.0.1
       react: 18.3.1
+    optionalDependencies:
+      '@babel/core': 7.24.7
 
   sucrase@3.35.0:
     dependencies:

@@ -1,0 +1,24 @@
+{
+  "name": "@block-feed/node-services-stripe-webhook-tests",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "./node_modules/.bin/nptest",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@block-feed/node-services-stripe-webhook-producer": "workspace:*",
+    "@block-feed/node-services-stripe-webhook-consumer": "workspace:*",
+    "@block-feed/node-providers-stripe": "workspace:*",
+    "@block-feed/node-providers-mysql": "workspace:*",
+    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-config-eslint": "workspace:*",
+    "@block-feed/node-config-typescript": "workspace:*",
+    "@block-feed/node-testutils": "workspace:*",
+    "@block-feed/node-caching": "workspace:*",
+    "eslint": "9.4.0",
+    "stripe": "15.10.0",
+    "typescript": "5.4.5"
+  }
+}
