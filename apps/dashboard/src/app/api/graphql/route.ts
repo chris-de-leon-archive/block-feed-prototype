@@ -1,23 +1,25 @@
+import { StripeWebhookEventProducer } from "@block-feed/node-services-stripe-webhook-producer"
 import { maxDirectivesPlugin } from "@escape.tech/graphql-armor-max-directives"
+import { RedisCacheFactory, LruCacheFactory } from "@block-feed/node-caching"
 import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases"
 import { maxTokensPlugin } from "@escape.tech/graphql-armor-max-tokens"
 import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit"
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth"
-import { stripe, redis, clerk, db } from "@block-feed/vendors"
+import { stripe } from "@block-feed/node-providers-stripe"
+import { redis } from "@block-feed/node-providers-redis"
+import { mysql } from "@block-feed/node-providers-mysql"
+import { clerk } from "@block-feed/node-providers-clerk"
 import { initContextCache } from "@pothos/core"
 import { createYoga } from "graphql-yoga"
 import { z } from "zod"
 import {
   withStripeWebhookEventHandler,
-  StripeWebhookEventProducer,
   requireStripeSubscription,
-  RedisCacheFactory,
-  LruCacheFactory,
   GraphQLContext,
   withClerkJWT,
   zStripeEnv,
   builder,
-} from "@block-feed/api"
+} from "@block-feed/dashboard/server"
 
 const envvars = z
   .object({
@@ -28,17 +30,17 @@ const envvars = z
   .and(zStripeEnv)
   .parse(process.env)
 
-const stripeVendor = stripe.client.create(stripe.client.zEnv.parse(process.env))
+const stripeProvider = new stripe.Provider(stripe.zEnv.parse(process.env))
 
-const clerkVendor = clerk.client.create(clerk.client.zEnv.parse(process.env))
+const clerkProvider = new clerk.Provider(clerk.zEnv.parse(process.env))
 
-const dbVendor = db.client.create(db.client.zEnv.parse(process.env))
+const dbProvider = new mysql.Provider(mysql.zEnv.parse(process.env))
 
-const redisStreamVendor = redis.client.create({
+const redisStreamProvider = new redis.Provider({
   REDIS_URL: envvars.REDIS_STREAM_URL,
 })
 
-const redisCacheVendor = redis.client.create({
+const redisCacheProvider = new redis.Provider({
   REDIS_URL: envvars.REDIS_CACHE_URL,
 })
 
@@ -52,21 +54,21 @@ const { handleRequest } = createYoga({
       // or extends the context object before passing it to your resolvers
       ...initContextCache(),
       yoga: ctx,
-      vendor: {
-        stripe: stripeVendor,
-        clerk: clerkVendor,
-        db: dbVendor,
+      providers: {
+        stripe: stripeProvider,
+        clerk: clerkProvider,
+        mysql: dbProvider,
       },
       caches: {
         redisClusterConn: LruCacheFactory.createRedisClusterConnCache(),
         clerkUser: RedisCacheFactory.createClerkUsersCache(
-          clerkVendor,
-          redisCacheVendor,
+          clerkProvider,
+          redisCacheProvider,
           envvars.REDIS_CACHE_EXP_MS,
         ),
         stripeCheckoutSess: RedisCacheFactory.createCheckoutSessionCache(
-          stripeVendor,
-          redisCacheVendor,
+          stripeProvider,
+          redisCacheProvider,
           envvars.REDIS_CACHE_EXP_MS,
         ),
       },
@@ -88,18 +90,21 @@ const { handleRequest } = createYoga({
     // Stripe webhook event handler: https://docs.stripe.com/webhooks#webhooks-summary
     // This does not need to be protected via JWTs since it verifies the stripe signature header
     withStripeWebhookEventHandler({
-      stripeProducer: new StripeWebhookEventProducer(redisStreamVendor),
-      stripeVendor: stripeVendor,
+      stripeProvider: stripeProvider,
       webhookSecret: envvars.STRIPE_WEBHOOK_SECRET,
+      stripeProducer: new StripeWebhookEventProducer(
+        stripeProvider,
+        redisStreamProvider,
+      ),
     }),
 
     // Verifies that each request has a valid JWT in the authorization header
     withClerkJWT({
-      clerk: clerkVendor,
-      db: dbVendor,
+      clerk: clerkProvider,
+      db: dbProvider,
       cache: RedisCacheFactory.createClerkUsersCache(
-        clerkVendor,
-        redisCacheVendor,
+        clerkProvider,
+        redisCacheProvider,
       ),
     }),
   ],

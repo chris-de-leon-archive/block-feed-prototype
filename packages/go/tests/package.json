@@ -1,0 +1,14 @@
+{
+  "name": "@block-feed/go-tests",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p node_modules/ && sqlc generate",
+    "clean": "rm -rf .turbo",
+    "test": "sqlc generate && go test -v ./e2e/...",
+    "test:one": "f() { sqlc generate && go test -v ./tests/e2e/$1_test.go; }; f",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
+    "go:clean": "go clean -x -i -r -cache -modcache"
+  }
+}

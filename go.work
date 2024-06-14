@@ -1,0 +1,26 @@
+go 1.22.2
+
+use (
+	./apps/block-feed/block-flusher
+	./apps/block-feed/block-processors/webhook-processor
+	./apps/block-feed/block-router
+	./apps/block-feed/block-forwarders/flow-forwarder
+	./apps/block-feed/block-forwarders/eth-forwarder
+	./packages/go/appenv
+	./packages/go/block-sources/ethsrc
+	./packages/go/block-sources/flowsrc
+	./packages/go/block-stores/blockstore
+	./packages/go/block-stores/cachedstore
+	./packages/go/block-stores/mongostore
+	./packages/go/block-stores/redistore
+	./packages/go/block-stores/timescalestore
+	./packages/go/common
+	./packages/go/tests
+	./packages/go/queries
+	./packages/go/services/blockforwarder
+	./packages/go/services/blockrouter
+	./packages/go/services/blockrelay
+	./packages/go/streams
+	./packages/go/testutils
+	./packages/go/validation
+)

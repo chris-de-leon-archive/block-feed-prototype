@@ -1,5 +1,5 @@
 module.exports = [
-  ...require("@block-feed/config-eslint/next"),
+  ...require("@block-feed/node-config-eslint/next"),
   {
     languageOptions: {
       parser: require("@typescript-eslint/parser"),

@@ -1,5 +1,5 @@
+import { GraphQLErrorCode } from "@block-feed/node-shared"
 import { clerkMiddleware } from "@clerk/nextjs/server"
-import { GraphQLErrorCode } from "@block-feed/shared"
 import { NextResponse } from "next/server"
 import { GraphQLError } from "graphql"
 import {

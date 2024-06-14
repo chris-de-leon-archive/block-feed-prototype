@@ -3,7 +3,7 @@
 import { WebhookSearchForm } from "@block-feed/dashboard/components/home/forms/webhook-search.form"
 import { WebhookCreator } from "@block-feed/dashboard/components/home/webhooks-creator"
 import { WebhooksTable } from "@block-feed/dashboard/components/home/webhooks-table"
-import { constants } from "@block-feed/shared"
+import { constants } from "@block-feed/node-shared"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { WebhookStatus } from "../utils"

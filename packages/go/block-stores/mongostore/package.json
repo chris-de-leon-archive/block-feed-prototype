@@ -1,0 +1,13 @@
+{
+  "name": "@block-feed/go-block-stores-mongostore",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p node_modules/",
+    "clean": "rm -rf .turbo",
+    "test": "go test -v",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
+    "go:clean": "go clean -x -i -r -cache -modcache"
+  }
+}
