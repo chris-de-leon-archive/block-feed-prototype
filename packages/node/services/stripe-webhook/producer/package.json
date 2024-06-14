@@ -10,14 +10,14 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@block-feed/node-providers-stripe": "workspace:*",
-    "@block-feed/node-providers-redis": "workspace:*"
+    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-providers-stripe": "workspace:*"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
     "eslint": "9.4.0",
-    "stripe": "15.10.0",
+    "stripe": "15.11.0",
     "typescript": "5.4.5"
   }
 }

@@ -1,0 +1,116 @@
+type Blockchain {
+  id: String!
+}
+
+input BoolEqFilterInput {
+  eq: Boolean
+}
+
+type Count {
+  count: Int!
+}
+
+input CursorInput {
+  id: String!
+  reverse: Boolean!
+}
+
+input CursorPaginationInput {
+  cursor: CursorInput
+  limit: Int!
+}
+
+type Mutation {
+  createBillingPortalSession: StripeSession!
+  createCheckoutSession: StripeSession!
+  webhookActivate(ids: [String!]!): Count!
+  webhookCreate(data: WebhookCreateInput!): UUID!
+  webhookRemove(ids: [String!]!): Count!
+  webhookUpdate(data: WebhookUpdateInput!, id: String!): Count!
+}
+
+type PaginationFlags {
+  hasNext: Boolean!
+  hasPrev: Boolean!
+}
+
+type Query {
+  blockchains: [Blockchain!]!
+  stripeSubscription: StripeSubscription!
+  webhook(id: String!): Webhook!
+  webhooks(filters: WebhookFiltersInput!, pagination: CursorPaginationInput!): Webhooks!
+}
+
+input StringEqFilterInput {
+  eq: String
+}
+
+input StringLikeFilterInput {
+  like: String
+}
+
+type StripeSession {
+  url: String!
+}
+
+type StripeSubscription {
+  id: String!
+  status: StripeSubscriptionStatus!
+}
+
+enum StripeSubscriptionStatus {
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  paused
+  trialing
+  unpaid
+}
+
+type UUID {
+  id: String!
+}
+
+type Webhook {
+  blockchainId: String!
+  createdAt: String!
+  customerId: String!
+  id: String!
+  isActive: Int!
+  maxBlocks: Int!
+  maxRetries: Int!
+  timeoutMs: Int!
+  url: String!
+}
+
+input WebhookCreateInput {
+  blockchainId: String!
+  maxBlocks: Int!
+  maxRetries: Int!
+  timeoutMs: Int!
+  url: String!
+}
+
+input WebhookFiltersBodyInput {
+  blockchain: StringEqFilterInput
+  isActive: BoolEqFilterInput
+  url: StringLikeFilterInput
+}
+
+input WebhookFiltersInput {
+  and: WebhookFiltersBodyInput
+}
+
+input WebhookUpdateInput {
+  maxBlocks: Int
+  maxRetries: Int
+  timeoutMs: Int
+  url: String
+}
+
+type Webhooks {
+  pagination: PaginationFlags!
+  payload: [Webhook!]!
+}

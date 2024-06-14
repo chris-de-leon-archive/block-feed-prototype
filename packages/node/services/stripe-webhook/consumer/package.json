@@ -10,18 +10,18 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@block-feed/node-providers-stripe": "workspace:*",
-    "@block-feed/node-providers-mysql": "workspace:*",
-    "@block-feed/node-providers-redis": "workspace:*",
     "@block-feed/node-caching": "workspace:*",
     "@block-feed/node-db": "workspace:*",
+    "@block-feed/node-providers-mysql": "workspace:*",
+    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-providers-stripe": "workspace:*",
     "drizzle-orm": "0.31.2"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
     "eslint": "9.4.0",
-    "stripe": "15.10.0",
+    "stripe": "15.11.0",
     "typescript": "5.4.5"
   }
 }

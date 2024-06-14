@@ -12,7 +12,7 @@
   "dependencies": {
     "@block-feed/node-db": "workspace:*",
     "drizzle-orm": "0.31.2",
-    "mysql2": "3.10.0",
+    "mysql2": "3.10.1",
     "zod": "3.23.8"
   },
   "devDependencies": {

@@ -15,16 +15,16 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@block-feed/node-services-stripe-webhook-consumer": "workspace:*",
-    "@block-feed/node-providers-stripe": "workspace:*",
-    "@block-feed/node-providers-mysql": "workspace:*",
-    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-caching": "workspace:*",
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "@block-feed/node-caching": "workspace:*",
+    "@block-feed/node-providers-mysql": "workspace:*",
+    "@block-feed/node-providers-redis": "workspace:*",
+    "@block-feed/node-providers-stripe": "workspace:*",
+    "@block-feed/node-services-stripe-webhook-consumer": "workspace:*",
     "@types/eslint": "8.56.10",
     "@types/node": "20.14.2",
-    "esbuild": "0.21.4",
+    "esbuild": "0.21.5",
     "eslint": "9.4.0",
     "typescript": "5.4.5"
   }

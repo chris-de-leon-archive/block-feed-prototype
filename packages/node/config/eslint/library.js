@@ -19,6 +19,7 @@ module.exports = [
     ignores: [
       // Ignore dotfiles
       "**/eslint.config.js",
+      "**/.graphqlrc.ts",
       "**/.*.js",
       "**/node_modules/",
       "**/dist/",
