@@ -1,5 +1,5 @@
 {
-  "name": "@block-feed/block-feed-block-streamers-eth-streamer",
+  "name": "@block-feed/block-feed-block-forwarders-eth-forwarder",
   "version": "0.0.0",
   "private": true,
   "scripts": {
