@@ -1,5 +1,12 @@
-import { clerkClient } from "@clerk/clerk-sdk-node"
+import { clerkClient, User as ClerkUser } from "@clerk/clerk-sdk-node"
+import { redis } from "@block-feed/node-providers-redis"
 import { z } from "zod"
+import {
+  AsyncCallbackCache,
+  createRedisCache,
+  makeCacheKey,
+  AsyncCache,
+} from "@block-feed/node-caching"
 
 export type User = Readonly<{
   id: string
@@ -28,5 +35,33 @@ export class Provider {
       ...env,
       JWT_KEY,
     }
+  }
+
+  public static createClerkUsersCache(
+    clerkProvider: Provider,
+    redisProvider: redis.Provider,
+    expirationMs: number,
+  ): AsyncCallbackCache<ClerkUser, string>
+  public static createClerkUsersCache(
+    clerkProvider: Provider,
+    redisProvider: redis.Provider,
+  ): AsyncCache<ClerkUser>
+  public static createClerkUsersCache(
+    clerkProvider: Provider,
+    redisProvider: redis.Provider,
+    expirationMs?: number,
+  ) {
+    const cache = createRedisCache<User>(
+      redisProvider.client,
+      makeCacheKey("clerk", "users"),
+    )
+
+    if (expirationMs != null) {
+      return cache.setCallback(expirationMs, async (userId: string) => {
+        return await clerkProvider.client.users.getUser(userId)
+      })
+    }
+
+    return cache
   }
 }

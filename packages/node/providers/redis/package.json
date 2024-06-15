@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@block-feed/node-caching": "workspace:*",
     "ioredis": "5.4.1",
     "zod": "3.23.8"
   },

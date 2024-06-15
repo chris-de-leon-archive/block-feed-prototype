@@ -1,12 +1,11 @@
 import { StripeWebhookEventProducer } from "@block-feed/node-services-stripe-webhook-producer"
 import { maxDirectivesPlugin } from "@escape.tech/graphql-armor-max-directives"
-import { RedisCacheFactory, LruCacheFactory } from "@block-feed/node-caching"
 import { maxAliasesPlugin } from "@escape.tech/graphql-armor-max-aliases"
 import { maxTokensPlugin } from "@escape.tech/graphql-armor-max-tokens"
 import { costLimitPlugin } from "@escape.tech/graphql-armor-cost-limit"
+import { redis, rediscluster } from "@block-feed/node-providers-redis"
 import { maxDepthPlugin } from "@escape.tech/graphql-armor-max-depth"
 import { stripe } from "@block-feed/node-providers-stripe"
-import { redis } from "@block-feed/node-providers-redis"
 import { mysql } from "@block-feed/node-providers-mysql"
 import { clerk } from "@block-feed/node-providers-clerk"
 import { initContextCache } from "@pothos/core"
@@ -60,13 +59,13 @@ const { handleRequest } = createYoga({
         mysql: dbProvider,
       },
       caches: {
-        redisClusterConn: LruCacheFactory.createRedisClusterConnCache(),
-        clerkUser: RedisCacheFactory.createClerkUsersCache(
+        redisClusterConn: rediscluster.Provider.createRedisClusterConnCache(),
+        clerkUser: clerk.Provider.createClerkUsersCache(
           clerkProvider,
           redisCacheProvider,
           envvars.REDIS_CACHE_EXP_MS,
         ),
-        stripeCheckoutSess: RedisCacheFactory.createCheckoutSessionCache(
+        stripeCheckoutSess: stripe.Provider.createCheckoutSessionCache(
           stripeProvider,
           redisCacheProvider,
           envvars.REDIS_CACHE_EXP_MS,
@@ -102,7 +101,7 @@ const { handleRequest } = createYoga({
     withClerkJWT({
       clerk: clerkProvider,
       db: dbProvider,
-      cache: RedisCacheFactory.createClerkUsersCache(
+      cache: clerk.Provider.createClerkUsersCache(
         clerkProvider,
         redisCacheProvider,
       ),

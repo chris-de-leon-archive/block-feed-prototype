@@ -15,7 +15,6 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@block-feed/node-caching": "workspace:*",
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
     "@block-feed/node-providers-mysql": "workspace:*",

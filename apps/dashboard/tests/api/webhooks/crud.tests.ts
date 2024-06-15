@@ -1,6 +1,5 @@
-import { RedisCacheFactory, LruCacheFactory } from "@block-feed/node-caching"
+import { redis, rediscluster } from "@block-feed/node-providers-redis"
 import { stripe } from "@block-feed/node-providers-stripe"
-import { redis } from "@block-feed/node-providers-redis"
 import { mysql } from "@block-feed/node-providers-mysql"
 import { clerk } from "@block-feed/node-providers-clerk"
 import { after, before, describe, it } from "node:test"
@@ -106,13 +105,13 @@ describe("CRUD Tests", () => {
           mysql: mysqlProvider,
         },
         caches: {
-          redisClusterConn: LruCacheFactory.createRedisClusterConnCache(),
-          clerkUser: RedisCacheFactory.createClerkUsersCache(
+          redisClusterConn: rediscluster.Provider.createRedisClusterConnCache(),
+          clerkUser: clerk.Provider.createClerkUsersCache(
             clerkProvider,
             redisCacheProvider,
             cacheExpMs,
           ),
-          stripeCheckoutSess: RedisCacheFactory.createCheckoutSessionCache(
+          stripeCheckoutSess: stripe.Provider.createCheckoutSessionCache(
             stripeProvider,
             redisCacheProvider,
             cacheExpMs,
@@ -182,7 +181,7 @@ describe("CRUD Tests", () => {
           withClerkJWT({
             clerk: ctx.providers.clerk,
             db: ctx.providers.mysql,
-            cache: RedisCacheFactory.createClerkUsersCache(
+            cache: clerk.Provider.createClerkUsersCache(
               clerkProvider,
               redisCacheProvider,
             ),

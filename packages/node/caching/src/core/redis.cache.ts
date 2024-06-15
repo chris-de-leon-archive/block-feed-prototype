@@ -1,9 +1,9 @@
 import { AsyncCache, AsyncCallbackCache } from "./types"
-import { redis } from "@block-feed/node-providers-redis"
 import { makeCacheKey } from "../utils"
+import { Redis } from "ioredis"
 
 export function createRedisCache<T>(
-  redisProvider: redis.Provider,
+  redisClient: Redis,
   namespace: string,
 ): AsyncCache<T> {
   const prefixWithNamespace = (key: string) => {
@@ -13,11 +13,11 @@ export function createRedisCache<T>(
   }
 
   const invalidate = async (key: string) => {
-    return await redisProvider.client.del(prefixWithNamespace(key))
+    return await redisClient.del(prefixWithNamespace(key))
   }
 
   const get = async (key: string) => {
-    const val = await redisProvider.client.get(prefixWithNamespace(key))
+    const val = await redisClient.get(prefixWithNamespace(key))
     if (val != null) {
       return JSON.parse(val) as T
     }
@@ -38,17 +38,14 @@ export function createRedisCache<T>(
     }
 
     const set = async (key: string, val: T) => {
-      if (expirationMs != null) {
-        await redisProvider.client.set(
+      if (expirationMs == null) {
+        await redisClient.set(prefixWithNamespace(key), JSON.stringify(val))
+      } else {
+        await redisClient.set(
           prefixWithNamespace(key),
           JSON.stringify(val),
           "PX",
           expirationMs,
-        )
-      } else {
-        await redisProvider.client.set(
-          prefixWithNamespace(key),
-          JSON.stringify(val),
         )
       }
     }

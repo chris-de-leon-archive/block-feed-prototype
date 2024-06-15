@@ -1,5 +1,12 @@
+import { redis } from "@block-feed/node-providers-redis"
 import Stripe from "stripe"
 import { z } from "zod"
+import {
+  AsyncCallbackCache,
+  createRedisCache,
+  makeCacheKey,
+  AsyncCache,
+} from "@block-feed/node-caching"
 
 export const zMetadata = z.object({
   userId: z.string(),
@@ -23,6 +30,39 @@ export class Provider {
         EVENT_FIELD: "event",
       },
     }
+  }
+
+  public static createCheckoutSessionCache(
+    stripeProvider: Provider,
+    redisProvider: redis.Provider,
+    expirationMs: number,
+  ): AsyncCallbackCache<Stripe.Checkout.Session, string>
+  public static createCheckoutSessionCache(
+    stripeProvider: Provider,
+    redisProvider: redis.Provider,
+  ): AsyncCache<Stripe.Checkout.Session>
+  public static createCheckoutSessionCache(
+    stripeProvider: Provider,
+    redisProvider: redis.Provider,
+    expirationMs?: number,
+  ) {
+    const cache = createRedisCache<Stripe.Checkout.Session>(
+      redisProvider.client,
+      makeCacheKey("stripe", "checkout", "session"),
+    )
+
+    if (expirationMs != null) {
+      return cache.setCallback(expirationMs, async (sessionId: string) => {
+        return await stripeProvider.client.checkout.sessions.retrieve(
+          sessionId,
+          {
+            expand: ["subscription", "customer"],
+          },
+        )
+      })
+    }
+
+    return cache
   }
 
   public parseMetadata(obj: unknown) {

@@ -319,18 +319,9 @@ importers:
 
   packages/node/caching:
     dependencies:
-      '@block-feed/node-db':
-        specifier: workspace:*
-        version: link:../db
-      '@block-feed/node-providers-clerk':
-        specifier: workspace:*
-        version: link:../providers/clerk
-      '@block-feed/node-providers-redis':
-        specifier: workspace:*
-        version: link:../providers/redis
-      '@block-feed/node-providers-stripe':
-        specifier: workspace:*
-        version: link:../providers/stripe
+      ioredis:
+        specifier: 5.4.1
+        version: 5.4.1
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -406,6 +397,12 @@ importers:
 
   packages/node/providers/clerk:
     dependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../caching
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../redis
       '@clerk/clerk-sdk-node':
         specifier: 5.0.11
         version: 5.0.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -456,6 +453,9 @@ importers:
 
   packages/node/providers/redis:
     dependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../caching
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
@@ -478,6 +478,12 @@ importers:
 
   packages/node/providers/stripe:
     dependencies:
+      '@block-feed/node-caching':
+        specifier: workspace:*
+        version: link:../../caching
+      '@block-feed/node-providers-redis':
+        specifier: workspace:*
+        version: link:../redis
       stripe:
         specifier: 15.11.0
         version: 15.11.0

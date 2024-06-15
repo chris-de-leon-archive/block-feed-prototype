@@ -1,6 +1,5 @@
 import { StripeWebhookEventProducer } from "@block-feed/node-services-stripe-webhook-producer"
 import { StripeWebhookEventConsumer } from "@block-feed/node-services-stripe-webhook-consumer"
-import { RedisCacheFactory } from "@block-feed/node-caching"
 import { StripeEventFixture } from "./fixtures/stripe.event"
 import { stripe } from "@block-feed/node-providers-stripe"
 import { redis } from "@block-feed/node-providers-redis"
@@ -126,7 +125,7 @@ describe("Stripe Webhook Event Tests", () => {
       redisStreamProvider,
     )
     const consumer = await StripeWebhookEventConsumer.build(
-      RedisCacheFactory.createCheckoutSessionCache(
+      stripe.Provider.createCheckoutSessionCache(
         stripeProvider,
         redisCacheProvider,
       ),

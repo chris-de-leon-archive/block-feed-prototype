@@ -1,5 +1,4 @@
 import { StripeWebhookEventConsumer } from "@block-feed/node-services-stripe-webhook-consumer"
-import { RedisCacheFactory } from "@block-feed/node-caching"
 import { stripe } from "@block-feed/node-providers-stripe"
 import { redis } from "@block-feed/node-providers-redis"
 import { mysql } from "@block-feed/node-providers-mysql"
@@ -28,7 +27,7 @@ async function main() {
   })
 
   const consumer = await StripeWebhookEventConsumer.build(
-    RedisCacheFactory.createCheckoutSessionCache(
+    stripe.Provider.createCheckoutSessionCache(
       stripeProvider,
       redisCacheProvider,
     ),
