@@ -1,6 +1,6 @@
 "use client"
 
-import { WebhookStatus } from "@block-feed/dashboard/utils"
+import { WebhookStatus } from "@block-feed/dashboard/utils/enums/webhook-status.enum"
 import { useState } from "react"
 import { z } from "zod"
 

@@ -1,7 +1,7 @@
 import { FaUserGroup, FaUser } from "react-icons/fa6"
+import { env } from "@block-feed/web/utils/env"
 import { FaCheckCircle } from "react-icons/fa"
 import { HiUserGroup } from "react-icons/hi"
-import { env } from "../../utils/env"
 import Image from "next/image"
 import Link from "next/link"
 

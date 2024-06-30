@@ -17,7 +17,7 @@
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "eslint": "9.4.0",
-    "typescript": "5.4.5"
+    "eslint": "9.6.0",
+    "typescript": "5.5.2"
   }
 }

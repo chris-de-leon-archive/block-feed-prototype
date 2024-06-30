@@ -2,11 +2,11 @@
 
 import { WebhookSearchForm } from "@block-feed/dashboard/components/home/forms/webhook-search.form"
 import { WebhookCreator } from "@block-feed/dashboard/components/home/webhooks-creator"
+import { WebhookStatus } from "@block-feed/dashboard/utils/enums/webhook-status.enum"
 import { WebhooksTable } from "@block-feed/dashboard/components/home/webhooks-table"
-import { constants } from "@block-feed/node-shared"
+import { constants } from "@block-feed/dashboard/utils/constants"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { WebhookStatus } from "../utils"
 import { useAuth } from "@clerk/nextjs"
 import {
   useGraphQLDashboardQuery,

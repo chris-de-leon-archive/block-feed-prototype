@@ -1,7 +1,4 @@
-export enum WebhookStatus {
-  INACTIVE = "inactive",
-  ACTIVE = "active",
-}
+import { WebhookStatus } from "./enums/webhook-status.enum"
 
 export const formatUTCDateStr = (s: string) => {
   return new Date(s.concat(" UTC")).toLocaleString()

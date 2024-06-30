@@ -1,8 +1,7 @@
 import { CodegenConfig } from "@graphql-codegen/cli"
 import { IGraphQLConfig } from "graphql-config"
-import { builder } from "./src/server"
-import { printSchema } from "graphql"
-import path from "node:path"
+import * as path from "node:path"
+import * as fs from "node:fs"
 
 const outputPath = path.join("src", "client", "generated/")
 
@@ -11,7 +10,7 @@ const outputPath = path.join("src", "client", "generated/")
  * https://the-guild.dev/graphql/config/docs/user/usage#extensions
  */
 export default {
-  schema: printSchema(builder.toSchema()),
+  schema: fs.readFileSync("./schema.graphql").toString(),
   documents: ["graphql/**/*.gql"],
   extensions: {
     codegen: {
@@ -21,9 +20,6 @@ export default {
           config: {
             enumsAsTypes: true,
           },
-        },
-        "schema.graphql": {
-          plugins: ["schema-ast"],
         },
       },
     } satisfies CodegenConfig,

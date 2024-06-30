@@ -1,4 +1,4 @@
-import { GraphQLErrorCode } from "@block-feed/node-shared"
+import { GraphQLErrorCode } from "@block-feed/dashboard/utils/enums/graphql-error.enum"
 import { clerkMiddleware } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { GraphQLError } from "graphql"

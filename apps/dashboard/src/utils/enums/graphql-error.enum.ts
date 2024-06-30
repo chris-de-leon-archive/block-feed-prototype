@@ -1,4 +1,4 @@
-export enum GraphQLErrorCode {
+export const enum GraphQLErrorCode {
   // Conventional error codes
   INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
   UNAUTHORIZED = "UNAUTHORIZED",

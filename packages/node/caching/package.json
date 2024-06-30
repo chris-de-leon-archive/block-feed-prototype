@@ -16,9 +16,9 @@
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "@clerk/clerk-sdk-node": "5.0.11",
-    "eslint": "9.4.0",
-    "stripe": "15.11.0",
-    "typescript": "5.4.5"
+    "@clerk/clerk-sdk-node": "5.0.12",
+    "eslint": "9.6.0",
+    "stripe": "16.1.0",
+    "typescript": "5.5.2"
   }
 }

@@ -8,19 +8,18 @@
   },
   "dependencies": {
     "@block-feed/node-db": "workspace:*",
-    "@block-feed/node-shared": "workspace:*",
     "@graphql-typed-document-node/core": "3.2.0",
     "drizzle-orm": "0.31.2",
-    "graphql": "16.8.2",
-    "graphql-yoga": "5.3.1"
+    "graphql": "16.9.0",
+    "graphql-yoga": "5.5.0"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "eslint": "9.4.0",
+    "eslint": "9.6.0",
     "mysql2": "3.10.1",
-    "testcontainers": "10.9.0",
-    "typescript": "5.4.5"
+    "testcontainers": "10.10.0",
+    "typescript": "5.5.2"
   },
   "bin": {
     "nptest": "./scripts/test.sh"

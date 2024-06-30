@@ -1,12 +1,10 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
+import { GraphQLErrorCode } from "@block-feed/dashboard/utils/enums/graphql-error.enum"
+import { doesObjectHaveKey } from "@block-feed/dashboard/utils/util"
+import { constants } from "@block-feed/dashboard/utils/constants"
 import { auth } from "@clerk/nextjs/server"
 import { GraphQLError } from "graphql"
 import { env } from "./env"
-import {
-  doesObjectHaveKey,
-  GraphQLErrorCode,
-  constants,
-} from "@block-feed/node-shared"
 
 export type ErrorCallbacks = Readonly<{
   onInvalidSubscriptionError?: (err: GraphQLError) => void

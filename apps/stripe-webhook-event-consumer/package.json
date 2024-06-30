@@ -22,9 +22,9 @@
     "@block-feed/node-providers-stripe": "workspace:*",
     "@block-feed/node-services-stripe-webhook-consumer": "workspace:*",
     "@types/eslint": "8.56.10",
-    "@types/node": "20.14.2",
+    "@types/node": "20.14.9",
     "esbuild": "0.21.5",
-    "eslint": "9.4.0",
-    "typescript": "5.4.5"
+    "eslint": "9.6.0",
+    "typescript": "5.5.2"
   }
 }

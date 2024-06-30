@@ -1,5 +1,5 @@
 import { TypeWriter } from "../shared/animated/typewriter"
-import { env } from "../../utils/env"
+import { env } from "@block-feed/web/utils/env"
 import Image from "next/image"
 import Link from "next/link"
 

@@ -1,5 +1,5 @@
+import { constants } from "@block-feed/dashboard/utils/constants"
 import { GraphQLAuthContext } from "../../../graphql/types"
-import { constants } from "@block-feed/node-shared"
 import { randomUUID, randomInt } from "crypto"
 import * as schema from "@block-feed/node-db"
 import { eq } from "drizzle-orm"

@@ -13,16 +13,16 @@ import {
   WebhookEditForm,
 } from "@block-feed/dashboard/components/home/forms/webhook-update.form"
 import {
+  formatWebhookStatus,
+  formatUTCDateStr,
+} from "@block-feed/dashboard/utils/fmt"
+import {
   useGraphQLDashboardMutation,
   ActivateWebhooksDocument,
   RemoveWebhooksDocument,
   UpdateWebhookDocument,
   WebhooksQuery,
 } from "@block-feed/dashboard/client"
-import {
-  formatWebhookStatus,
-  formatUTCDateStr,
-} from "@block-feed/dashboard/utils"
 
 type WebhookToEdit = WebhookEditFormProps["webhook"] | null
 

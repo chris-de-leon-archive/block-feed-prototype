@@ -1,4 +1,4 @@
-import { GraphQLErrorCode } from "@block-feed/node-shared"
+import { GraphQLErrorCode } from "@block-feed/dashboard/utils/enums/graphql-error.enum"
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { GraphQLError } from "graphql"
