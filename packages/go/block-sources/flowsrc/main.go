@@ -76,7 +76,9 @@ func (blockSource *FlowBlockSource) Subscribe(ctx context.Context, handler func(
 
 	// A helper function that will help us recover from connection issues
 	reconnect := func() error {
-		// Manually fetch the block that caused the subscription error
+		// Instead of re-subscribing at the block that caused the subscription error,
+		// we'll explicitly query the faulty block then re-subscribe at the next block
+		// TODO: before subscribing at the next block, we should check if it exists
 		block, err := blockSource.getBlockByHeight(ctx, *blockSource.currHeight)
 		if err == nil {
 			if err := handler(ctx, *block); err != nil {

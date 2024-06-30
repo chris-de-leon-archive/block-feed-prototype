@@ -55,9 +55,10 @@ func (blockSource *EthBlockSource) Subscribe(ctx context.Context, handler func(c
 				//
 				// Here, we're checking if Cmp != 1, which actually means we're checking if
 				// x <= y. In other words, we're running a loop which keeps collecting blocks
-				// from source.currHeight until we reach header.Number. We only need to run
-				// this loop one time - once we're caught up to the latest block header there
-				// is no need to catch up again.
+				// from source.currHeight until we reach header.Number. This loop only needs to
+				// be run once. As this loop runs, the channel will continue to accumulate new
+				// blocks in the background, and these blocks will be processed once we're caught
+				// up to header.Number.
 				//
 				for (&big.Int{}).SetUint64(*blockSource.currHeight).Cmp(header.Number) != 1 {
 					block, err := blockSource.client.BlockByNumber(ctx, (&big.Int{}).SetUint64(*blockSource.currHeight))
