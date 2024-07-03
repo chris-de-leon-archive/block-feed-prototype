@@ -22,12 +22,12 @@ import (
 )
 
 type EnvVars struct {
-	ConsumerName string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_NAME,required"`
-	MySqlUrl     string `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_URL,required"`
+	ConsumerName string `validate:"required,gt=0" env:"WEBHOOK_PROCESSOR_NAME,required"`
+	MySqlUrl     string `validate:"required,gt=0" env:"WEBHOOK_PROCESSOR_MYSQL_URL,required"`
 	appenv.ChainEnv
-	MySqlConnPoolSize int   `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE,required"`
-	ConsumerPoolSize  int   `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_POOL_SIZE,required"`
-	ShardID           int32 `validate:"required,gt=0" env:"WEBHOOK_CONSUMER_SHARD_ID,required"`
+	MySqlConnPoolSize int   `validate:"required,gt=0" env:"WEBHOOK_PROCESSOR_MYSQL_CONN_POOL_SIZE,required"`
+	ConsumerPoolSize  int   `validate:"required,gt=0" env:"WEBHOOK_PROCESSOR_POOL_SIZE,required"`
+	ShardID           int32 `validate:"required,gt=0" env:"WEBHOOK_PROCESSOR_SHARD_ID,required"`
 }
 
 // NOTE: multiple replicas of this service can be created per chain

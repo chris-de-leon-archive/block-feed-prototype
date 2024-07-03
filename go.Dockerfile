@@ -18,11 +18,11 @@ COPY --from=build /workspace/bin /workspace/bin
 #
 #  https://github.com/debuerreotype/docker-debian-artifacts/issues/15#issuecomment-634423712
 #
-RUN apt-get update \
-  && apt-get upgrade \
+RUN apt-get update -y \
+  && apt-get upgrade -y \
   && apt-get install -y --no-install-recommends ca-certificates \
   && update-ca-certificates \
-  && apt-get clean \
+  && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* 
 
 ENTRYPOINT ["/workspace/bin"]

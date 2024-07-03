@@ -82,3 +82,14 @@ module "block_feed_moonbeam_mainnet" {
 #
 #   depends_on = [module.block_feed_storage]
 # }
+
+module "block_feed_frontend" {
+  source         = "./modules/frontend"
+  tag            = var.tag
+  dashboard_port = 3001
+  web_port       = 3000
+  mysql_api_url  = module.block_feed_storage.mysql_api_url
+  redis_image    = docker_image.redis.name
+  network_name   = docker_network.block_feed_net.name
+}
+

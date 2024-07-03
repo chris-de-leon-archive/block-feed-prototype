@@ -39,12 +39,12 @@ func TestLoad(t *testing.T) {
 		FLOW_TESTNET_CHAIN_ID = "flow-testnet"
 		FLOW_TESTNET_URL      = grpc.TestnetHost
 
-		WEBHOOK_CONSUMER_NAME               = "webhook-consumer"
-		WEBHOOK_CONSUMER_REPLICAS_PER_SHARD = int32(2)
-		WEBHOOK_CONSUMER_POOL_SIZE          = 2
+		WEBHOOK_PROCESSOR_NAME               = "webhook-processor"
+		WEBHOOK_PROCESSOR_REPLICAS_PER_SHARD = int32(2)
+		WEBHOOK_PROCESSOR_POOL_SIZE          = 2
 
-		BLOCK_CONSUMER_NAME       = "block-consumer"
-		BLOCK_CONSUMER_BATCH_SIZE = 100
+		BLOCK_ROUTER_NAME       = "block-router"
+		BLOCK_ROUTER_BATCH_SIZE = 100
 
 		BLOCK_FLUSH_INTERVAL_MS = 1000
 		BLOCK_FLUSH_MAX_BLOCKS  = 5
@@ -159,13 +159,13 @@ func TestLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Creates a block consumer service
+	// Creates a block router service
 	flowBlockRouter, err := testservices.NewBlockRouter(t, ctx,
 		config,
 		store,
 		&blockrouter.BlockRouterOpts{
-			ConsumerName: BLOCK_CONSUMER_NAME,
-			BatchSize:    BLOCK_CONSUMER_BATCH_SIZE,
+			ConsumerName: BLOCK_ROUTER_NAME,
+			BatchSize:    BLOCK_ROUTER_BATCH_SIZE,
 		},
 	)
 	if err != nil {
@@ -174,9 +174,9 @@ func TestLoad(t *testing.T) {
 
 	// Creates WEBHOOK_CONSUMER_REPLICAS_PER_SHARD replicas of a webhook stream consumer service
 	// for each shard. Each service has WEBHOOK_CONSUMER_POOL_SIZE concurrent workers.
-	blockRelays := make([]*blockrelay.BlockRelay, TEST_SHARDS*WEBHOOK_CONSUMER_REPLICAS_PER_SHARD)
+	blockRelays := make([]*blockrelay.BlockRelay, TEST_SHARDS*WEBHOOK_PROCESSOR_REPLICAS_PER_SHARD)
 	for shardID := range TEST_SHARDS {
-		for replicaNum := range WEBHOOK_CONSUMER_REPLICAS_PER_SHARD {
+		for replicaNum := range WEBHOOK_PROCESSOR_REPLICAS_PER_SHARD {
 			blockRelay, err := testservices.NewBlockRelay(t, ctx,
 				config,
 				store,
@@ -188,13 +188,13 @@ func TestLoad(t *testing.T) {
 				testutils.MYSQL_DEFAULT_CONN_POOL_SIZE,
 				shardID,
 				&blockrelay.BlockRelayOpts{
-					ConsumerName: fmt.Sprintf("s%d:%s:%d", shardID, WEBHOOK_CONSUMER_NAME, replicaNum),
-					Concurrency:  WEBHOOK_CONSUMER_POOL_SIZE,
+					ConsumerName: fmt.Sprintf("s%d:%s:%d", shardID, WEBHOOK_PROCESSOR_NAME, replicaNum),
+					Concurrency:  WEBHOOK_PROCESSOR_POOL_SIZE,
 				})
 			if err != nil {
 				t.Fatal(err)
 			} else {
-				blockRelays[(shardID*WEBHOOK_CONSUMER_REPLICAS_PER_SHARD)+replicaNum] = blockRelay
+				blockRelays[(shardID*WEBHOOK_PROCESSOR_REPLICAS_PER_SHARD)+replicaNum] = blockRelay
 			}
 		}
 	}

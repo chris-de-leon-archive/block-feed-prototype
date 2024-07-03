@@ -17,15 +17,6 @@ const nextConfig = {
         // https://github.com/helmetjs/helmet?tab=readme-ov-file#reference
         source: "/(.*)",
         headers: [
-          ...(process.env["NODE_ENV"] === "production"
-            ? [
-                {
-                  key: "Content-Security-Policy",
-                  value:
-                    "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
-                },
-              ]
-            : []),
           {
             key: "Cross-Origin-Opener-Policy",
             value: "same-origin",

@@ -52,11 +52,11 @@ func TestBasic(t *testing.T) {
 		FLOW_TESTNET_CHAIN_ID = "flow-testnet"
 		FLOW_TESTNET_URL      = grpc.TestnetHost
 
-		WEBHOOK_CONSUMER_NAME      = "webhook-consumer"
-		WEBHOOK_CONSUMER_POOL_SIZE = 3
+		WEBHOOK_PROCESSOR_NAME      = "webhook-processor"
+		WEBHOOK_PROCESSOR_POOL_SIZE = 3
 
-		BLOCK_CONSUMER_NAME       = "block-consumer"
-		BLOCK_CONSUMER_BATCH_SIZE = 100
+		BLOCK_ROUTER_NAME       = "block-router"
+		BLOCK_ROUTER_BATCH_SIZE = 100
 
 		BLOCK_FLUSH_INTERVAL_MS = 1000
 		BLOCK_FLUSH_MAX_BLOCKS  = 5
@@ -195,13 +195,13 @@ func TestBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Creates a block consumer service
+	// Creates a block router service
 	flowBlockRouter, err := testservices.NewBlockRouter(t, ctx,
 		config,
 		store,
 		&blockrouter.BlockRouterOpts{
-			ConsumerName: BLOCK_CONSUMER_NAME,
-			BatchSize:    BLOCK_CONSUMER_BATCH_SIZE,
+			ConsumerName: BLOCK_ROUTER_NAME,
+			BatchSize:    BLOCK_ROUTER_BATCH_SIZE,
 		},
 	)
 	if err != nil {
@@ -223,8 +223,8 @@ func TestBasic(t *testing.T) {
 			testutils.MYSQL_DEFAULT_CONN_POOL_SIZE,
 			shardID,
 			&blockhook.BlockRelayOpts{
-				ConsumerName: WEBHOOK_CONSUMER_NAME,
-				Concurrency:  WEBHOOK_CONSUMER_POOL_SIZE,
+				ConsumerName: WEBHOOK_PROCESSOR_NAME,
+				Concurrency:  WEBHOOK_PROCESSOR_POOL_SIZE,
 			})
 		if err != nil {
 			t.Fatal(err)

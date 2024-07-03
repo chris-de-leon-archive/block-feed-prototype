@@ -208,11 +208,11 @@ resource "docker_container" "webhook_processor" {
   restart = "always"
   image   = docker_image.webhook_processor.name
   env = concat(local.envvars, [
-    "WEBHOOK_CONSUMER_NAME=webhook-consumer-replica-${var.chain_id}-${count.index}",
-    "WEBHOOK_CONSUMER_POOL_SIZE=${var.workers_per_replica}",
-    "WEBHOOK_CONSUMER_SHARD_ID=${floor(count.index / var.replicas_per_shard) + 1}",
-    "WEBHOOK_CONSUMER_MYSQL_URL=${var.mysql_workers_url}",
-    "WEBHOOK_CONSUMER_MYSQL_CONN_POOL_SIZE=5"
+    "WEBHOOK_PROCESSOR_NAME=webhook-consumer-replica-${var.chain_id}-${count.index}",
+    "WEBHOOK_PROCESSOR_POOL_SIZE=${var.workers_per_replica}",
+    "WEBHOOK_PROCESSOR_SHARD_ID=${floor(count.index / var.replicas_per_shard) + 1}",
+    "WEBHOOK_PROCESSOR_MYSQL_URL=${var.mysql_workers_url}",
+    "WEBHOOK_PROCESSOR_MYSQL_CONN_POOL_SIZE=5"
   ])
   networks_advanced {
     name = var.network_name

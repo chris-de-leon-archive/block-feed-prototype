@@ -9,6 +9,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "files": [
+    "./public",
     "./.next"
   ],
   "dependencies": {

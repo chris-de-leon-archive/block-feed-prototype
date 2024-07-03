@@ -104,7 +104,7 @@ func (service *BlockRelay) handleMessages(
 				streams.NewWebhookStreamMsg(
 					msg.Data.WebhookID,
 					msg.Data.BlockHeight+1, // if we could not process [h1, h2], try [h1+1, h2+1]
-					false,
+					msg.Data.IsNew,
 				),
 			)
 		}

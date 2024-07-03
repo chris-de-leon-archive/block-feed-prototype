@@ -1,8 +1,8 @@
 apply:
-	@cd ../../ && terraform -chdir="./deployment/local" apply -auto-approve
+	@terraform init && cd ../../ && terraform -chdir="./deployment/local" apply -auto-approve
 
 destroy:
-	@terraform destroy -auto-approve
+	@terraform init && terraform destroy -auto-approve
 
 redis-latest-block:
 	@redis-cli -p $(PORT) EVAL "return redis.call('ZRANGE', KEYS[1], -1, -1, 'WITHSCORES')[2]" 1 $(CHAIN)

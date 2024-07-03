@@ -7,8 +7,14 @@ import { z } from "zod"
 async function main() {
   const envvars = z
     .object({
-      STRIPE_WEBHOOK_EVENT_WORKER_CONSUMER_GROUP_NAME: z.string().min(1),
-      STRIPE_WEBHOOK_EVENT_WORKER_CONSUMER_NAME: z.string().min(1),
+      STRIPE_WEBHOOK_EVENT_CONSUMER_GROUP_NAME: z
+        .string()
+        .min(1)
+        .default("stripe:webhook-event-consumers"),
+      STRIPE_WEBHOOK_EVENT_CONSUMER_NAME: z
+        .string()
+        .min(1)
+        .default("default-consumer"),
       REDIS_STREAM_URL: z.string().url().min(1),
       REDIS_CACHE_URL: z.string().url().min(1),
     })
@@ -34,8 +40,8 @@ async function main() {
     stripeProvider,
     redisStreamProvider,
     dbProvider,
-    envvars.STRIPE_WEBHOOK_EVENT_WORKER_CONSUMER_GROUP_NAME,
-    envvars.STRIPE_WEBHOOK_EVENT_WORKER_CONSUMER_NAME,
+    envvars.STRIPE_WEBHOOK_EVENT_CONSUMER_GROUP_NAME,
+    envvars.STRIPE_WEBHOOK_EVENT_CONSUMER_NAME,
   )
 
   const controller = new AbortController()
