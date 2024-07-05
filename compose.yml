@@ -1,4 +1,4 @@
-version: "3"
+name: "block-feed-dev"
 
 services:
   mysql:
