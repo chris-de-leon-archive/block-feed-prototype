@@ -14,7 +14,7 @@
       in {
         devShell = pkgs.mkShell {
           buildInputs = [
-            # pkgs.terraform # v1.8.5
+            pkgs.terraform # v1.8.5
             pkgs.nodejs_22 # v22.3.0
             pkgs.nodejs_22.pkgs.pnpm # v9.3.0
             pkgs.redis # v7.2.5
