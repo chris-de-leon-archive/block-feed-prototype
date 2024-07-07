@@ -6,7 +6,7 @@
     "stripe:seed": "node --env-file=.env --import=tsx ./scripts/create-stripe-product-and-price.ts",
     "stripe:listen": "stripe listen --forward-to localhost:3001/api/graphql",
     "schemagen": "node --import=tsx ./scripts/generate-gql-schema.ts",
-    "codegen": "pnpm run schemagen && graphql-codegen --config .graphqlrc.ts",
+    "codegen": "pnpm run schemagen && graphql-codegen --config .graphqlrc.ts && pnpm --filter=@block-feed/node-db introspect && pnpm -w run fmt",
     "test": "pnpm run codegen && ./node_modules/.bin/nptest",
     "dev": "next dev -p 3001",
     "clean": "rm -rf .turbo .next",
