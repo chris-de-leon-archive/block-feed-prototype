@@ -17,7 +17,7 @@
     "@block-feed/node-services-stripe-webhook-producer": "workspace:*",
     "@block-feed/node-testutils": "workspace:*",
     "eslint": "9.6.0",
-    "stripe": "16.1.0",
-    "typescript": "5.5.2"
+    "stripe": "16.2.0",
+    "typescript": "5.5.3"
   }
 }
