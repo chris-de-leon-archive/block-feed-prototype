@@ -1,4 +1,4 @@
-go 1.22.2
+go 1.22.3
 
 use (
 	./apps/block-feed/block-flusher
@@ -14,11 +14,14 @@ use (
 	./packages/go/block-stores/mongostore
 	./packages/go/block-stores/redistore
 	./packages/go/block-stores/timescalestore
+	./packages/go/block-trackers/timescaletracker
 	./packages/go/common
 	./packages/go/queries
+	./packages/go/services/blockbiller
 	./packages/go/services/blockforwarder
 	./packages/go/services/blockrelay
 	./packages/go/services/blockrouter
+	./packages/go/services/blockusage
 	./packages/go/streams
 	./packages/go/tests
 	./packages/go/testutils

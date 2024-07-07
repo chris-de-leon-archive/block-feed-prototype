@@ -1,6 +1,6 @@
 module flow_forwarder
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/jackc/pgx/v5 v5.6.0

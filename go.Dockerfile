@@ -1,4 +1,4 @@
-FROM golang:1.22.2-bullseye AS build
+FROM golang:1.22.3-bullseye AS build
 ARG BUILD_DIR
 WORKDIR /usr/src/app
 COPY ./apps ./apps

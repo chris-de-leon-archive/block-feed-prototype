@@ -1,6 +1,6 @@
 module flowsrc
 
-go 1.22.2
+go 1.22.3
 
 require github.com/onflow/flow-go-sdk v1.0.0-preview.33
 
