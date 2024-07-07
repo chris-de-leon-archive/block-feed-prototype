@@ -9,7 +9,7 @@
     "turbo:pkg": "turbo gen workspace --type package",
     "deps:outdated": "pnpm outdated -r",
     "deps:up": "pnpm up --latest -r",
-    "setup": "turbo setup && pnpm i && go work sync",
+    "setup": "pnpm i && go work sync && turbo setup",
     "build": "turbo build",
     "clean": "turbo clean",
     "test": "turbo test",
