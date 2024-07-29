@@ -1,5 +1,5 @@
 type Blockchain {
-  id: String!
+  id: String
 }
 
 input BoolEqFilterInput {
@@ -7,7 +7,7 @@ input BoolEqFilterInput {
 }
 
 type Count {
-  count: Int!
+  count: Int
 }
 
 input CursorInput {
@@ -21,24 +21,24 @@ input CursorPaginationInput {
 }
 
 type Mutation {
-  createBillingPortalSession: StripeSession!
-  createCheckoutSession: StripeSession!
-  webhookActivate(ids: [String!]!): Count!
-  webhookCreate(data: WebhookCreateInput!): UUID!
-  webhookRemove(ids: [String!]!): Count!
-  webhookUpdate(data: WebhookUpdateInput!, id: String!): Count!
+  createBillingPortalSession: StripeSession
+  createCheckoutSession: StripeSession
+  webhookActivate(ids: [String!]!): Count
+  webhookCreate(data: WebhookCreateInput!): UUID
+  webhookRemove(ids: [String!]!): Count
+  webhookUpdate(data: WebhookUpdateInput!, id: String!): Count
 }
 
 type PaginationFlags {
-  hasNext: Boolean!
-  hasPrev: Boolean!
+  hasNext: Boolean
+  hasPrev: Boolean
 }
 
 type Query {
-  blockchains: [Blockchain!]!
-  stripeSubscription: StripeSubscription!
-  webhook(id: String!): Webhook!
-  webhooks(filters: WebhookFiltersInput!, pagination: CursorPaginationInput!): Webhooks!
+  blockchains: [Blockchain!]
+  stripeSubscription: StripeSubscription
+  webhook(id: String!): Webhook
+  webhooks(filters: WebhookFiltersInput!, pagination: CursorPaginationInput!): Webhooks
 }
 
 input StringEqFilterInput {
@@ -50,12 +50,12 @@ input StringLikeFilterInput {
 }
 
 type StripeSession {
-  url: String!
+  url: String
 }
 
 type StripeSubscription {
-  id: String!
-  status: StripeSubscriptionStatus!
+  id: String
+  status: StripeSubscriptionStatus
 }
 
 enum StripeSubscriptionStatus {
@@ -70,19 +70,19 @@ enum StripeSubscriptionStatus {
 }
 
 type UUID {
-  id: String!
+  id: String
 }
 
 type Webhook {
-  blockchainId: String!
-  createdAt: String!
-  customerId: String!
-  id: String!
-  isActive: Int!
-  maxBlocks: Int!
-  maxRetries: Int!
-  timeoutMs: Int!
-  url: String!
+  blockchainId: String
+  createdAt: String
+  customerId: String
+  id: String
+  isActive: Int
+  maxBlocks: Int
+  maxRetries: Int
+  timeoutMs: Int
+  url: String
 }
 
 input WebhookCreateInput {
@@ -111,6 +111,6 @@ input WebhookUpdateInput {
 }
 
 type Webhooks {
-  pagination: PaginationFlags!
-  payload: [Webhook!]!
+  pagination: PaginationFlags
+  payload: [Webhook!]
 }

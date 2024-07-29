@@ -15,7 +15,7 @@
     "@block-feed/node-providers-mysql": "workspace:*",
     "@block-feed/node-providers-redis": "workspace:*",
     "@block-feed/node-providers-stripe": "workspace:*",
-    "drizzle-orm": "0.31.2"
+    "drizzle-orm": "0.32.0"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",

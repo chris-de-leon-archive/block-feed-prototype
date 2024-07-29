@@ -31,7 +31,7 @@ export type Scalars = {
 
 export type Blockchain = {
   __typename?: "Blockchain"
-  id: Scalars["String"]["output"]
+  id?: Maybe<Scalars["String"]["output"]>
 }
 
 export type BoolEqFilterInput = {
@@ -40,7 +40,7 @@ export type BoolEqFilterInput = {
 
 export type Count = {
   __typename?: "Count"
-  count: Scalars["Int"]["output"]
+  count?: Maybe<Scalars["Int"]["output"]>
 }
 
 export type CursorInput = {
@@ -55,12 +55,12 @@ export type CursorPaginationInput = {
 
 export type Mutation = {
   __typename?: "Mutation"
-  createBillingPortalSession: StripeSession
-  createCheckoutSession: StripeSession
-  webhookActivate: Count
-  webhookCreate: Uuid
-  webhookRemove: Count
-  webhookUpdate: Count
+  createBillingPortalSession?: Maybe<StripeSession>
+  createCheckoutSession?: Maybe<StripeSession>
+  webhookActivate?: Maybe<Count>
+  webhookCreate?: Maybe<Uuid>
+  webhookRemove?: Maybe<Count>
+  webhookUpdate?: Maybe<Count>
 }
 
 export type MutationWebhookActivateArgs = {
@@ -82,16 +82,16 @@ export type MutationWebhookUpdateArgs = {
 
 export type PaginationFlags = {
   __typename?: "PaginationFlags"
-  hasNext: Scalars["Boolean"]["output"]
-  hasPrev: Scalars["Boolean"]["output"]
+  hasNext?: Maybe<Scalars["Boolean"]["output"]>
+  hasPrev?: Maybe<Scalars["Boolean"]["output"]>
 }
 
 export type Query = {
   __typename?: "Query"
-  blockchains: Array<Blockchain>
-  stripeSubscription: StripeSubscription
-  webhook: Webhook
-  webhooks: Webhooks
+  blockchains?: Maybe<Array<Blockchain>>
+  stripeSubscription?: Maybe<StripeSubscription>
+  webhook?: Maybe<Webhook>
+  webhooks?: Maybe<Webhooks>
 }
 
 export type QueryWebhookArgs = {
@@ -113,13 +113,13 @@ export type StringLikeFilterInput = {
 
 export type StripeSession = {
   __typename?: "StripeSession"
-  url: Scalars["String"]["output"]
+  url?: Maybe<Scalars["String"]["output"]>
 }
 
 export type StripeSubscription = {
   __typename?: "StripeSubscription"
-  id: Scalars["String"]["output"]
-  status: StripeSubscriptionStatus
+  id?: Maybe<Scalars["String"]["output"]>
+  status?: Maybe<StripeSubscriptionStatus>
 }
 
 export type StripeSubscriptionStatus =
@@ -134,20 +134,20 @@ export type StripeSubscriptionStatus =
 
 export type Uuid = {
   __typename?: "UUID"
-  id: Scalars["String"]["output"]
+  id?: Maybe<Scalars["String"]["output"]>
 }
 
 export type Webhook = {
   __typename?: "Webhook"
-  blockchainId: Scalars["String"]["output"]
-  createdAt: Scalars["String"]["output"]
-  customerId: Scalars["String"]["output"]
-  id: Scalars["String"]["output"]
-  isActive: Scalars["Int"]["output"]
-  maxBlocks: Scalars["Int"]["output"]
-  maxRetries: Scalars["Int"]["output"]
-  timeoutMs: Scalars["Int"]["output"]
-  url: Scalars["String"]["output"]
+  blockchainId?: Maybe<Scalars["String"]["output"]>
+  createdAt?: Maybe<Scalars["String"]["output"]>
+  customerId?: Maybe<Scalars["String"]["output"]>
+  id?: Maybe<Scalars["String"]["output"]>
+  isActive?: Maybe<Scalars["Int"]["output"]>
+  maxBlocks?: Maybe<Scalars["Int"]["output"]>
+  maxRetries?: Maybe<Scalars["Int"]["output"]>
+  timeoutMs?: Maybe<Scalars["Int"]["output"]>
+  url?: Maybe<Scalars["String"]["output"]>
 }
 
 export type WebhookCreateInput = {
@@ -177,15 +177,15 @@ export type WebhookUpdateInput = {
 
 export type Webhooks = {
   __typename?: "Webhooks"
-  pagination: PaginationFlags
-  payload: Array<Webhook>
+  pagination?: Maybe<PaginationFlags>
+  payload?: Maybe<Array<Webhook>>
 }
 
 export type BlockchainsQueryVariables = Exact<{ [key: string]: never }>
 
 export type BlockchainsQuery = {
   __typename?: "Query"
-  blockchains: Array<{ __typename?: "Blockchain"; id: string }>
+  blockchains?: Array<{ __typename?: "Blockchain"; id?: string | null }> | null
 }
 
 export type CreateBillingPortalSessionMutationVariables = Exact<{
@@ -194,7 +194,10 @@ export type CreateBillingPortalSessionMutationVariables = Exact<{
 
 export type CreateBillingPortalSessionMutation = {
   __typename?: "Mutation"
-  createBillingPortalSession: { __typename?: "StripeSession"; url: string }
+  createBillingPortalSession?: {
+    __typename?: "StripeSession"
+    url?: string | null
+  } | null
 }
 
 export type CreateCheckoutSessionMutationVariables = Exact<{
@@ -203,18 +206,21 @@ export type CreateCheckoutSessionMutationVariables = Exact<{
 
 export type CreateCheckoutSessionMutation = {
   __typename?: "Mutation"
-  createCheckoutSession: { __typename?: "StripeSession"; url: string }
+  createCheckoutSession?: {
+    __typename?: "StripeSession"
+    url?: string | null
+  } | null
 }
 
 export type StripeSubscriptionQueryVariables = Exact<{ [key: string]: never }>
 
 export type StripeSubscriptionQuery = {
   __typename?: "Query"
-  stripeSubscription: {
+  stripeSubscription?: {
     __typename?: "StripeSubscription"
-    id: string
-    status: StripeSubscriptionStatus
-  }
+    id?: string | null
+    status?: StripeSubscriptionStatus | null
+  } | null
 }
 
 export type ActivateWebhooksMutationVariables = Exact<{
@@ -223,7 +229,7 @@ export type ActivateWebhooksMutationVariables = Exact<{
 
 export type ActivateWebhooksMutation = {
   __typename?: "Mutation"
-  webhookActivate: { __typename?: "Count"; count: number }
+  webhookActivate?: { __typename?: "Count"; count?: number | null } | null
 }
 
 export type CreateWebhookMutationVariables = Exact<{
@@ -232,7 +238,7 @@ export type CreateWebhookMutationVariables = Exact<{
 
 export type CreateWebhookMutation = {
   __typename?: "Mutation"
-  webhookCreate: { __typename?: "UUID"; id: string }
+  webhookCreate?: { __typename?: "UUID"; id?: string | null } | null
 }
 
 export type WebhooksQueryVariables = Exact<{
@@ -242,26 +248,26 @@ export type WebhooksQueryVariables = Exact<{
 
 export type WebhooksQuery = {
   __typename?: "Query"
-  webhooks: {
+  webhooks?: {
     __typename?: "Webhooks"
-    payload: Array<{
+    payload?: Array<{
       __typename?: "Webhook"
-      id: string
-      createdAt: string
-      url: string
-      customerId: string
-      blockchainId: string
-      isActive: number
-      maxBlocks: number
-      maxRetries: number
-      timeoutMs: number
-    }>
-    pagination: {
+      id?: string | null
+      createdAt?: string | null
+      url?: string | null
+      customerId?: string | null
+      blockchainId?: string | null
+      isActive?: number | null
+      maxBlocks?: number | null
+      maxRetries?: number | null
+      timeoutMs?: number | null
+    }> | null
+    pagination?: {
       __typename?: "PaginationFlags"
-      hasNext: boolean
-      hasPrev: boolean
-    }
-  }
+      hasNext?: boolean | null
+      hasPrev?: boolean | null
+    } | null
+  } | null
 }
 
 export type WebhookQueryVariables = Exact<{
@@ -270,18 +276,18 @@ export type WebhookQueryVariables = Exact<{
 
 export type WebhookQuery = {
   __typename?: "Query"
-  webhook: {
+  webhook?: {
     __typename?: "Webhook"
-    id: string
-    createdAt: string
-    url: string
-    customerId: string
-    blockchainId: string
-    isActive: number
-    maxBlocks: number
-    maxRetries: number
-    timeoutMs: number
-  }
+    id?: string | null
+    createdAt?: string | null
+    url?: string | null
+    customerId?: string | null
+    blockchainId?: string | null
+    isActive?: number | null
+    maxBlocks?: number | null
+    maxRetries?: number | null
+    timeoutMs?: number | null
+  } | null
 }
 
 export type RemoveWebhooksMutationVariables = Exact<{
@@ -290,7 +296,7 @@ export type RemoveWebhooksMutationVariables = Exact<{
 
 export type RemoveWebhooksMutation = {
   __typename?: "Mutation"
-  webhookRemove: { __typename?: "Count"; count: number }
+  webhookRemove?: { __typename?: "Count"; count?: number | null } | null
 }
 
 export type UpdateWebhookMutationVariables = Exact<{
@@ -300,7 +306,7 @@ export type UpdateWebhookMutationVariables = Exact<{
 
 export type UpdateWebhookMutation = {
   __typename?: "Mutation"
-  webhookUpdate: { __typename?: "Count"; count: number }
+  webhookUpdate?: { __typename?: "Count"; count?: number | null } | null
 }
 
 export const BlockchainsDocument = {
