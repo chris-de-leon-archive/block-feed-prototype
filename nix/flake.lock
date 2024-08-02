@@ -6,17 +6,17 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1720498299,
-        "narHash": "sha256-fGGlGU6Oxyte/zYEbjMq3hZiOxDoTUHUulhs/8zvLTg=",
+        "lastModified": 1722555991,
+        "narHash": "sha256-QOty7XYJWOKiMvufVdUhs10yIfYLTzeiVJHESe1R6rs=",
         "owner": "chris-de-leon",
         "repo": "dotfiles",
-        "rev": "c7a3fdb2266e09666db86d6feb3d1ddbd08cf690",
+        "rev": "b3b5a8971161ace3b0e4d5dc0ef2a6d4b7dc1798",
         "type": "github"
       },
       "original": {
         "owner": "chris-de-leon",
         "repo": "dotfiles",
-        "rev": "c7a3fdb2266e09666db86d6feb3d1ddbd08cf690",
+        "rev": "b3b5a8971161ace3b0e4d5dc0ef2a6d4b7dc1798",
         "type": "github"
       }
     },

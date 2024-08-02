@@ -1,7 +1,7 @@
 # https://github.com/NixOS/nixpkgs/commit/9f4128e00b0ae8ec65918efeba59db998750ead6 
 {
   inputs = {
-    dotfiles.url = "github:chris-de-leon/dotfiles?rev=c7a3fdb2266e09666db86d6feb3d1ddbd08cf690";
+    dotfiles.url = "github:chris-de-leon/dotfiles?rev=b3b5a8971161ace3b0e4d5dc0ef2a6d4b7dc1798";
     nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/9f4128e00b0ae8ec65918efeba59db998750ead6.tar.gz";
     utils.url = "github:numtide/flake-utils";
   };
@@ -22,7 +22,6 @@
           pkgs.stripe-cli # v1.21.0
         ];
       in {
-
         devShells.default = pkgs.mkShell {
           GOROOT = "${pkgs.go}/share/go";
           buildInputs = inp;
