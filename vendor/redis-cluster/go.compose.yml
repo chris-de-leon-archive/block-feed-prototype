@@ -2,6 +2,7 @@ services:
   redis-cluster:
     image: ${REDIS_CLUSTER_IMAGE}
     environment:
+      CLUSTER_HOST: 0.0.0.0
       START_PORT: ${START_PORT}
       END_PORT: ${END_PORT}
     ports:

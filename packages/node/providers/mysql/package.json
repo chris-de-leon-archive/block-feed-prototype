@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "@block-feed/node-db": "workspace:*",
-    "drizzle-orm": "0.32.0",
-    "mysql2": "3.10.2",
+    "drizzle-orm": "0.32.1",
+    "mysql2": "3.11.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "eslint": "9.6.0",
-    "typescript": "5.5.3"
+    "eslint": "9.8.0",
+    "typescript": "5.5.4"
   }
 }

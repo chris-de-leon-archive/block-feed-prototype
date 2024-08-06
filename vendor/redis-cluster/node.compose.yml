@@ -1,10 +1,10 @@
 services:
   redis-cluster:
-    network_mode: bridge
     build:
       context: .
       dockerfile: ./Dockerfile
     environment:
+      CLUSTER_HOST: 0.0.0.0
       START_PORT: ${START_PORT}
       END_PORT: ${END_PORT}
     ports:

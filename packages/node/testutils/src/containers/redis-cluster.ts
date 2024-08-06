@@ -1,6 +1,6 @@
+import { DOCKER_HOST, getRandomPort } from "./utils"
 import * as testcontainers from "testcontainers"
 import { getRootDir } from "../test-utils"
-import { getRandomPort } from "./utils"
 import * as path from "node:path"
 
 export const REDIS_CLUSTER_CONSTANTS = {
@@ -23,7 +23,7 @@ export const spawn = async () => {
     .up()
 
   return {
-    url: `host.docker.internal:${randPort}`,
+    url: `${DOCKER_HOST}:${randPort}`,
     compose,
   }
 }

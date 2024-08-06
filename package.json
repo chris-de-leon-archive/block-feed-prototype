@@ -5,12 +5,17 @@
     "dev:compose:up": "docker compose up -d --build",
     "dev:compose:down": "docker compose down --remove-orphans",
     "dev:compose": "pnpm run dev:compose:down && pnpm run dev:compose:up",
+    "dev:init": "pnpm run dev:compose && turbo dev",
+    "dev": "turbo dev",
     "turbo:app": "turbo gen workspace --type app",
     "turbo:pkg": "turbo gen workspace --type package",
     "deps:node:outdated": "pnpm outdated -r",
     "deps:node:up": "pnpm up --latest -r",
     "deps:go:up": "turbo go",
-    "setup": "pnpm i && turbo setup",
+    "codegen:gql": "pnpm --filter=@block-feed/dashboard codegen",
+    "codegen:db": "pnpm --filter=@block-feed/node-db introspect",
+    "codegen": "pnpm run codegen:gql && pnpm run codegen:db",
+    "setup": "pnpm i && turbo setup && pnpm run codegen",
     "build": "turbo build",
     "clean": "turbo clean",
     "test": "turbo test",
@@ -18,16 +23,15 @@
     "test:go:e2e": "turbo test --filter='./packages/go/tests/**'",
     "test:node": "turbo test --filter='@block-feed/dashboard' --filter='./packages/node/**'",
     "lint": "turbo lint",
-    "dev": "pnpm run dev:compose && turbo dev",
     "fmt": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "prettier": "3.3.2",
+    "prettier": "3.3.3",
     "prettier-plugin-tailwindcss": "0.6.5",
-    "tsx": "4.16.2",
-    "turbo": "2.0.6"
+    "tsx": "4.16.5",
+    "turbo": "2.0.11"
   },
   "packageManager": "pnpm@9.3.0+sha512.ee7b93e0c2bd11409c6424f92b866f31d3ea1bef5fbe47d3c7500cdc3c9668833d2e55681ad66df5b640c61fa9dc25d546efa54d76d7f8bf54b13614ac293631",
   "engines": {

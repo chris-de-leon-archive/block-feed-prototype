@@ -5,6 +5,8 @@ export type VerboseOptions = {
   data: boolean
 }
 
+export const DOCKER_HOST = "host.docker.internal"
+
 export const getRandomPort = async () => {
   return await new Promise<number>((res, rej) => {
     const srv = net.createServer()

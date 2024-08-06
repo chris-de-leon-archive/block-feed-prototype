@@ -1,5 +1,5 @@
+import { DOCKER_HOST, VerboseOptions } from "./utils"
 import * as testcontainers from "testcontainers"
-import { VerboseOptions } from "./utils"
 
 export const REDIS_CONSTANTS = {
   VERSION: "7.2.1-alpine3.18",
@@ -24,7 +24,7 @@ export const spawn = async (verbose: VerboseOptions) => {
 }
 
 export const getRedisUrl = (container: testcontainers.StartedTestContainer) => {
-  return `redis://host.docker.internal:${container.getMappedPort(
+  return `redis://${DOCKER_HOST}:${container.getMappedPort(
     REDIS_CONSTANTS.PORT,
   )}`
 }

@@ -1,6 +1,6 @@
+import { DOCKER_HOST, VerboseOptions } from "./utils"
 import * as testcontainers from "testcontainers"
 import { getRootDir } from "../test-utils"
-import { VerboseOptions } from "./utils"
 import * as path from "node:path"
 
 export const DB_CONSTANTS = {
@@ -54,7 +54,7 @@ export const getMySqlUrl = (
   uname: string,
   pword: string,
 ) => {
-  return `mysql://${uname}:${pword}@host.docker.internal:${container.getMappedPort(
+  return `mysql://${uname}:${pword}@${DOCKER_HOST}:${container.getMappedPort(
     DB_CONSTANTS.MYSQL.PORT,
   )}/${DB_CONSTANTS.MYSQL.DB}`
 }
