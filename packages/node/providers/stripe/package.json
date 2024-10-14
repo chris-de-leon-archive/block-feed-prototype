@@ -12,13 +12,13 @@
   "dependencies": {
     "@block-feed/node-caching": "workspace:*",
     "@block-feed/node-providers-redis": "workspace:*",
-    "stripe": "16.6.0",
+    "stripe": "17.2.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "eslint": "9.8.0",
-    "typescript": "5.5.4"
+    "eslint": "9.12.0",
+    "typescript": "5.6.3"
   }
 }

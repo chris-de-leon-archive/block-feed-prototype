@@ -11,8 +11,8 @@
   },
   "devDependencies": {
     "@block-feed/node-config-typescript": "workspace:*",
-    "drizzle-kit": "0.23.1",
-    "drizzle-orm": "0.32.1",
-    "typescript": "5.5.4"
+    "drizzle-kit": "0.25.0",
+    "drizzle-orm": "0.34.1",
+    "typescript": "5.6.3"
   }
 }

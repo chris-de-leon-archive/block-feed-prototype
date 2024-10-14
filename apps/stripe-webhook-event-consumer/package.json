@@ -21,10 +21,10 @@
     "@block-feed/node-providers-redis": "workspace:*",
     "@block-feed/node-providers-stripe": "workspace:*",
     "@block-feed/node-services-stripe-webhook-consumer": "workspace:*",
-    "@types/eslint": "9.6.0",
-    "@types/node": "22.1.0",
-    "esbuild": "0.23.0",
-    "eslint": "9.8.0",
-    "typescript": "5.5.4"
+    "@types/eslint": "9.6.1",
+    "@types/node": "22.7.5",
+    "esbuild": "0.24.0",
+    "eslint": "9.12.0",
+    "typescript": "5.6.3"
   }
 }

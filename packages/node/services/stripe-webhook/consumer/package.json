@@ -15,13 +15,13 @@
     "@block-feed/node-providers-mysql": "workspace:*",
     "@block-feed/node-providers-redis": "workspace:*",
     "@block-feed/node-providers-stripe": "workspace:*",
-    "drizzle-orm": "0.32.1"
+    "drizzle-orm": "0.34.1"
   },
   "devDependencies": {
     "@block-feed/node-config-eslint": "workspace:*",
     "@block-feed/node-config-typescript": "workspace:*",
-    "eslint": "9.8.0",
-    "stripe": "16.6.0",
-    "typescript": "5.5.4"
+    "eslint": "9.12.0",
+    "stripe": "17.2.0",
+    "typescript": "5.6.3"
   }
 }
