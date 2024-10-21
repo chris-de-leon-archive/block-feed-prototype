@@ -1,16 +1,17 @@
 package blockrelay
 
 import (
-	"blockstore"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
-	"queries"
-	"streams"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/queries"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
 )
 
 type (

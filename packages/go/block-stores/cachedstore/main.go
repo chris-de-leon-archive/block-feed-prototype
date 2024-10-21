@@ -1,13 +1,14 @@
 package cachedstore
 
 import (
-	"blockstore"
 	"cmp"
 	"context"
 	"fmt"
-	"redistore"
 	"slices"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
 
 	"golang.org/x/sync/errgroup"
 )

@@ -1,11 +1,12 @@
 package flowsrc
 
 import (
-	"blockstore"
-	"common"
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/common"
 
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/access/grpc"

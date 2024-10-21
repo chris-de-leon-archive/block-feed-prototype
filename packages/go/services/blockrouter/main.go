@@ -1,9 +1,10 @@
 package blockrouter
 
 import (
-	"blockstore"
 	"context"
-	"streams"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
 
 	"golang.org/x/sync/errgroup"
 )

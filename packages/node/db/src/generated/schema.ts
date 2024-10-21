@@ -2,10 +2,10 @@ import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, datetime,
 import { sql } from "drizzle-orm"
 
 export const blockchain = mysqlTable("blockchain", {
-	id: varchar("id", { length: 255 }).notNull(),
+	id: varchar({ length: 255 }).notNull(),
 	createdAt: datetime("created_at", { mode: 'string'}).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 	shardCount: int("shard_count").notNull(),
-	url: text("url").notNull(),
+	url: text().notNull(),
 	pgStoreUrl: text("pg_store_url").notNull(),
 	redisStoreUrl: text("redis_store_url").notNull(),
 	redisClusterUrl: text("redis_cluster_url").notNull(),
@@ -18,12 +18,12 @@ export const blockchain = mysqlTable("blockchain", {
 });
 
 export const checkoutSession = mysqlTable("checkout_session", {
-	id: varchar("id", { length: 36 }).notNull(),
+	id: varchar({ length: 36 }).notNull(),
 	createdAt: datetime("created_at", { mode: 'string'}).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 	clientReferenceId: varchar("client_reference_id", { length: 36 }).notNull(),
 	sessionId: varchar("session_id", { length: 255 }).notNull(),
 	customerId: varchar("customer_id", { length: 255 }).notNull().references(() => customer.id),
-	url: text("url").notNull(),
+	url: text().notNull(),
 },
 (table) => {
 	return {
@@ -34,7 +34,7 @@ export const checkoutSession = mysqlTable("checkout_session", {
 });
 
 export const customer = mysqlTable("customer", {
-	id: varchar("id", { length: 255 }).notNull(),
+	id: varchar({ length: 255 }).notNull(),
 	createdAt: datetime("created_at", { mode: 'string'}).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 },
 (table) => {
@@ -44,10 +44,10 @@ export const customer = mysqlTable("customer", {
 });
 
 export const webhook = mysqlTable("webhook", {
-	id: varchar("id", { length: 36 }).notNull(),
+	id: varchar({ length: 36 }).notNull(),
 	createdAt: datetime("created_at", { mode: 'string'}).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 	isActive: tinyint("is_active").notNull(),
-	url: text("url").notNull(),
+	url: text().notNull(),
 	maxBlocks: int("max_blocks").notNull(),
 	maxRetries: int("max_retries").notNull(),
 	timeoutMs: int("timeout_ms").notNull(),

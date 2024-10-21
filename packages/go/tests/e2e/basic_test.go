@@ -1,21 +1,23 @@
 package e2e
 
 import (
-	"appenv"
-	blockhook "blockrelay"
-	"blockrouter"
-	"cachedstore"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"tests/testservices"
-	"tests/testwebhooks"
-	"testutils"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/cachedstore"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockrelay"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockrouter"
+	"github.com/chris-de-leon/block-feed-prototype/tests/testservices"
+	"github.com/chris-de-leon/block-feed-prototype/tests/testwebhooks"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/containers"
 
 	"github.com/google/uuid"
 	"github.com/onflow/flow-go-sdk/access/grpc"
@@ -79,7 +81,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {
-		timestamp := time.Now().UTC().String()
+		var blocks []string
 
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -89,13 +91,13 @@ func TestBasic(t *testing.T) {
 			defer req.Body.Close()
 		}
 
-		blocks, err := testutils.JsonParse[[]string](string(body))
+		err = json.Unmarshal(body, &blocks)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		reqLog = append(reqLog, RequestLog{
-			Timestamp: timestamp,
+			Timestamp: time.Now().UTC().String(),
 			Blocks:    blocks,
 		})
 	}))
@@ -103,15 +105,15 @@ func TestBasic(t *testing.T) {
 
 	// Creates an error group so that we can create all containers in parallel
 	containerErrGrp := new(errgroup.Group)
-	var cRedisCluster *testutils.ContainerWithConnectionInfo
-	var cRedisStream *testutils.ContainerWithConnectionInfo
-	var cRedisStore *testutils.ContainerWithConnectionInfo
-	var cTimescaleDB *testutils.ContainerWithConnectionInfo
-	var cMySqlDB *testutils.ContainerWithConnectionInfo
+	var cRedisCluster *containers.ContainerWithConnectionInfo
+	var cRedisStream *containers.ContainerWithConnectionInfo
+	var cRedisStore *containers.ContainerWithConnectionInfo
+	var cTimescaleDB *containers.ContainerWithConnectionInfo
+	var cMySqlDB *containers.ContainerWithConnectionInfo
 
 	// Starts a timescale container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewTimescaleDBContainer(ctx, t)
+		container, err := containers.NewTimescaleDBContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -122,7 +124,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a mysql container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewMySqlContainer(ctx, t)
+		container, err := containers.NewMySqlContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -133,7 +135,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis cluster container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisClusterContainer(ctx, t, testutils.REDIS_CLUSTER_MIN_NODES)
+		container, err := containers.NewRedisClusterContainer(ctx, t, containers.REDIS_CLUSTER_MIN_NODES)
 		if err != nil {
 			return err
 		} else {
@@ -144,7 +146,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisBlockStoreCmd())
+		container, err := containers.NewRedisContainer(ctx, t, containers.RedisBlockStoreCmd())
 		if err != nil {
 			return err
 		} else {
@@ -155,7 +157,7 @@ func TestBasic(t *testing.T) {
 
 	// Starts a redis container
 	containerErrGrp.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
+		container, err := containers.NewRedisContainer(ctx, t, containers.RedisDefaultCmd())
 		if err != nil {
 			return err
 		} else {
@@ -174,9 +176,9 @@ func TestBasic(t *testing.T) {
 		ChainID:    FLOW_TESTNET_CHAIN_ID,
 		ShardCount: TEST_SHARDS,
 		ChainUrl:   FLOW_TESTNET_URL,
-		PgStoreUrl: testutils.PostgresUrl(*cTimescaleDB.Conn,
-			testutils.TIMESCALEDB_ROOT_USER_UNAME,
-			testutils.TIMESCALEDB_ROOT_USER_PWORD,
+		PgStoreUrl: containers.PostgresUrl(*cTimescaleDB.Conn,
+			containers.TIMESCALEDB_ROOT_USER_UNAME,
+			containers.TIMESCALEDB_ROOT_USER_PWORD,
 		),
 		RedisStoreUrl:   cRedisStore.Conn.Url,
 		RedisClusterUrl: cRedisCluster.Conn.Url,
@@ -210,19 +212,19 @@ func TestBasic(t *testing.T) {
 
 	// Creates 1 replica of a webhook stream consumer service for each shard.
 	// Each service has WEBHOOK_CONSUMER_POOL_SIZE concurrent workers.
-	blockRelays := make([]*blockhook.BlockRelay, TEST_SHARDS)
+	blockRelays := make([]*blockrelay.BlockRelay, TEST_SHARDS)
 	for shardID := range TEST_SHARDS {
 		blockRelay, err := testservices.NewBlockRelay(t, ctx,
 			config,
 			store,
-			testutils.MySqlUrl(
+			containers.MySqlUrl(
 				*cMySqlDB.Conn,
-				testutils.MYSQL_WORKERS_USER_UNAME,
-				testutils.MYSQL_WORKERS_USER_PWORD,
+				containers.MYSQL_WORKERS_USER_UNAME,
+				containers.MYSQL_WORKERS_USER_PWORD,
 			),
-			testutils.MYSQL_DEFAULT_CONN_POOL_SIZE,
+			containers.MYSQL_DEFAULT_CONN_POOL_SIZE,
 			shardID,
-			&blockhook.BlockRelayOpts{
+			&blockrelay.BlockRelayOpts{
 				ConsumerName: WEBHOOK_PROCESSOR_NAME,
 				Concurrency:  WEBHOOK_PROCESSOR_POOL_SIZE,
 			})
@@ -248,7 +250,7 @@ func TestBasic(t *testing.T) {
 	// Adds the webhook(s) to the database
 	if err := testwebhooks.InsertManyWebhooks(ctx,
 		cMySqlDB.Conn.Url,
-		testutils.MYSQL_DEFAULT_CONN_POOL_SIZE,
+		containers.MYSQL_DEFAULT_CONN_POOL_SIZE,
 		customerID,
 		config,
 		webhooks,
@@ -299,7 +301,8 @@ func TestBasic(t *testing.T) {
 		for _, req := range reqLog {
 			t.Logf("  => Received request at %s containing %d block(s)", req.Timestamp, len(req.Blocks))
 			for _, block := range req.Blocks {
-				parsedBlock, err := testutils.JsonParse[map[string]any](block)
+				var parsedBlock map[string]any
+				err = json.Unmarshal([]byte(block), &parsedBlock)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -1,15 +1,18 @@
 package testwebhooks
 
 import (
-	"appenv"
 	"context"
 	"database/sql"
 	"errors"
 	"math/rand/v2"
-	"streams"
-	"tests/testqueries"
-	"testutils"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
+	"github.com/chris-de-leon/block-feed-prototype/tests/testqueries"
+	mysqlT "github.com/chris-de-leon/block-feed-prototype/testutils/clients/mysql"
+	redisT "github.com/chris-de-leon/block-feed-prototype/testutils/clients/redis"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/db"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -64,12 +67,12 @@ func InsertManyWebhooks(
 	}
 
 	// Prepares for bulk insert
-	blockchainsBulkInsertQuery, blockchainsBulkInsertArgs := testutils.GetBulkInsertQuery("blockchain", []testqueries.Blockchain{blockchain})
-	webhooksBulkInsertQuery, webhooksBulkInsertArgs := testutils.GetBulkInsertQuery("webhook", webhooks)
+	blockchainsBulkInsertQuery, blockchainsBulkInsertArgs := db.GetBulkInsertQuery("blockchain", []testqueries.Blockchain{blockchain})
+	webhooksBulkInsertQuery, webhooksBulkInsertArgs := db.GetBulkInsertQuery("webhook", webhooks)
 
 	// Creates a customer and multiple webhooks
-	if _, err := testutils.GetTempMySqlClient(mySqlUrl, mySqlConnPoolSize, func(client *sql.DB) (bool, error) {
-		if err := testutils.WithTx(ctx, client, func(tx *sql.Tx) error {
+	if _, err := mysqlT.GetTempMySqlClient(mySqlUrl, mySqlConnPoolSize, func(client *sql.DB) (bool, error) {
+		if err := db.WithTx(ctx, client, func(tx *sql.Tx) error {
 			// Execute the following queries in a transaction
 			qtx := testqueries.New(tx)
 
@@ -153,7 +156,7 @@ func ActivateManyWebhooks(
     redis.call("ZADD", pending_set_key, unpack(jobs))
   `)
 
-	if _, err := testutils.GetTempRedisClusterClient(redisClusterUrl, func(client *redis.ClusterClient) (bool, error) {
+	if _, err := redisT.GetTempRedisClusterClient(redisClusterUrl, func(client *redis.ClusterClient) (bool, error) {
 		for shardID, webhooksInShard := range shardIdToWebhookIDs {
 			if err := script.Run(ctx, client,
 				[]string{

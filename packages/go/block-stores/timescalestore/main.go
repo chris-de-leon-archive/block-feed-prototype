@@ -1,7 +1,6 @@
 package timescalestore
 
 import (
-	"blockstore"
 	"context"
 	"database/sql"
 	"errors"
@@ -9,6 +8,8 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

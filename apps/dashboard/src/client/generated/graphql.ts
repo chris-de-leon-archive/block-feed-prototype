@@ -16,18 +16,8 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
-export type Blockchain = {
-  __typename?: 'Blockchain';
-  id: Scalars['String']['output'];
-};
-
 export type BoolEqFilterInput = {
   eq?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-export type Count = {
-  __typename?: 'Count';
-  count: Scalars['Int']['output'];
 };
 
 export type CursorInput = {
@@ -40,79 +30,12 @@ export type CursorPaginationInput = {
   limit: Scalars['Int']['input'];
 };
 
-export type Mutation = {
-  __typename?: 'Mutation';
-  createBillingPortalSession: StripeSession;
-  createCheckoutSession: StripeSession;
-  webhookActivate: Count;
-  webhookCreate: Uuid;
-  webhookRemove: Count;
-  webhookUpdate: Count;
-};
-
-
-export type MutationWebhookActivateArgs = {
-  ids: Array<Scalars['String']['input']>;
-};
-
-
-export type MutationWebhookCreateArgs = {
-  data: WebhookCreateInput;
-};
-
-
-export type MutationWebhookRemoveArgs = {
-  ids: Array<Scalars['String']['input']>;
-};
-
-
-export type MutationWebhookUpdateArgs = {
-  data: WebhookUpdateInput;
-  id: Scalars['String']['input'];
-};
-
-export type PaginationFlags = {
-  __typename?: 'PaginationFlags';
-  hasNext: Scalars['Boolean']['output'];
-  hasPrev: Scalars['Boolean']['output'];
-};
-
-export type Query = {
-  __typename?: 'Query';
-  blockchains: Array<Blockchain>;
-  stripeSubscription: StripeSubscription;
-  webhook: Webhook;
-  webhooks: Webhooks;
-};
-
-
-export type QueryWebhookArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type QueryWebhooksArgs = {
-  filters: WebhookFiltersInput;
-  pagination: CursorPaginationInput;
-};
-
 export type StringEqFilterInput = {
   eq?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type StringLikeFilterInput = {
   like?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type StripeSession = {
-  __typename?: 'StripeSession';
-  url: Scalars['String']['output'];
-};
-
-export type StripeSubscription = {
-  __typename?: 'StripeSubscription';
-  id: Scalars['String']['output'];
-  status: StripeSubscriptionStatus;
 };
 
 export type StripeSubscriptionStatus =
@@ -124,24 +47,6 @@ export type StripeSubscriptionStatus =
   | 'paused'
   | 'trialing'
   | 'unpaid';
-
-export type Uuid = {
-  __typename?: 'UUID';
-  id: Scalars['String']['output'];
-};
-
-export type Webhook = {
-  __typename?: 'Webhook';
-  blockchainId: Scalars['String']['output'];
-  createdAt: Scalars['String']['output'];
-  customerId: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  isActive: Scalars['Int']['output'];
-  maxBlocks: Scalars['Int']['output'];
-  maxRetries: Scalars['Int']['output'];
-  timeoutMs: Scalars['Int']['output'];
-  url: Scalars['String']['output'];
-};
 
 export type WebhookCreateInput = {
   blockchainId: Scalars['String']['input'];
@@ -166,12 +71,6 @@ export type WebhookUpdateInput = {
   maxRetries?: InputMaybe<Scalars['Int']['input']>;
   timeoutMs?: InputMaybe<Scalars['Int']['input']>;
   url?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type Webhooks = {
-  __typename?: 'Webhooks';
-  pagination: PaginationFlags;
-  payload: Array<Webhook>;
 };
 
 export type BlockchainsQueryVariables = Exact<{ [key: string]: never; }>;

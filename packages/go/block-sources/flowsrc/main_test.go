@@ -1,13 +1,14 @@
 package flowsrc
 
 import (
-	"blockstore"
 	"context"
 	"errors"
 	"fmt"
 	"testing"
-	"testutils"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/flow"
 
 	"github.com/onflow/flow-go-sdk/access/grpc"
 )
@@ -32,7 +33,7 @@ func (c *mockFlowConsumer) ProcessData(ctx context.Context, data blockstore.Bloc
 func TestFlowBlockStreamer(t *testing.T) {
 	ctx := context.Background()
 
-	flowClient, err := testutils.GetFlowClient(t, grpc.TestnetHost)
+	flowClient, err := flow.GetFlowClient(t, grpc.TestnetHost)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,17 @@
+{
+  "name": "@block-feed/go",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p node_modules/",
+    "clean": "rm -rf .bin .turbo",
+    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test:int": "go test -v ./block-stores/...",
+    "test:int:one": "f() { go test -v ./block-stores/$1/...; }; f",
+    "test:e2e": "go test -v ./tests/e2e/...",
+    "test:e2e:one": "f() { go test -v ./tests/e2e/$1.go; }; f",
+    "go:install": "go get -v ./... && go mod tidy",
+    "go:upgrade": "go get -v -u ./... && go mod tidy",
+    "go:clean": "go clean -x -i -r -cache -modcache"
+  }
+}

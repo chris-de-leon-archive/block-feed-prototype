@@ -1,14 +1,15 @@
 package main
 
 import (
-	"appenv"
-	"cachedstore"
-	"common"
 	"context"
 	"os/signal"
-	"redistore"
 	"syscall"
-	"timescalestore"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/cachedstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/timescalestore"
+	"github.com/chris-de-leon/block-feed-prototype/common"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"

@@ -2,7 +2,8 @@ package appenv
 
 import (
 	"fmt"
-	"validation"
+
+	"github.com/chris-de-leon/block-feed-prototype/validation"
 
 	"github.com/caarlos0/env/v11"
 )

@@ -2,6 +2,15 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
   "tasks": {
+    "go:install": {
+      "dependsOn": ["^go:install"]
+    },
+    "go:upgrade": {
+      "dependsOn": ["^go:upgrade"]
+    },
+    "go:clean": {
+      "dependsOn": ["^go:clean"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".bin", ".next/**", "!.next/cache/**"]

@@ -1,7 +1,7 @@
-# https://github.com/NixOS/nixpkgs/commit/9f4128e00b0ae8ec65918efeba59db998750ead6 
+# https://github.com/NixOS/nixpkgs/commit/e032e7ed264d9cae8793b947fce8c6205efeb272 
 {
   inputs = {
-    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/9f4128e00b0ae8ec65918efeba59db998750ead6.tar.gz";
+    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/e032e7ed264d9cae8793b947fce8c6205efeb272.tar.gz";
     utils.url = "github:numtide/flake-utils";
   };
 
@@ -13,14 +13,14 @@
         devShells.default = pkgs.mkShell {
           GOROOT = "${pkgs.go}/share/go";
           packages = [
-            pkgs.terraform # v1.8.5
-            pkgs.nodejs_22 # v22.3.0
-            pkgs.nodejs_22.pkgs.pnpm # v9.3.0
+            pkgs.terraform # v1.9.7
+            pkgs.nodejs_22 # v22.9.0
+            pkgs.nodejs_22.pkgs.pnpm # v9.12.1
             pkgs.redis # v7.2.5
-            pkgs.go #v1.22.3
-            pkgs.sqlc # v1.26.0
-            pkgs.atlas # v0.24.0
-            pkgs.stripe-cli # v1.21.0
+            pkgs.go # v1.23.2
+            pkgs.sqlc # v1.27.0
+            pkgs.atlas # v0.28.0
+            pkgs.stripe-cli # v1.21.7
           ];
         };
       }

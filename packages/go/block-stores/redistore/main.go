@@ -1,10 +1,11 @@
 package redistore
 
 import (
-	"blockstore"
 	"context"
 	"encoding/json"
 	"strconv"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
 
 	"github.com/redis/go-redis/v9"
 )

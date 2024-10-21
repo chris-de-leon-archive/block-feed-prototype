@@ -172,6 +172,7 @@ describe("CRUD Tests", () => {
           return {
             ...ctx,
             yoga: {
+              waitUntil: () => new Promise((res) => res(undefined)),
               request: context.request,
               params: context.params,
             },

@@ -1,15 +1,18 @@
 package cachedstore
 
 import (
-	"blockstore"
 	"context"
 	"errors"
 	"math"
-	"redistore"
 	"testing"
-	"testutils"
 	"time"
-	"timescalestore"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/timescalestore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/pg"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/redis"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/containers"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -36,12 +39,12 @@ func TestRedisOptimizedBlockStore(t *testing.T) {
 
 	// Creates an errgroup to start containers in parallel
 	eg := new(errgroup.Group)
-	var cTimescale *testutils.ContainerWithConnectionInfo
-	var cRedis *testutils.ContainerWithConnectionInfo
+	var cTimescale *containers.ContainerWithConnectionInfo
+	var cRedis *containers.ContainerWithConnectionInfo
 
 	// Starts a timescale container
 	eg.Go(func() error {
-		container, err := testutils.NewTimescaleDBContainer(ctx, t)
+		container, err := containers.NewTimescaleDBContainer(ctx, t)
 		if err != nil {
 			return err
 		} else {
@@ -52,7 +55,7 @@ func TestRedisOptimizedBlockStore(t *testing.T) {
 
 	// Starts a redis container
 	eg.Go(func() error {
-		container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisBlockStoreCmd())
+		container, err := containers.NewRedisContainer(ctx, t, containers.RedisBlockStoreCmd())
 		if err != nil {
 			return err
 		} else {
@@ -67,13 +70,13 @@ func TestRedisOptimizedBlockStore(t *testing.T) {
 	}
 
 	// Creates a postgres client
-	pgClient, err := testutils.GetPostgresClient(t, ctx, cTimescale.Conn.Url)
+	pgClient, err := pg.GetPostgresClient(t, ctx, cTimescale.Conn.Url)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Creates a redis client
-	redisClient, err := testutils.GetRedisClient(t, cRedis.Conn.Url)
+	redisClient, err := redis.GetRedisClient(t, cRedis.Conn.Url)
 	if err != nil {
 		t.Fatal(err)
 	}

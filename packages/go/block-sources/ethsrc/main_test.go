@@ -1,13 +1,14 @@
 package ethsrc
 
 import (
-	"blockstore"
 	"context"
 	"errors"
 	"fmt"
 	"testing"
-	"testutils"
 	"time"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/eth"
 )
 
 const (
@@ -34,12 +35,12 @@ func (c *mockEthConsumer) ProcessData(ctx context.Context, data blockstore.Block
 func TestEthBlockStreamer(t *testing.T) {
 	ctx := context.Background()
 
-	ethWssClient, err := testutils.GetEthClient(t, ETH_WSS_URL)
+	ethWssClient, err := eth.GetEthClient(t, ETH_WSS_URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ethRpcClient, err := testutils.GetEthClient(t, ETH_RPC_URL)
+	ethRpcClient, err := eth.GetEthClient(t, ETH_RPC_URL)
 	if err != nil {
 		t.Fatal(err)
 	}
