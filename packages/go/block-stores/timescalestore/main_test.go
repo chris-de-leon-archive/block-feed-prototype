@@ -1,11 +1,13 @@
 package timescalestore
 
 import (
-	"blockstore"
 	"context"
 	"fmt"
 	"testing"
-	"testutils"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/pg"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/containers"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -22,16 +24,16 @@ func TestTimescaleBlockStore(t *testing.T) {
 	blocks[2] = blockstore.BlockDocument{Height: 3, Data: []byte{}}
 
 	// Starts a container
-	container, err := testutils.NewTimescaleDBContainer(ctx, t)
+	container, err := containers.NewTimescaleDBContainer(ctx, t)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Creates a client
-	client, err := testutils.GetPostgresClient(t, ctx,
-		testutils.PostgresUrl(*container.Conn,
-			testutils.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
-			testutils.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
+	client, err := pg.GetPostgresClient(t, ctx,
+		containers.PostgresUrl(*container.Conn,
+			containers.TIMESCALEDB_BLOCKSTORE_USER_UNAME,
+			containers.TIMESCALEDB_BLOCKSTORE_USER_PWORD,
 		),
 	)
 	if err != nil {

@@ -1,10 +1,12 @@
 package mongostore
 
 import (
-	"blockstore"
 	"context"
 	"testing"
-	"testutils"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/mongo"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/containers"
 )
 
 func TestMongoBlockStore(t *testing.T) {
@@ -20,16 +22,16 @@ func TestMongoBlockStore(t *testing.T) {
 	blocks[2] = blockstore.BlockDocument{Height: 3, Data: []byte{}}
 
 	// Starts a container
-	container, err := testutils.NewMongoContainer(ctx, t, true)
+	container, err := containers.NewMongoContainer(ctx, t, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Creates a client
-	client, err := testutils.GetMongoClient(t, ctx,
-		testutils.MongoUrl(*container.Conn,
-			testutils.MONGO_ROOT_USER_UNAME,
-			testutils.MONGO_ROOT_USER_PWORD,
+	client, err := mongo.GetMongoClient(t, ctx,
+		containers.MongoUrl(*container.Conn,
+			containers.MONGO_ROOT_USER_UNAME,
+			containers.MONGO_ROOT_USER_PWORD,
 		),
 	)
 	if err != nil {

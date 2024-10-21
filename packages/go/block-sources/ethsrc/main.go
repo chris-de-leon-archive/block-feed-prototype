@@ -1,10 +1,11 @@
 package ethsrc
 
 import (
-	"blockstore"
 	"context"
 	"encoding/json"
 	"math/big"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"

@@ -1,11 +1,12 @@
 package mongostore
 
 import (
-	"blockstore"
 	"context"
 	"errors"
 	"reflect"
 	"strings"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

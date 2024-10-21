@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "mkdir -p node_modules/",
-    "build": "f(){ go build -o ${1:-\".bin\"} ./main.go; }; f",
+    "build": "echo 'cannot build' # f(){ go build -o ${1:-\".bin\"} ./main.go; }; f",
     "clean": "rm -rf .bin .turbo",
     "go:install": "go get -v ./... && go mod tidy",
     "go:upgrade": "go get -v -u ./... && go mod tidy",

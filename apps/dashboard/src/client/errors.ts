@@ -1,3 +1,5 @@
+"use server"
+
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { GraphQLErrorCode } from "@block-feed/dashboard/utils/enums/graphql-error.enum"
 import { doesObjectHaveKey } from "@block-feed/dashboard/utils/util"

@@ -1,10 +1,12 @@
 package redistore
 
 import (
-	"blockstore"
 	"context"
 	"testing"
-	"testutils"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/redis"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/containers"
 )
 
 func TestRedisBlockStore(t *testing.T) {
@@ -19,13 +21,13 @@ func TestRedisBlockStore(t *testing.T) {
 	blocks[2] = blockstore.BlockDocument{Height: 3, Data: []byte{}}
 
 	// Starts a container
-	container, err := testutils.NewRedisContainer(ctx, t, testutils.RedisDefaultCmd())
+	container, err := containers.NewRedisContainer(ctx, t, containers.RedisDefaultCmd())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Creates a client
-	client, err := testutils.GetRedisClient(t, container.Conn.Url)
+	client, err := redis.GetRedisClient(t, container.Conn.Url)
 	if err != nil {
 		t.Fatal(err)
 	}

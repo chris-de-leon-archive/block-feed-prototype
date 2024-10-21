@@ -1,22 +1,26 @@
 package testservices
 
 import (
-	"appenv"
-	"blockforwarder"
-	"blockrelay"
-	blockhook "blockrelay"
-	"blockrouter"
-	"blockstore"
-	"cachedstore"
 	"context"
-	"ethsrc"
-	"flowsrc"
-	"queries"
-	"redistore"
-	"streams"
 	"testing"
-	"testutils"
-	"timescalestore"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/block-sources/ethsrc"
+	"github.com/chris-de-leon/block-feed-prototype/block-sources/flowsrc"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/cachedstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/timescalestore"
+	"github.com/chris-de-leon/block-feed-prototype/queries"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockforwarder"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockrelay"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockrouter"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/eth"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/flow"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/mysql"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/pg"
+	"github.com/chris-de-leon/block-feed-prototype/testutils/clients/redis"
 )
 
 func NewFlowBlockForwarder(
@@ -25,13 +29,13 @@ func NewFlowBlockForwarder(
 	chainConfig appenv.ChainEnv,
 ) (*blockforwarder.BlockForwarder, error) {
 	// Creates a flow client
-	flowClient, err := testutils.GetFlowClient(t, chainConfig.ChainUrl)
+	flowClient, err := flow.GetFlowClient(t, chainConfig.ChainUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates a redis client
-	redisClient, err := testutils.GetRedisClient(t, chainConfig.RedisStreamUrl)
+	redisClient, err := redis.GetRedisClient(t, chainConfig.RedisStreamUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +53,13 @@ func NewEthBlockForwarder(
 	chainConfig appenv.ChainEnv,
 ) (*blockforwarder.BlockForwarder, error) {
 	// Creates an eth client
-	ethClient, err := testutils.GetEthClient(t, chainConfig.ChainUrl)
+	ethClient, err := eth.GetEthClient(t, chainConfig.ChainUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates a redis client
-	redisClient, err := testutils.GetRedisClient(t, chainConfig.RedisStreamUrl)
+	redisClient, err := redis.GetRedisClient(t, chainConfig.RedisStreamUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +77,13 @@ func NewRedisOptimizedBlockStore(
 	chainConfig appenv.ChainEnv,
 ) (*cachedstore.RedisOptimizedBlockStore, error) {
 	// Creates a postgres client
-	pgClient, err := testutils.GetPostgresClient(t, ctx, chainConfig.PgStoreUrl)
+	pgClient, err := pg.GetPostgresClient(t, ctx, chainConfig.PgStoreUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates a redis client
-	redisClient, err := testutils.GetRedisClient(t, chainConfig.RedisStoreUrl)
+	redisClient, err := redis.GetRedisClient(t, chainConfig.RedisStoreUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -107,13 +111,13 @@ func NewBlockRouter(
 	opts *blockrouter.BlockRouterOpts,
 ) (*blockrouter.BlockRouter, error) {
 	// Creates a redis client
-	redisClient, err := testutils.GetRedisClient(t, chainConfig.RedisStreamUrl)
+	redisClient, err := redis.GetRedisClient(t, chainConfig.RedisStreamUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates a redis cluster client
-	redisClusterClient, err := testutils.GetRedisClusterClient(t, chainConfig.RedisClusterUrl)
+	redisClusterClient, err := redis.GetRedisClusterClient(t, chainConfig.RedisClusterUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -144,19 +148,19 @@ func NewBlockRelay(
 	opts *blockrelay.BlockRelayOpts,
 ) (*blockrelay.BlockRelay, error) {
 	// Creates a redis client
-	redisClusterClient, err := testutils.GetRedisClusterClient(t, chainConfig.RedisClusterUrl)
+	redisClusterClient, err := redis.GetRedisClusterClient(t, chainConfig.RedisClusterUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates a mysql client
-	mysqlClient, err := testutils.GetMySqlClient(t, mySqlUrl, mySqlConnPoolSize)
+	mysqlClient, err := mysql.GetMySqlClient(t, mySqlUrl, mySqlConnPoolSize)
 	if err != nil {
 		return nil, err
 	}
 
 	// Creates the service
-	return blockrelay.NewBlockRelay(blockhook.BlockRelayParams{
+	return blockrelay.NewBlockRelay(blockrelay.BlockRelayParams{
 		WebhookStream: streams.NewWebhookStream(redisClusterClient, shardID),
 		Queries:       queries.New(mysqlClient),
 		BlockStore:    store,

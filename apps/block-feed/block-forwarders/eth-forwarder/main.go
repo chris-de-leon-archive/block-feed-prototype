@@ -1,18 +1,19 @@
 package main
 
 import (
-	"appenv"
-	"blockforwarder"
-	"blockstore"
-	"cachedstore"
-	"common"
 	"context"
-	"ethsrc"
 	"os/signal"
-	"redistore"
-	"streams"
 	"syscall"
-	"timescalestore"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/block-sources/ethsrc"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/cachedstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/timescalestore"
+	"github.com/chris-de-leon/block-feed-prototype/common"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockforwarder"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/jackc/pgx/v5/pgxpool"

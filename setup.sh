@@ -9,4 +9,4 @@ NIXPKGS_ALLOW_UNFREE=1 \
   develop \
   --show-trace \
   --impure \
-  ./nix
+  "./nix"

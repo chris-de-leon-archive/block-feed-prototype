@@ -1,9 +1,10 @@
 package blockforwarder
 
 import (
-	"blockstore"
 	"context"
-	"streams"
+
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/blockstore"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
 )
 
 type (

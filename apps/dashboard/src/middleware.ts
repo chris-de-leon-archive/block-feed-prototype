@@ -32,7 +32,7 @@ export default clerkMiddleware(
 
     // Handle unauthenticated users
     if (sess.userId == null) {
-      return sess.redirectToSignIn({ returnBackUrl: req.url })
+      return sess.redirectToSignIn()
     }
 
     // If the user is not on the subscribe page, check their subscription status
@@ -54,8 +54,7 @@ export default clerkMiddleware(
           return NextResponse.redirect(subscribeUrl)
         }
         if (isGraphQLErrorCode(res, GraphQLErrorCode.UNAUTHORIZED)) {
-          console.log("redirect")
-          return sess.redirectToSignIn({ returnBackUrl: req.url })
+          return sess.redirectToSignIn()
         }
         return Response.json(res, { status: 500 })
       }

@@ -1,20 +1,21 @@
 package main
 
 import (
-	"appenv"
-	"blockrelay"
-	"cachedstore"
-	"common"
 	"context"
 	"database/sql"
 	"log"
 	"os/signal"
-	"queries"
-	"redistore"
-	"streams"
 	"syscall"
 	"time"
-	"timescalestore"
+
+	"github.com/chris-de-leon/block-feed-prototype/appenv"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/cachedstore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/redistore"
+	"github.com/chris-de-leon/block-feed-prototype/block-stores/timescalestore"
+	"github.com/chris-de-leon/block-feed-prototype/common"
+	"github.com/chris-de-leon/block-feed-prototype/queries"
+	"github.com/chris-de-leon/block-feed-prototype/services/blockrelay"
+	"github.com/chris-de-leon/block-feed-prototype/streams"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgxpool"
