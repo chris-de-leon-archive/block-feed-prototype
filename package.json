@@ -7,6 +7,7 @@
     "dev:compose": "pnpm run dev:compose:down && pnpm run dev:compose:up",
     "dev:init": "pnpm run dev:compose && turbo dev",
     "dev": "turbo dev",
+    "dev:ui": "turbo dev --filter='@block-feed/dashboard' --filter='@block-feed/web'",
     "turbo:app": "turbo gen workspace --type app",
     "turbo:pkg": "turbo gen workspace --type package",
     "deps:node:outdated": "pnpm outdated -r",
