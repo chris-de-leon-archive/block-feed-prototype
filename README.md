@@ -1,81 +1,111 @@
-# Turborepo starter
+# Block Feed Prototype
 
-This is an official starter Turborepo.
+## Intro
 
-## Using this example
+The Block Feed project consists of a series of micorservices which make it possible to subscribe to blockchain block data in real time via a webhook subscription. Here are some notable features in this project:
 
-Run the following command:
+- Webhooks are configurable (you can adjust the number of retries and the URL that the data should be sent to)
+- It comes with a product landing page to showcase the prodduct
+- It offers a dashboard which makes it easier to manage webhooks
+- The web UI is integrated with the Stripe API (the backend still needs to implement metering so that we can bill based on the number of requests)
+- The backend can be extended to support both EVM and non-EVM chains
+- It uses a redis cluster per chain to process webhooks which allows for more granular horizontal scaling 
+- The backend services are written using Go/RedisCluster/TimescaleDB/MongoDB
+- The web apps are written using NodeJS/Typescript/NextJS/Drizzle/GraphQL-Yoga
+
+## Pitfalls / Lessons Learned
+
+This project mixed a lot of the billing logic with the business logic, which makes it more difficult to:
+
+1. provide a self-hosted option to users 
+1. make this project open-source and have others contribute
+
+One other pitfall is that there is very little room for customizing the 3rd party storage solutions. For example, this project has chosen redis and timescale DB for backend storage, but it would be better if we could give users more freedom over this so that they are not vendor-locked.
+
+Another issue is that The project itself is very cost-heavy and infra-heavy - if we want to support multiple chains, then we need to spawn more infra. It is possible to use 1 redis cluster / timescale DB for everything, but even then this can be a lot of infra to host.
+
+The last issue I'll address relates to webhook latency and idempotency. If a user configures 5 retries for their webhook, then it is possible that they may receive more than this. This can happen if the backend service goes down right after the request is sent but right before it has a chance to officially count the request in redis. Also poor network connections can result in suboptimal delivery times leading to non-realtime behavior.
+
+## Development
+
+Enter a Nix shell with all necessary dev tools available:
 
 ```sh
-npx create-turbo@latest
+NIXPKGS_ALLOW_UNFREE=1 nix --extra-experimental-features 'flakes' --extra-experimental-features 'nix-command' develop --show-trace --impure ./nix
 ```
 
-## What's inside?
+Install dependencies:
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
+```sh
+pnpm i
 ```
 
-### Develop
+Identifying outdated Node dependencies:
 
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
+```sh
+pnpm run deps:node:outdated
 ```
 
-### Remote Caching
+Upgrade dependencies:
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+```sh
+# Upgrades Node dependencies
+pnpm run deps:node:up
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
+# Upgrades Go dependencies
+pnpm run deps:go:up
 ```
 
-## Useful Links
+Building the code:
 
-Learn more about the power of Turborepo:
+```sh
+pnpm run build
+```
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+Generating GraphQL and Database ORM code:
+
+```sh
+pnpm run codegen
+```
+
+Generating Turbo packages and apps:
+
+```sh
+# App
+pnpm run turbo:app
+
+# Package
+pnpm run turbo:pkg
+```
+
+Testing:
+
+```sh
+# Test Node projects
+make test:node
+
+# Test Go projects
+make test:go
+```
+
+Starting all Services:
+
+```sh
+pnpm run dev:init
+```
+
+Starting just the UI:
+
+```sh
+pnpm run dev:ui
+```
+
+Local Deployment:
+
+```sh
+# Navigate to the local deployment folder
+cd ./deployment/local
+
+# When prompted, use a tag like 1.0.0 or similar
+make apply
+```
