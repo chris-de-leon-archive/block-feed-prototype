@@ -2,13 +2,21 @@
 {
   inputs = {
     nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/e032e7ed264d9cae8793b947fce8c6205efeb272.tar.gz";
+    secrets.url = "https://github.com/chris-de-leon/secrets-cli/archive/refs/tags/v1.1.3.tar.gz";
     utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, utils }:
+  outputs = { self, nixpkgs, secrets, utils }:
     utils.lib.eachDefaultSystem(system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            (final: prev: {
+              scli = secrets.defaultPackage.${prev.system};
+            })
+          ];
+        };
       in {
         devShells.default = pkgs.mkShell {
           GOROOT = "${pkgs.go}/share/go";
@@ -21,6 +29,7 @@
             pkgs.sqlc # v1.27.0
             pkgs.atlas # v0.28.0
             pkgs.stripe-cli # v1.21.7
+            pkgs.scli
           ];
         };
       }

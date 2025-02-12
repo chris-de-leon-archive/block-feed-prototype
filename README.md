@@ -9,15 +9,15 @@ The Block Feed project consists of a series of micorservices which make it possi
 - It offers a dashboard which makes it easier to manage webhooks
 - The web UI is integrated with the Stripe API (the backend still needs to implement metering so that we can bill based on the number of requests)
 - The backend can be extended to support both EVM and non-EVM chains
-- It uses a redis cluster per chain to process webhooks which allows for more granular horizontal scaling 
+- It uses a redis cluster per chain to process webhooks which allows for more granular horizontal scaling
 - The backend services are written using Go/RedisCluster/TimescaleDB/MongoDB
 - The web apps are written using NodeJS/Typescript/NextJS/Drizzle/GraphQL-Yoga
 
 ## Pitfalls / Lessons Learned
 
-This project mixed a lot of the billing logic with the business logic, which makes it more difficult to:
+This project mixed a lot of the billing logic with the business logic, which made it more difficult to:
 
-1. provide a self-hosted option to users 
+1. provide a self-hosted option to users
 1. make this project open-source and have others contribute
 
 One other pitfall is that there is very little room for customizing the 3rd party storage solutions. For example, this project has chosen redis and timescale DB for backend storage, but it would be better if we could give users more freedom over this so that they are not vendor-locked.
