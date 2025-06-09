@@ -5,6 +5,8 @@
   "scripts": {
     "stripe:seed": "node --env-file=.env --import=tsx ./scripts/create-stripe-product-and-price.ts",
     "stripe:listen": "stripe listen --forward-to localhost:3001/api/graphql",
+    "env:dev:show": "bws run --shell='bash' --project-id=\"${BWS_PROJECT_ID}\" -- 'echo \"${DEV_BACKEND}\"'",
+    "env:dev:pull": "pnpm run --silent env:dev:show > .env",
     "schemagen": "node --import=tsx ./scripts/generate-gql-schema.ts",
     "codegen": "pnpm run schemagen && graphql-codegen --config .graphqlrc.ts",
     "test": "./node_modules/.bin/nptest",

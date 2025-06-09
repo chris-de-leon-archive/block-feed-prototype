@@ -31,7 +31,7 @@ The last issue I'll address relates to webhook latency and idempotency. If a use
 Enter a Nix shell with all necessary dev tools available:
 
 ```sh
-NIXPKGS_ALLOW_UNFREE=1 nix --extra-experimental-features 'flakes' --extra-experimental-features 'nix-command' develop --show-trace --impure ./nix
+nix develop
 ```
 
 Install dependencies:

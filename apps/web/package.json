@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "env:dev:show": "bws run --shell='bash' --project-id=\"${BWS_PROJECT_ID}\" -- 'echo \"${DEV_FRONTEND}\"'",
+    "env:dev:pull": "pnpm run --silent env:dev:show > .env",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",

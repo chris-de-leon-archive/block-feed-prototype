@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["BWS_ACCESS_TOKEN", "BWS_PROJECT_ID"],
   "tasks": {
     "go:install": {
       "dependsOn": ["^go:install"]
@@ -10,6 +11,15 @@
     },
     "go:clean": {
       "dependsOn": ["^go:clean"]
+    },
+    "env:dev:show": {
+      "dependsOn": ["^env:dev:show"],
+      "cache": false
+    },
+    "env:dev:pull": {
+      "dependsOn": ["^env:dev:pull"],
+      "outputs": [".env"],
+      "cache": false
     },
     "build": {
       "dependsOn": ["^build"],
