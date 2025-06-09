@@ -9,7 +9,7 @@ I am pausing development on this project until further notice. This project mixe
 
 One other pitfall is that there is very little room for customizing the 3rd party storage solutions. For example, this project has chosen redis and timescale DB for backend storage, but it would be better if we could give users more freedom over this so that they are not vendor-locked.
 
-Another issue is that The project itself is very cost-heavy and infra-heavy - if we want to support multiple chains, then we need to spawn more infra. It is possible to use 1 redis cluster / timescale DB for everything, but even then this can be a lot of infra to host.
+Another issue is that the project itself is very cost/infra-heavy - if we want to support multiple chains, then we need to spawn more infra. It is possible to use 1 redis cluster / timescale DB for everything, but even then this can be a lot of infra to host.
 
 The last issue I'll address relates to webhook latency and idempotency. If a user configures 5 retries for their webhook, then it is possible that they may receive more than this. This can happen if the backend service goes down right after the request is sent but right before it has a chance to officially count the request in redis. Also poor network connections can result in suboptimal delivery times leading to non-realtime behavior.
 
