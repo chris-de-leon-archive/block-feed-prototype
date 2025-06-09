@@ -1,5 +1,18 @@
 # Block Feed Prototype
 
+## Archive Notice
+
+I am pausing development on this project until further notice. This project mixed a lot of the billing logic with the business logic, which made it more difficult to:
+
+1. provide a self-hosted option to users
+1. make this project open-source and have others contribute
+
+One other pitfall is that there is very little room for customizing the 3rd party storage solutions. For example, this project has chosen redis and timescale DB for backend storage, but it would be better if we could give users more freedom over this so that they are not vendor-locked.
+
+Another issue is that The project itself is very cost-heavy and infra-heavy - if we want to support multiple chains, then we need to spawn more infra. It is possible to use 1 redis cluster / timescale DB for everything, but even then this can be a lot of infra to host.
+
+The last issue I'll address relates to webhook latency and idempotency. If a user configures 5 retries for their webhook, then it is possible that they may receive more than this. This can happen if the backend service goes down right after the request is sent but right before it has a chance to officially count the request in redis. Also poor network connections can result in suboptimal delivery times leading to non-realtime behavior.
+
 ## Intro
 
 The Block Feed project consists of a series of micorservices which make it possible to subscribe to blockchain block data in real time via a webhook subscription. Here are some notable features in this project:
@@ -12,19 +25,6 @@ The Block Feed project consists of a series of micorservices which make it possi
 - It uses a redis cluster per chain to process webhooks which allows for more granular horizontal scaling
 - The backend services are written using Go/RedisCluster/TimescaleDB/MongoDB
 - The web apps are written using NodeJS/Typescript/NextJS/Drizzle/GraphQL-Yoga
-
-## Pitfalls / Lessons Learned
-
-This project mixed a lot of the billing logic with the business logic, which made it more difficult to:
-
-1. provide a self-hosted option to users
-1. make this project open-source and have others contribute
-
-One other pitfall is that there is very little room for customizing the 3rd party storage solutions. For example, this project has chosen redis and timescale DB for backend storage, but it would be better if we could give users more freedom over this so that they are not vendor-locked.
-
-Another issue is that The project itself is very cost-heavy and infra-heavy - if we want to support multiple chains, then we need to spawn more infra. It is possible to use 1 redis cluster / timescale DB for everything, but even then this can be a lot of infra to host.
-
-The last issue I'll address relates to webhook latency and idempotency. If a user configures 5 retries for their webhook, then it is possible that they may receive more than this. This can happen if the backend service goes down right after the request is sent but right before it has a chance to officially count the request in redis. Also poor network connections can result in suboptimal delivery times leading to non-realtime behavior.
 
 ## Development
 
