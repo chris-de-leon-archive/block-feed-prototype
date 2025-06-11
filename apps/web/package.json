@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "env:dev:show": "bws run --shell='bash' --project-id=\"${BWS_PROJECT_ID}\" -- 'echo \"${DEV_FRONTEND}\"'",
-    "env:dev:pull": "pnpm run --silent env:dev:show > .env",
+    "env:dev:save": "infisical secrets set --env=dev --path=/frontend --file=./.env --silent",
+    "env:dev:pull": "infisical export --env=dev --path=/frontend --silent > .env",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",

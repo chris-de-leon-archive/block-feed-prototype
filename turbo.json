@@ -12,8 +12,8 @@
     "go:clean": {
       "dependsOn": ["^go:clean"]
     },
-    "env:dev:show": {
-      "dependsOn": ["^env:dev:show"],
+    "env:dev:save": {
+      "dependsOn": ["^env:dev:save"],
       "cache": false
     },
     "env:dev:pull": {
