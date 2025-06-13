@@ -5,8 +5,8 @@
   "scripts": {
     "stripe:seed": "node --env-file=.env --import=tsx ./scripts/create-stripe-product-and-price.ts",
     "stripe:listen": "stripe listen --forward-to localhost:3001/api/graphql",
-    "env:dev:save": "infisical secrets set --env=dev --path=/backend --file=./.env --silent",
-    "env:dev:pull": "infisical export --env=dev --path=/backend --silent > .env",
+    "env:dev:save": "infisical secrets set --env=dev --path=/block-feed-prototype/backend --file=./.env --silent",
+    "env:dev:pull": "infisical export --env=dev --path=/block-feed-prototype/backend --silent > .env",
     "schemagen": "node --import=tsx ./scripts/generate-gql-schema.ts",
     "codegen": "pnpm run schemagen && graphql-codegen --config .graphqlrc.ts",
     "test": "./node_modules/.bin/nptest",

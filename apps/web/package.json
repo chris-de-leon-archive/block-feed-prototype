@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "env:dev:save": "infisical secrets set --env=dev --path=/frontend --file=./.env --silent",
-    "env:dev:pull": "infisical export --env=dev --path=/frontend --silent > .env",
+    "env:dev:save": "infisical secrets set --env=dev --path=/block-feed-prototype/frontend --file=./.env --silent",
+    "env:dev:pull": "infisical export --env=dev --path=/block-feed-prototype/frontend --silent > .env",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
